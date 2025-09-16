@@ -126,7 +126,7 @@ class ClaudeChatProvider {
 	}> = [];
 	private _currentClaudeProcess: cp.ChildProcess | undefined;
 	private _selectedModel: string = 'default'; // Default model (backwards compatibility)
-	private _selectedAgent: string = 'architect'; // Default agent
+	private _selectedAgent: string = 'team'; // Default agent
 	private _isProcessing: boolean | undefined;
 	private _draftMessage: string = '';
 
@@ -2217,7 +2217,7 @@ class ClaudeChatProvider {
 
 	private _setSelectedAgent(agent: string): void {
 		// Validate agent name
-		const validAgents = ['architect', 'coder', 'executor', 'reviewer', 'documenter', 'coordinator'];
+		const validAgents = ['team', 'architect', 'coder', 'executor', 'reviewer', 'documenter', 'coordinator'];
 		if (validAgents.includes(agent)) {
 			this._selectedAgent = agent;
 			console.log('Agent selected:', agent);
@@ -2227,6 +2227,7 @@ class ClaudeChatProvider {
 
 			// Show confirmation with agent names
 			const agentNames: { [key: string]: string } = {
+				'team': '👥 Team (Full Team Collaboration)',
 				'architect': '🏗️ Architect (System Design & Architecture)',
 				'coder': '💻 Coder (Implementation & Development)',
 				'executor': '⚡ Executor (File Operations & Commands)',
@@ -2252,9 +2253,9 @@ class ClaudeChatProvider {
 		const modelToAgent: { [key: string]: string } = {
 			'opus': 'architect',
 			'sonnet': 'coder',
-			'default': 'coordinator'
+			'default': 'team'
 		};
-		this._setSelectedAgent(modelToAgent[model] || 'architect');
+		this._setSelectedAgent(modelToAgent[model] || 'team');
 	}
 
 	private _openModelTerminal(): void {

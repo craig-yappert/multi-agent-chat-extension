@@ -1703,6 +1703,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 
 			// Update the display text with new agent names
 			const displayNames = {
+				'team': 'Team',
 				'architect': 'Architect',
 				'coder': 'Coder',
 				'executor': 'Executor',
@@ -2564,6 +2565,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 
 			// Get agents from configuration (these will be loaded from backend)
 			const agents = [
+				{ id: 'team', name: 'Team', role: 'Full Team Collaboration', icon: '👥' },
 				{ id: 'architect', name: 'Architect', role: 'System Design & Architecture', icon: '🏗️' },
 				{ id: 'coder', name: 'Coder', role: 'Implementation & Development', icon: '💻' },
 				{ id: 'executor', name: 'Executor', role: 'File Operations & Execution', icon: '⚡' },

@@ -6,7 +6,7 @@ export interface AgentConfig {
 	icon: string;
 	color: string;
 	capabilities: string[];
-	provider: 'claude' | 'openai' | 'local' | 'mcp';
+	provider: 'claude' | 'openai' | 'local' | 'mcp' | 'multi';
 	model?: string;
 	mcpServer?: string;
 	specializations: string[];
@@ -84,6 +84,17 @@ export const defaultAgents: AgentConfig[] = [
 		provider: 'claude',
 		model: 'opus',
 		specializations: ['project-management', 'task-planning', 'team-coordination', 'decision-making']
+	},
+	{
+		id: 'team',
+		name: 'Team',
+		role: 'Full Team Collaboration',
+		description: 'Broadcasts message to all agents and coordinates collaborative responses',
+		icon: '👥',
+		color: '#8E44AD',
+		capabilities: ['team-broadcast', 'collaborative-response', 'consensus-building', 'multi-perspective'],
+		provider: 'multi',
+		specializations: ['team-collaboration', 'brainstorming', 'decision-consensus', 'knowledge-synthesis']
 	}
 ];
 
@@ -151,6 +162,10 @@ export class AgentManager {
 
 		if (taskLower.includes('coordinate') || taskLower.includes('manage') || taskLower.includes('delegate')) {
 			return this.getAgent('coordinator')!;
+		}
+
+		if (taskLower.includes('team') || taskLower.includes('everyone') || taskLower.includes('all agents') || taskLower.includes('brainstorm')) {
+			return this.getAgent('team')!;
 		}
 
 		// Default to coder for implementation tasks

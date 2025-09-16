@@ -363,8 +363,17 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 				Choose which AI agent to send your message to. Agents can hand off tasks to each other.
 			</div>
 			<div class="tools-list">
+				<div class="tool-item" onclick="selectAgent('team')">
+					<input type="radio" name="agent" id="agent-team" value="team" checked>
+					<label for="agent-team">
+						<div class="model-title">👥 Team - Full Team Collaboration</div>
+						<div class="model-description">
+							Broadcasts message to all agents and coordinates collaborative responses
+						</div>
+					</label>
+				</div>
 				<div class="tool-item" onclick="selectAgent('architect')">
-					<input type="radio" name="agent" id="agent-architect" value="architect" checked>
+					<input type="radio" name="agent" id="agent-architect" value="architect">
 					<label for="agent-architect">
 						<div class="model-title">🏗️ Architect - System Design & Architecture</div>
 						<div class="model-description">

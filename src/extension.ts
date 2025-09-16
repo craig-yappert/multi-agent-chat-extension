@@ -125,7 +125,8 @@ class ClaudeChatProvider {
 		lastUserMessage: string
 	}> = [];
 	private _currentClaudeProcess: cp.ChildProcess | undefined;
-	private _selectedModel: string = 'default'; // Default model
+	private _selectedModel: string = 'default'; // Default model (backwards compatibility)
+	private _selectedAgent: string = 'claude'; // Default agent
 	private _isProcessing: boolean | undefined;
 	private _draftMessage: string = '';
 
@@ -281,6 +282,9 @@ class ClaudeChatProvider {
 				return;
 			case 'getClipboardText':
 				this._getClipboardText();
+				return;
+			case 'selectAgent':
+				this._setSelectedAgent(message.agent);
 				return;
 			case 'selectModel':
 				this._setSelectedModel(message.model);
@@ -2211,22 +2215,44 @@ class ClaudeChatProvider {
 		}
 	}
 
-	private _setSelectedModel(model: string): void {
-		// Validate model name to prevent issues mentioned in the GitHub issue
-		const validModels = ['opus', 'sonnet', 'default'];
-		if (validModels.includes(model)) {
-			this._selectedModel = model;
-			console.log('Model selected:', model);
+	private _setSelectedAgent(agent: string): void {
+		// Validate agent name
+		const validAgents = ['claude', 'gpt4', 'claude-code', 'multi'];
+		if (validAgents.includes(agent)) {
+			this._selectedAgent = agent;
+			console.log('Agent selected:', agent);
 
-			// Store the model preference in workspace state
-			this._context.workspaceState.update('claude.selectedModel', model);
+			// Store the agent preference in workspace state
+			this._context.workspaceState.update('claude.selectedAgent', agent);
 
-			// Show confirmation
-			vscode.window.showInformationMessage(`Claude model switched to: ${model.charAt(0).toUpperCase() + model.slice(1)}`);
+			// Show confirmation with agent names
+			const agentNames: { [key: string]: string } = {
+				'claude': 'Claude (Analysis & Design)',
+				'gpt4': 'GPT-4 (Documentation & Review)',
+				'claude-code': 'Claude Code (Execution)',
+				'multi': 'Multi-Agent (Collaborative)'
+			};
+			vscode.window.showInformationMessage(`Agent switched to: ${agentNames[agent] || agent}`);
+
+			// Send confirmation to webview
+			this._postMessage({
+				type: 'agentSelected',
+				agent: agent
+			});
 		} else {
-			console.error('Invalid model selected:', model);
-			vscode.window.showErrorMessage(`Invalid model: ${model}. Please select Opus, Sonnet, or Default.`);
+			console.error('Invalid agent selected:', agent);
+			vscode.window.showErrorMessage(`Invalid agent: ${agent}.`);
 		}
+	}
+
+	private _setSelectedModel(model: string): void {
+		// Map model to agent for backwards compatibility
+		const modelToAgent: { [key: string]: string } = {
+			'opus': 'claude',
+			'sonnet': 'claude',
+			'default': 'multi'
+		};
+		this._setSelectedAgent(modelToAgent[model] || 'claude');
 	}
 
 	private _openModelTerminal(): void {

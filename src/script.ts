@@ -2521,17 +2521,71 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		}
 
 		// File picker functions
+		let showingAgents = false;
+
 		function showFilePicker() {
-			// Request initial file list from VS Code
-			vscode.postMessage({
-				type: 'getWorkspaceFiles',
-				searchTerm: ''
-			});
-			
-			// Show modal
+			// Check if user just typed @ - if so, show agents first
+			const messageInput = document.getElementById('messageInput');
+			const cursorPosition = messageInput.selectionStart;
+			const textBefore = messageInput.value.substring(0, cursorPosition);
+
+			// Check if the last @ is not followed by any text yet
+			const lastAtIndex = textBefore.lastIndexOf('@');
+			const textAfterAt = textBefore.substring(lastAtIndex + 1);
+
+			if (lastAtIndex === textBefore.length - 1 || textAfterAt.length === 0) {
+				// Show agents first
+				showingAgents = true;
+				showAgentPicker();
+			} else {
+				// Show files
+				showingAgents = false;
+				// Request initial file list from VS Code
+				vscode.postMessage({
+					type: 'getWorkspaceFiles',
+					searchTerm: ''
+				});
+
+				// Show modal
+				filePickerModal.style.display = 'flex';
+				fileSearchInput.focus();
+				selectedFileIndex = -1;
+			}
+		}
+
+		function showAgentPicker() {
+			// Show agent selection in the file picker modal
 			filePickerModal.style.display = 'flex';
+			fileSearchInput.placeholder = 'Select an agent or search files...';
 			fileSearchInput.focus();
 			selectedFileIndex = -1;
+
+			// Display agents in the file list area
+			const agents = [
+				{ name: 'claude', display: 'Claude (Analysis & Design)', icon: '🤖' },
+				{ name: 'gpt4', display: 'GPT-4 (Documentation & Review)', icon: '🤖' },
+				{ name: 'claude-code', display: 'Claude Code (Execution)', icon: '⚡' },
+				{ name: 'multi', display: 'Multi-Agent (Collaborative)', icon: '🤝' }
+			];
+
+			fileList.innerHTML = '';
+			agents.forEach((agent, index) => {
+				const agentItem = document.createElement('div');
+				agentItem.className = 'file-item';
+				if (index === selectedFileIndex) {
+					agentItem.classList.add('selected');
+				}
+				agentItem.innerHTML =
+					'<span class="file-icon">' + agent.icon + '</span>' +
+					'<div class="file-details">' +
+						'<div class="file-name">@' + agent.name + '</div>' +
+						'<div class="file-path">' + agent.display + '</div>' +
+					'</div>';
+				agentItem.onclick = () => selectAgent(agent.name);
+				fileList.appendChild(agentItem);
+			});
+
+			filteredFiles = agents.map(a => ({ path: '@' + a.name, name: a.display }));
 		}
 
 		function hideFilePicker() {
@@ -2585,24 +2639,48 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		}
 
 		function selectFile(file) {
-			// Insert file path at cursor position
-			const cursorPos = messageInput.selectionStart;
-			const textBefore = messageInput.value.substring(0, cursorPos);
-			const textAfter = messageInput.value.substring(cursorPos);
-			
-			// Replace the @ symbol with the file path
-			const beforeAt = textBefore.substring(0, textBefore.lastIndexOf('@'));
-			const newText = beforeAt + '@' + file.path + ' ' + textAfter;
-			
-			messageInput.value = newText;
-			messageInput.focus();
-			
-			// Set cursor position after the inserted path
-			const newCursorPos = beforeAt.length + file.path.length + 2;
-			messageInput.setSelectionRange(newCursorPos, newCursorPos);
-			
+			// Check if this is an agent selection
+			if (file.path && file.path.startsWith('@')) {
+				// Agent selection - insert agent mention
+				const agentName = file.path.substring(1); // Remove @ prefix
+				const cursorPos = messageInput.selectionStart;
+				const textBefore = messageInput.value.substring(0, cursorPos);
+				const textAfter = messageInput.value.substring(cursorPos);
+
+				// Replace the @ symbol with the agent mention
+				const beforeAt = textBefore.substring(0, textBefore.lastIndexOf('@'));
+				const newText = beforeAt + '@' + agentName + ' ' + textAfter;
+
+				messageInput.value = newText;
+				messageInput.focus();
+
+				// Set cursor position after the inserted agent
+				const newCursorPos = beforeAt.length + agentName.length + 2;
+				messageInput.setSelectionRange(newCursorPos, newCursorPos);
+
+				// Update the selected agent
+				selectAgent(agentName);
+			} else {
+				// File selection - insert file path
+				const cursorPos = messageInput.selectionStart;
+				const textBefore = messageInput.value.substring(0, cursorPos);
+				const textAfter = messageInput.value.substring(cursorPos);
+
+				// Replace the @ symbol with the file path
+				const beforeAt = textBefore.substring(0, textBefore.lastIndexOf('@'));
+				const newText = beforeAt + '@' + file.path + ' ' + textAfter;
+
+				messageInput.value = newText;
+				messageInput.focus();
+
+				// Set cursor position after the inserted path
+				const newCursorPos = beforeAt.length + file.path.length + 2;
+				messageInput.setSelectionRange(newCursorPos, newCursorPos);
+			}
+
 			hideFilePicker();
 			adjustTextareaHeight();
+			showingAgents = false;
 		}
 
 		function filterFiles(searchTerm) {

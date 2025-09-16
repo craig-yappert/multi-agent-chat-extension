@@ -883,22 +883,10 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				}
 				sendMessage();
 			} else if (e.key === '@' && !e.ctrlKey && !e.metaKey) {
-				// Check if this is the second @ in a row (@@)
-				const cursorPos = messageInput.selectionStart;
-				const textBefore = messageInput.value.substring(0, cursorPos);
-
-				if (textBefore.endsWith('@')) {
-					// This is @@, show agent picker
-					e.preventDefault();
-					setTimeout(() => {
-						showAgentPicker();
-					}, 0);
-				} else {
-					// Single @, show file picker
-					setTimeout(() => {
-						showFilePicker();
-					}, 0);
-				}
+				// @ always shows agent picker now
+				setTimeout(() => {
+					showAgentPicker();
+				}, 0);
 			} else if (e.key === 'Escape' && filePickerModal.style.display === 'flex') {
 				e.preventDefault();
 				hideFilePicker();
@@ -2656,43 +2644,27 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		}
 
 		function selectFile(file) {
-			// Check if this is an agent selection
+			// This function now only handles agent selection (no file references)
 			if (file.path && file.path.startsWith('@')) {
-				// Agent selection - insert agent mention with @@ prefix
+				// Agent selection - insert agent mention with @ prefix
 				const agentName = file.path.substring(1); // Remove @ prefix
 				const cursorPos = messageInput.selectionStart;
 				const textBefore = messageInput.value.substring(0, cursorPos);
 				const textAfter = messageInput.value.substring(cursorPos);
 
-				// Replace the @@ with the agent mention
-				const beforeAt = textBefore.substring(0, textBefore.lastIndexOf('@@') || textBefore.lastIndexOf('@'));
-				const newText = beforeAt + '@@' + agentName + ' ' + textAfter;
+				// Replace the @ with the agent mention
+				const beforeAt = textBefore.substring(0, textBefore.lastIndexOf('@'));
+				const newText = beforeAt + '@' + agentName + ' ' + textAfter;
 
 				messageInput.value = newText;
 				messageInput.focus();
 
 				// Set cursor position after the inserted agent
-				const newCursorPos = beforeAt.length + agentName.length + 3;
+				const newCursorPos = beforeAt.length + agentName.length + 2;
 				messageInput.setSelectionRange(newCursorPos, newCursorPos);
 
 				// Update the selected agent
 				selectAgent(agentName);
-			} else {
-				// File selection - insert file path
-				const cursorPos = messageInput.selectionStart;
-				const textBefore = messageInput.value.substring(0, cursorPos);
-				const textAfter = messageInput.value.substring(cursorPos);
-
-				// Replace the @ symbol with the file path
-				const beforeAt = textBefore.substring(0, textBefore.lastIndexOf('@'));
-				const newText = beforeAt + '@' + file.path + ' ' + textAfter;
-
-				messageInput.value = newText;
-				messageInput.focus();
-
-				// Set cursor position after the inserted path
-				const newCursorPos = beforeAt.length + file.path.length + 2;
-				messageInput.setSelectionRange(newCursorPos, newCursorPos);
 			}
 
 			hideFilePicker();

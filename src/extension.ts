@@ -452,7 +452,7 @@ class ClaudeChatProvider {
 
 	private _parseAgentMentions(message: string): string[] {
 		const mentions: string[] = [];
-		const mentionRegex = /@@(team|architect|coder|executor|reviewer|documenter|coordinator)\b/g;
+		const mentionRegex = /@(team|architect|coder|executor|reviewer|documenter|coordinator)\b/g;
 		let match;
 		while ((match = mentionRegex.exec(message)) !== null) {
 			mentions.push(match[1]);

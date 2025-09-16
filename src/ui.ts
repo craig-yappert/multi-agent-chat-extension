@@ -70,7 +70,7 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 			</div>
 			<div class="textarea-container">
 				<div class="textarea-wrapper">
-					<textarea class="input-field" id="messageInput" placeholder="Type your message... Use @ for files, @@ for agents" rows="1"></textarea>
+					<textarea class="input-field" id="messageInput" placeholder="Type your message or @mention an agent..." rows="1"></textarea>
 					<div class="input-controls">
 						<div class="left-controls">
 							<button class="model-selector" id="modelSelector" onclick="showAgentSelector()" title="Select agent">
@@ -89,7 +89,8 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 						</div>
 						<div class="right-controls">
 							<button class="slash-btn" onclick="showSlashCommandsModal()" title="Slash commands">/</button>
-							<button class="at-btn" onclick="showFilePicker()" title="Reference files (@) or agents (@@)">@</button>
+							<!-- @ button removed - agents have full filesystem access -->
+							<!-- Use @ for agent mentions, drag files from explorer instead -->
 							<button class="image-btn" id="imageBtn" onclick="selectImage()" title="Attach images">
 							<svg
 								xmlns="http://www.w3.org/2000/svg"

@@ -721,7 +721,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 					planMode: planModeEnabled,
 					thinkingMode: thinkingModeEnabled
 				});
-				
+
 				messageInput.value = '';
 			}
 		}
@@ -1743,14 +1743,21 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			selectAgent(modelToAgent[model] || 'claude', fromBackend);
 		}
 
-		// Initialize model display without sending message
-		currentModel = 'opus';
+		// Initialize agent display without sending message
+		currentAgent = 'team';
 		const displayNames = {
-			'opus': 'Opus',
-			'sonnet': 'Sonnet',
-			'default': 'Default'
+			'team': 'Team',
+			'architect': 'Architect',
+			'coder': 'Coder',
+			'executor': 'Executor',
+			'reviewer': 'Reviewer',
+			'documenter': 'Documenter',
+			'coordinator': 'Coordinator'
 		};
-		document.getElementById('selectedModel').textContent = displayNames[currentModel];
+		const selectedAgentElement = document.getElementById('selectedAgent');
+		if (selectedAgentElement) {
+			selectedAgentElement.textContent = displayNames[currentAgent] || currentAgent;
+		}
 
 		// Close model modal when clicking outside
 		document.getElementById('modelModal').addEventListener('click', (e) => {
@@ -1841,7 +1848,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 
 		window.addEventListener('message', event => {
 			const message = event.data;
-			
+
 			switch (message.type) {
 				case 'ready':
 					addMessage(message.data, 'system');
@@ -1893,6 +1900,13 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 					if (message.data.trim()) {
 						addMessage(parseSimpleMarkdown(message.data), 'user');
 					}
+					break;
+
+				case 'agentResponse':
+					if (message.data.trim()) {
+						addMessage(parseSimpleMarkdown(message.data), 'claude');
+					}
+					updateStatusWithTotals();
 					break;
 					
 				case 'loading':

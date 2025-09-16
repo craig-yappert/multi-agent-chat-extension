@@ -224,7 +224,7 @@ class ClaudeChatProvider {
 
 		this._postMessage({
 			type: 'ready',
-			data: this._isProcessing ? 'Claude is working...' : 'Ready to chat with Claude Code! Type your message below.'
+			data: this._isProcessing ? 'Agents are working...' : 'Ready to chat with Multi Agent Chat! Type your message below.'
 		});
 
 		// Send current model to webview
@@ -1950,7 +1950,6 @@ class ClaudeChatProvider {
 	}
 
 	private _sendAndSaveMessage(message: { type: string, data: any }): void {
-
 		// Initialize conversation if this is the first message
 		if (this._currentConversation.length === 0) {
 			this._conversationStartTime = new Date().toISOString();

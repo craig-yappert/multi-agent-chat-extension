@@ -54,8 +54,8 @@
     "commands": [
       {
         "command": "claude-code-chat.openChat",
-        "title": "Open Claude Code Chat",
-        "category": "Claude Code Chat",
+        "title": "Open Multi Agent Chat",
+        "category": "Multi Agent Chat",
         "icon": "icon.png"
       }
     ],
@@ -131,10 +131,10 @@
         {
           "id": "claude-code-chat.chat",
           "type": "webview",
-          "name": "Claude Code Chat",
+          "name": "Multi Agent Chat",
           "when": "true",
           "icon": "icon.png",
-          "contextualTitle": "Claude Code Chat"
+          "contextualTitle": "Multi Agent Chat"
         }
       ]
     },
@@ -142,13 +142,13 @@
       "activitybar": [
         {
           "id": "claude-code-chat",
-          "title": "Claude Code Chat",
+          "title": "Multi Agent Chat",
           "icon": "icon.png"
         }
       ]
     },
     "configuration": {
-      "title": "Claude Code Chat",
+      "title": "Multi Agent Chat",
       "properties": {
         "claudeCodeChat.wsl.enabled": {
           "type": "boolean",

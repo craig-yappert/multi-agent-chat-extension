@@ -883,10 +883,22 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				}
 				sendMessage();
 			} else if (e.key === '@' && !e.ctrlKey && !e.metaKey) {
-				// Don't prevent default, let @ be typed first
-				setTimeout(() => {
-					showFilePicker();
-				}, 0);
+				// Check if this is the second @ in a row (@@)
+				const cursorPos = messageInput.selectionStart;
+				const textBefore = messageInput.value.substring(0, cursorPos);
+
+				if (textBefore.endsWith('@')) {
+					// This is @@, show agent picker
+					e.preventDefault();
+					setTimeout(() => {
+						showAgentPicker();
+					}, 0);
+				} else {
+					// Single @, show file picker
+					setTimeout(() => {
+						showFilePicker();
+					}, 0);
+				}
 			} else if (e.key === 'Escape' && filePickerModal.style.display === 'flex') {
 				e.preventDefault();
 				hideFilePicker();
@@ -2541,33 +2553,18 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		let showingAgents = false;
 
 		function showFilePicker() {
-			// Check if user just typed @ - if so, show agents first
-			const messageInput = document.getElementById('messageInput');
-			const cursorPosition = messageInput.selectionStart;
-			const textBefore = messageInput.value.substring(0, cursorPosition);
+			// Always show files when @ button is clicked
+			showingAgents = false;
+			// Request initial file list from VS Code
+			vscode.postMessage({
+				type: 'getWorkspaceFiles',
+				searchTerm: ''
+			});
 
-			// Check if the last @ is not followed by any text yet
-			const lastAtIndex = textBefore.lastIndexOf('@');
-			const textAfterAt = textBefore.substring(lastAtIndex + 1);
-
-			if (lastAtIndex === textBefore.length - 1 || textAfterAt.length === 0) {
-				// Show agents first
-				showingAgents = true;
-				showAgentPicker();
-			} else {
-				// Show files
-				showingAgents = false;
-				// Request initial file list from VS Code
-				vscode.postMessage({
-					type: 'getWorkspaceFiles',
-					searchTerm: ''
-				});
-
-				// Show modal
-				filePickerModal.style.display = 'flex';
-				fileSearchInput.focus();
-				selectedFileIndex = -1;
-			}
+			// Show modal
+			filePickerModal.style.display = 'flex';
+			fileSearchInput.focus();
+			selectedFileIndex = -1;
 		}
 
 		function showAgentPicker() {
@@ -2661,21 +2658,21 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		function selectFile(file) {
 			// Check if this is an agent selection
 			if (file.path && file.path.startsWith('@')) {
-				// Agent selection - insert agent mention
+				// Agent selection - insert agent mention with @@ prefix
 				const agentName = file.path.substring(1); // Remove @ prefix
 				const cursorPos = messageInput.selectionStart;
 				const textBefore = messageInput.value.substring(0, cursorPos);
 				const textAfter = messageInput.value.substring(cursorPos);
 
-				// Replace the @ symbol with the agent mention
-				const beforeAt = textBefore.substring(0, textBefore.lastIndexOf('@'));
-				const newText = beforeAt + '@' + agentName + ' ' + textAfter;
+				// Replace the @@ with the agent mention
+				const beforeAt = textBefore.substring(0, textBefore.lastIndexOf('@@') || textBefore.lastIndexOf('@'));
+				const newText = beforeAt + '@@' + agentName + ' ' + textAfter;
 
 				messageInput.value = newText;
 				messageInput.focus();
 
 				// Set cursor position after the inserted agent
-				const newCursorPos = beforeAt.length + agentName.length + 2;
+				const newCursorPos = beforeAt.length + agentName.length + 3;
 				messageInput.setSelectionRange(newCursorPos, newCursorPos);
 
 				// Update the selected agent

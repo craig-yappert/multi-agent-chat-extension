@@ -57,7 +57,8 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 		</div>
 		
 		<div class="input-container" id="inputContainer">
-			<div class="input-modes">
+			<!-- Hiding Plan and Thinking modes for multi-agent setup -->
+			<div class="input-modes" style="display: none;">
 				<div class="mode-toggle">
 					<span onclick="togglePlanMode()">Plan First</span>
 					<div class="mode-switch" id="planModeSwitch" onclick="togglePlanMode()"></div>
@@ -69,7 +70,7 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 			</div>
 			<div class="textarea-container">
 				<div class="textarea-wrapper">
-					<textarea class="input-field" id="messageInput" placeholder="Type your message to Claude Code..." rows="1"></textarea>
+					<textarea class="input-field" id="messageInput" placeholder="Type your message... Use @ for files, @@ for agents" rows="1"></textarea>
 					<div class="input-controls">
 						<div class="left-controls">
 							<button class="model-selector" id="modelSelector" onclick="showAgentSelector()" title="Select agent">
@@ -78,7 +79,8 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 									<path d="M1 2.5l3 3 3-3"></path>
 								</svg>
 							</button>
-							<button class="tools-btn" onclick="showMCPModal()" title="Configure MCP servers">
+							<!-- MCP configuration hidden for multi-agent setup -->
+							<button class="tools-btn" onclick="showMCPModal()" title="Configure MCP servers" style="display: none;">
 								MCP
 								<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
 									<path d="M1 2.5l3 3 3-3"></path>
@@ -87,7 +89,7 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 						</div>
 						<div class="right-controls">
 							<button class="slash-btn" onclick="showSlashCommandsModal()" title="Slash commands">/</button>
-							<button class="at-btn" onclick="showFilePicker()" title="Reference files">@</button>
+							<button class="at-btn" onclick="showFilePicker()" title="Reference files (@) or agents (@@)">@</button>
 							<button class="image-btn" id="imageBtn" onclick="selectImage()" title="Attach images">
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
@@ -124,7 +126,8 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 		</div>
 	</div>
 	
-	<div class="status ready" id="status">
+	<!-- Status and cost indicators hidden for multi-agent setup -->
+	<div class="status ready" id="status" style="display: none;">
 		<div class="status-indicator"></div>
 		<div class="status-text" id="statusText">Initializing...</div>
 		<button class="btn stop" id="stopBtn" onclick="stopRequest()" style="display: none;">

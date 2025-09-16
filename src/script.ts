@@ -1399,16 +1399,21 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			}
 		}
 
-		// Model selector functions
-		let currentModel = 'opus'; // Default model
+		// Agent selector functions
+		let currentAgent = 'claude'; // Default agent
 
-		function showModelSelector() {
+		function showAgentSelector() {
 			document.getElementById('modelModal').style.display = 'flex';
-			// Select the current model radio button
-			const radioButton = document.getElementById('model-' + currentModel);
+			// Select the current agent radio button
+			const radioButton = document.getElementById('agent-' + currentAgent);
 			if (radioButton) {
 				radioButton.checked = true;
 			}
+		}
+
+		function showModelSelector() {
+			// Backwards compatibility - redirect to agent selector
+			showAgentSelector();
 		}
 
 		function hideModelModal() {
@@ -1693,35 +1698,46 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			hideModelModal();
 		}
 
-		function selectModel(model, fromBackend = false) {
-			currentModel = model;
-			
+		function selectAgent(agent, fromBackend = false) {
+			currentAgent = agent;
+
 			// Update the display text
 			const displayNames = {
-				'opus': 'Opus',
-				'sonnet': 'Sonnet',
-				'default': 'Model'
+				'claude': 'Claude',
+				'gpt4': 'GPT-4',
+				'claude-code': 'Claude Code',
+				'multi': 'Multi-Agent'
 			};
-			document.getElementById('selectedModel').textContent = displayNames[model] || model;
-			
-			// Only send model selection to VS Code extension if not from backend
+			document.getElementById('selectedAgent').textContent = displayNames[agent] || agent;
+
+			// Only send agent selection to VS Code extension if not from backend
 			if (!fromBackend) {
 				vscode.postMessage({
-					type: 'selectModel',
-					model: model
+					type: 'selectAgent',
+					agent: agent
 				});
-				
+
 				// Save preference
-				localStorage.setItem('selectedModel', model);
+				localStorage.setItem('selectedAgent', agent);
 			}
-			
+
 			// Update radio button if modal is open
-			const radioButton = document.getElementById('model-' + model);
+			const radioButton = document.getElementById('agent-' + agent);
 			if (radioButton) {
 				radioButton.checked = true;
 			}
-			
+
 			hideModelModal();
+		}
+
+		function selectModel(model, fromBackend = false) {
+			// Map old model selection to agent selection for backwards compatibility
+			const modelToAgent = {
+				'opus': 'claude',
+				'sonnet': 'claude',
+				'default': 'multi'
+			};
+			selectAgent(modelToAgent[model] || 'claude', fromBackend);
 		}
 
 		// Initialize model display without sending message

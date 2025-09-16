@@ -72,8 +72,8 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 					<textarea class="input-field" id="messageInput" placeholder="Type your message to Claude Code..." rows="1"></textarea>
 					<div class="input-controls">
 						<div class="left-controls">
-							<button class="model-selector" id="modelSelector" onclick="showModelSelector()" title="Select model">
-								<span id="selectedModel">Opus</span>
+							<button class="model-selector" id="modelSelector" onclick="showAgentSelector()" title="Select agent">
+								<span id="selectedAgent">Claude</span>
 								<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
 									<path d="M1 2.5l3 3 3-3"></path>
 								</svg>
@@ -352,47 +352,56 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 		</div>
 	</div>
 
-	<!-- Model selector modal -->
+	<!-- Agent selector modal -->
 	<div id="modelModal" class="tools-modal" style="display: none;">
-		<div class="tools-modal-content" style="width: 400px;">
+		<div class="tools-modal-content" style="width: 450px;">
 			<div class="tools-modal-header">
-				<span>Enforce Model</span>
+				<span>Select Agent</span>
 				<button class="tools-close-btn" onclick="hideModelModal()">✕</button>
 			</div>
 			<div class="model-explanatory-text">
-				This overrides your default model setting for this conversation only.
+				Choose which AI agent to send your message to. Agents can hand off tasks to each other.
 			</div>
 			<div class="tools-list">
-				<div class="tool-item" onclick="selectModel('opus')">
-					<input type="radio" name="model" id="model-opus" value="opus" checked>
-					<label for="model-opus">
-						<div class="model-title">Opus - Most capable model</div>
+				<div class="tool-item" onclick="selectAgent('claude')">
+					<input type="radio" name="agent" id="agent-claude" value="claude" checked>
+					<label for="agent-claude">
+						<div class="model-title">Claude (Opus) - Analysis & Design</div>
 						<div class="model-description">
-							Best for complex tasks and highest quality output
+							Best for complex reasoning, architecture, and code analysis
 						</div>
 					</label>
 				</div>
-				<div class="tool-item" onclick="selectModel('sonnet')">
-					<input type="radio" name="model" id="model-sonnet" value="sonnet">
-					<label for="model-sonnet">
-						<div class="model-title">Sonnet - Balanced model</div>
+				<div class="tool-item" onclick="selectAgent('gpt4')">
+					<input type="radio" name="agent" id="agent-gpt4" value="gpt4">
+					<label for="agent-gpt4">
+						<div class="model-title">GPT-4 - Documentation & Review</div>
 						<div class="model-description">
-							Good balance of speed and capability
+							Excellent at code review, documentation, and testing
 						</div>
 					</label>
 				</div>
-				<div class="tool-item" onclick="selectModel('default')">
-					<input type="radio" name="model" id="model-default" value="default">
-					<label for="model-default" class="default-model-layout">
+				<div class="tool-item" onclick="selectAgent('claude-code')">
+					<input type="radio" name="agent" id="agent-claude-code" value="claude-code">
+					<label for="agent-claude-code">
+						<div class="model-title">Claude Code - Execution Layer</div>
+						<div class="model-description">
+							MCP-enabled agent for file operations and code execution
+						</div>
+					</label>
+				</div>
+				<div class="tool-item" onclick="selectAgent('multi')">
+					<input type="radio" name="agent" id="agent-multi" value="multi">
+					<label for="agent-multi" class="default-model-layout">
 						<div class="model-option-content">
-							<div class="model-title">Default - User configured</div>
+							<div class="model-title">Multi-Agent - Collaborative Mode</div>
 							<div class="model-description">
-								Uses the model configured in your settings
+								Automatically delegates to the best agent for each task
 							</div>
 						</div>
-						<button class="secondary-button configure-button" onclick="event.stopPropagation(); openModelTerminal();">
-							Configure
-						</button>
+						<div class="agent-handoff-indicator" style="margin-left: 10px;">
+							🤝
+						</div>
 					</label>
 				</div>
 			</div>

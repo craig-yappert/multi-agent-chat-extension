@@ -20,16 +20,13 @@ export class ClaudeProvider implements AIProvider {
 		// Add agent role context to message
 		const roleContext = `You are ${agentConfig.name}, a ${agentConfig.role}. ${agentConfig.description}\n\nYour capabilities: ${agentConfig.capabilities.join(', ')}\nYour specializations: ${agentConfig.specializations.join(', ')}\n\nUser message: ${message}`;
 
-		// Build Claude command args
-		const args = ['--no-stream'];
+		// Build Claude command args (based on original working implementation)
+		const args: string[] = [];
 
 		// Add model if specified
-		if (agentConfig.model) {
+		if (agentConfig.model && agentConfig.model !== 'default') {
 			args.push('--model', agentConfig.model);
 		}
-
-		// Add thinking mode
-		args.push('--thinking-mode', thinkingIntensity);
 
 		console.log('Claude command args:', args);
 

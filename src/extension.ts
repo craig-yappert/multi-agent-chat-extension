@@ -3,6 +3,8 @@ import * as cp from 'child_process';
 import * as util from 'util';
 import * as path from 'path';
 import getHtml from './ui';
+import { AgentManager } from './agents';
+import { ProviderManager } from './providers';
 
 const exec = util.promisify(cp.exec);
 
@@ -129,11 +131,15 @@ class ClaudeChatProvider {
 	private _selectedAgent: string = 'team'; // Default agent
 	private _isProcessing: boolean | undefined;
 	private _draftMessage: string = '';
+	private _agentManager: AgentManager;
+	private _providerManager: ProviderManager;
 
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
 		private readonly _context: vscode.ExtensionContext
 	) {
+		this._agentManager = new AgentManager();
+		this._providerManager = new ProviderManager(_context);
 
 		// Initialize backup repository and conversations
 		this._initializeBackupRepo();
@@ -461,93 +467,42 @@ class ClaudeChatProvider {
 	}
 
 	private async _handleAgentMessage(agent: string, message: string, planMode?: boolean, thinkingMode?: boolean) {
-		// For now, create mock responses to test the UI
-		// Later we'll replace these with actual AI provider calls
+		// Get agent configuration
+		const agentConfig = this._agentManager.getAgent(agent);
+		if (!agentConfig) {
+			this._sendAndSaveMessage({
+				type: 'agentResponse',
+				data: `❌ **Error:** Unknown agent "${agent}". Available agents: team, architect, coder, executor, reviewer, documenter, coordinator`
+			});
+			return;
+		}
 
-		await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing time
+		try {
+			// Get appropriate provider for this agent
+			const provider = this._providerManager.getProvider(agentConfig);
 
-		switch (agent) {
-			case 'team':
-				await this._handleTeamMessage(message);
-				break;
-			case 'architect':
-				await this._handleArchitectMessage(message);
-				break;
-			case 'coder':
-				await this._handleCoderMessage(message);
-				break;
-			case 'executor':
-				await this._handleExecutorMessage(message);
-				break;
-			case 'reviewer':
-				await this._handleReviewerMessage(message);
-				break;
-			case 'documenter':
-				await this._handleDocumenterMessage(message);
-				break;
-			case 'coordinator':
-				await this._handleCoordinatorMessage(message);
-				break;
-			default:
-				await this._handleDefaultMessage(message);
+			// Send message to provider
+			const response = await provider.sendMessage(message, agentConfig, {
+				planMode,
+				thinkingMode,
+				workspaceRoot: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+			});
+
+			// Send response back to UI
+			this._sendAndSaveMessage({
+				type: 'agentResponse',
+				data: response
+			});
+
+		} catch (error) {
+			console.error(`Error with ${agentConfig.name} provider:`, error);
+			this._sendAndSaveMessage({
+				type: 'agentResponse',
+				data: `${agentConfig.icon} **${agentConfig.name} Error:**\n\nSorry, I encountered an error processing your request: ${error instanceof Error ? error.message : 'Unknown error'}\n\n*Please check your configuration and try again.*`
+			});
 		}
 	}
 
-	private async _handleTeamMessage(message: string) {
-		this._sendAndSaveMessage({
-			type: 'agentResponse',
-			data: `👥 **Team Response:**\n\nI'll coordinate with all agents to address your request: "${message}"\n\n🏗️ **Architect**: This looks like a system design question. Let me analyze the architecture implications.\n\n💻 **Coder**: I can help implement the technical solution once we have the design.\n\n🔍 **Reviewer**: I'll review the approach for best practices and potential issues.\n\n⚡ **Executor**: I'm ready to handle any file operations or command execution needed.\n\n*This is a mock response - real agent integration coming next!*`
-		});
-	}
-
-	private async _handleArchitectMessage(message: string) {
-		this._sendAndSaveMessage({
-			type: 'agentResponse',
-			data: `🏗️ **Architect Response:**\n\nLet me analyze the system architecture for: "${message}"\n\n**High-level approach:**\n1. Define system boundaries and interfaces\n2. Identify key components and their relationships\n3. Plan data flow and communication patterns\n4. Consider scalability and maintainability\n\n**Recommendation:** We should start with a modular design that separates concerns clearly.\n\n*This is a mock response - real AI integration coming next!*`,
-		});
-	}
-
-	private async _handleCoderMessage(message: string) {
-		this._sendAndSaveMessage({
-			type: 'agentResponse',
-			data: `💻 **Coder Response:**\n\nI'll help implement: "${message}"\n\n\`\`\`typescript\n// Example implementation approach\nclass MultiAgentSystem {\n  private agents: Map<string, Agent> = new Map();\n  \n  async processMessage(message: string, targetAgent: string) {\n    const agent = this.agents.get(targetAgent);\n    return await agent.process(message);\n  }\n}\n\`\`\`\n\n**Next steps:**\n- Define interfaces\n- Implement core logic\n- Add error handling\n\n*This is a mock response - real AI integration coming next!*`
-		});
-	}
-
-	private async _handleExecutorMessage(message: string) {
-		this._sendAndSaveMessage({
-			type: 'agentResponse',
-			data: `⚡ **Executor Response:**\n\nReady to execute commands for: "${message}"\n\n**Available operations:**\n- File system operations\n- Command execution\n- Test running\n- Build processes\n\n**Status:** Waiting for specific commands to execute.\n\n*This is a mock response - real MCP integration coming next!*`
-		});
-	}
-
-	private async _handleReviewerMessage(message: string) {
-		this._sendAndSaveMessage({
-			type: 'agentResponse',
-			data: `🔍 **Reviewer Response:**\n\nCode review analysis for: "${message}"\n\n**Review checklist:**\n✅ Code structure and organization\n✅ Error handling and edge cases\n✅ Performance considerations\n✅ Security implications\n✅ Testing coverage\n\n**Overall assessment:** Looks good, but recommend adding more error handling.\n\n*This is a mock response - real AI integration coming next!*`
-		});
-	}
-
-	private async _handleDocumenterMessage(message: string) {
-		this._sendAndSaveMessage({
-			type: 'agentResponse',
-			data: `📝 **Documenter Response:**\n\nDocumentation for: "${message}"\n\n## Overview\nThis feature provides multi-agent collaboration capabilities.\n\n## Usage\n\`\`\`\n@team What's the best approach?\n@architect Design the system\n@coder Implement the feature\n\`\`\`\n\n## API Reference\nDetailed documentation would go here.\n\n*This is a mock response - real AI integration coming next!*`
-		});
-	}
-
-	private async _handleCoordinatorMessage(message: string) {
-		this._sendAndSaveMessage({
-			type: 'agentResponse',
-			data: `🤝 **Coordinator Response:**\n\nCoordinating workflow for: "${message}"\n\n**Task breakdown:**\n1. Analysis phase → @architect\n2. Implementation → @coder  \n3. Review → @reviewer\n4. Documentation → @documenter\n5. Execution → @executor\n\n**Current status:** Ready to delegate to appropriate agents.\n\n*This is a mock response - real AI integration coming next!*`
-		});
-	}
-
-	private async _handleDefaultMessage(message: string) {
-		this._sendAndSaveMessage({
-			type: 'agentResponse',
-			data: `🤖 **Agent Response:**\n\nProcessing: "${message}"\n\nI'm ready to help! Try mentioning specific agents like @team, @architect, or @coder for specialized responses.\n\n*This is a mock response - real AI integration coming next!*`
-		});
-	}
 
 	private async _sendMessageToClaude(message: string, planMode?: boolean, thinkingMode?: boolean) {
 		const workspaceFolder = vscode.workspace.workspaceFolders?.[0];

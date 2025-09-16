@@ -251,7 +251,7 @@ class ClaudeChatProvider {
 	private _handleWebviewMessage(message: any) {
 		switch (message.type) {
 			case 'sendMessage':
-				this._sendMessageToClaude(message.text, message.planMode, message.thinkingMode);
+				this._sendMessageToAgent(message.text, message.planMode, message.thinkingMode);
 				return;
 			case 'newSession':
 				this._newSession();
@@ -407,6 +407,146 @@ class ClaudeChatProvider {
 			// Set up message handler for the webview
 			this._setupWebviewMessageHandler(this._webview);
 		}
+	}
+
+	private async _sendMessageToAgent(message: string, planMode?: boolean, thinkingMode?: boolean) {
+		// Route to appropriate agent based on selected agent
+		const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+		const cwd = workspaceFolder ? workspaceFolder.uri.fsPath : process.cwd();
+
+		// Show original user input in chat
+		this._sendAndSaveMessage({
+			type: 'userInput',
+			data: message
+		});
+
+		this._isProcessing = true;
+
+		// Parse @agent mentions in the message
+		const agentMentions = this._parseAgentMentions(message);
+		const targetAgent = agentMentions.length > 0 ? agentMentions[0] : this._selectedAgent;
+
+		// Set processing state
+		this._postMessage({
+			type: 'setProcessing',
+			data: true
+		});
+
+		try {
+			// Route to appropriate agent handler
+			await this._handleAgentMessage(targetAgent, message, planMode, thinkingMode);
+		} catch (error) {
+			console.error('Error processing agent message:', error);
+			this._sendAndSaveMessage({
+				type: 'error',
+				data: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+			});
+		} finally {
+			this._isProcessing = false;
+			this._postMessage({
+				type: 'setProcessing',
+				data: false
+			});
+		}
+	}
+
+	private _parseAgentMentions(message: string): string[] {
+		const mentions: string[] = [];
+		const mentionRegex = /@(team|architect|coder|executor|reviewer|documenter|coordinator)\b/g;
+		let match;
+		while ((match = mentionRegex.exec(message)) !== null) {
+			mentions.push(match[1]);
+		}
+		return mentions;
+	}
+
+	private async _handleAgentMessage(agent: string, message: string, planMode?: boolean, thinkingMode?: boolean) {
+		// For now, create mock responses to test the UI
+		// Later we'll replace these with actual AI provider calls
+
+		await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing time
+
+		switch (agent) {
+			case 'team':
+				await this._handleTeamMessage(message);
+				break;
+			case 'architect':
+				await this._handleArchitectMessage(message);
+				break;
+			case 'coder':
+				await this._handleCoderMessage(message);
+				break;
+			case 'executor':
+				await this._handleExecutorMessage(message);
+				break;
+			case 'reviewer':
+				await this._handleReviewerMessage(message);
+				break;
+			case 'documenter':
+				await this._handleDocumenterMessage(message);
+				break;
+			case 'coordinator':
+				await this._handleCoordinatorMessage(message);
+				break;
+			default:
+				await this._handleDefaultMessage(message);
+		}
+	}
+
+	private async _handleTeamMessage(message: string) {
+		this._sendAndSaveMessage({
+			type: 'agentResponse',
+			data: `👥 **Team Response:**\n\nI'll coordinate with all agents to address your request: "${message}"\n\n🏗️ **Architect**: This looks like a system design question. Let me analyze the architecture implications.\n\n💻 **Coder**: I can help implement the technical solution once we have the design.\n\n🔍 **Reviewer**: I'll review the approach for best practices and potential issues.\n\n⚡ **Executor**: I'm ready to handle any file operations or command execution needed.\n\n*This is a mock response - real agent integration coming next!*`
+		});
+	}
+
+	private async _handleArchitectMessage(message: string) {
+		this._sendAndSaveMessage({
+			type: 'agentResponse',
+			data: `🏗️ **Architect Response:**\n\nLet me analyze the system architecture for: "${message}"\n\n**High-level approach:**\n1. Define system boundaries and interfaces\n2. Identify key components and their relationships\n3. Plan data flow and communication patterns\n4. Consider scalability and maintainability\n\n**Recommendation:** We should start with a modular design that separates concerns clearly.\n\n*This is a mock response - real AI integration coming next!*`,
+		});
+	}
+
+	private async _handleCoderMessage(message: string) {
+		this._sendAndSaveMessage({
+			type: 'agentResponse',
+			data: `💻 **Coder Response:**\n\nI'll help implement: "${message}"\n\n\`\`\`typescript\n// Example implementation approach\nclass MultiAgentSystem {\n  private agents: Map<string, Agent> = new Map();\n  \n  async processMessage(message: string, targetAgent: string) {\n    const agent = this.agents.get(targetAgent);\n    return await agent.process(message);\n  }\n}\n\`\`\`\n\n**Next steps:**\n- Define interfaces\n- Implement core logic\n- Add error handling\n\n*This is a mock response - real AI integration coming next!*`
+		});
+	}
+
+	private async _handleExecutorMessage(message: string) {
+		this._sendAndSaveMessage({
+			type: 'agentResponse',
+			data: `⚡ **Executor Response:**\n\nReady to execute commands for: "${message}"\n\n**Available operations:**\n- File system operations\n- Command execution\n- Test running\n- Build processes\n\n**Status:** Waiting for specific commands to execute.\n\n*This is a mock response - real MCP integration coming next!*`
+		});
+	}
+
+	private async _handleReviewerMessage(message: string) {
+		this._sendAndSaveMessage({
+			type: 'agentResponse',
+			data: `🔍 **Reviewer Response:**\n\nCode review analysis for: "${message}"\n\n**Review checklist:**\n✅ Code structure and organization\n✅ Error handling and edge cases\n✅ Performance considerations\n✅ Security implications\n✅ Testing coverage\n\n**Overall assessment:** Looks good, but recommend adding more error handling.\n\n*This is a mock response - real AI integration coming next!*`
+		});
+	}
+
+	private async _handleDocumenterMessage(message: string) {
+		this._sendAndSaveMessage({
+			type: 'agentResponse',
+			data: `📝 **Documenter Response:**\n\nDocumentation for: "${message}"\n\n## Overview\nThis feature provides multi-agent collaboration capabilities.\n\n## Usage\n\`\`\`\n@team What's the best approach?\n@architect Design the system\n@coder Implement the feature\n\`\`\`\n\n## API Reference\nDetailed documentation would go here.\n\n*This is a mock response - real AI integration coming next!*`
+		});
+	}
+
+	private async _handleCoordinatorMessage(message: string) {
+		this._sendAndSaveMessage({
+			type: 'agentResponse',
+			data: `🤝 **Coordinator Response:**\n\nCoordinating workflow for: "${message}"\n\n**Task breakdown:**\n1. Analysis phase → @architect\n2. Implementation → @coder  \n3. Review → @reviewer\n4. Documentation → @documenter\n5. Execution → @executor\n\n**Current status:** Ready to delegate to appropriate agents.\n\n*This is a mock response - real AI integration coming next!*`
+		});
+	}
+
+	private async _handleDefaultMessage(message: string) {
+		this._sendAndSaveMessage({
+			type: 'agentResponse',
+			data: `🤖 **Agent Response:**\n\nProcessing: "${message}"\n\nI'm ready to help! Try mentioning specific agents like @team, @architect, or @coder for specialized responses.\n\n*This is a mock response - real AI integration coming next!*`
+		});
 	}
 
 	private async _sendMessageToClaude(message: string, planMode?: boolean, thinkingMode?: boolean) {

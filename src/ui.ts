@@ -7,13 +7,13 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Claude Code Chat</title>
+	<title>Multi Agent Chat</title>
 	${styles}
 </head>
 <body>
 	<div class="header">
 		<div style="display: flex; align-items: center;">
-			<h2>Claude Code Chat</h2>
+			<h2>Multi Agent Chat</h2>
 			<!-- <div id="sessionInfo" class="session-badge" style="display: none;">
 				<span class="session-icon">💬</span>
 				<span id="sessionId">-</span>
@@ -363,44 +363,59 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 				Choose which AI agent to send your message to. Agents can hand off tasks to each other.
 			</div>
 			<div class="tools-list">
-				<div class="tool-item" onclick="selectAgent('claude')">
-					<input type="radio" name="agent" id="agent-claude" value="claude" checked>
-					<label for="agent-claude">
-						<div class="model-title">Claude (Opus) - Analysis & Design</div>
+				<div class="tool-item" onclick="selectAgent('architect')">
+					<input type="radio" name="agent" id="agent-architect" value="architect" checked>
+					<label for="agent-architect">
+						<div class="model-title">🏗️ Architect - System Design & Architecture</div>
 						<div class="model-description">
-							Best for complex reasoning, architecture, and code analysis
+							Plans system architecture, designs APIs, and makes high-level technical decisions
 						</div>
 					</label>
 				</div>
-				<div class="tool-item" onclick="selectAgent('gpt4')">
-					<input type="radio" name="agent" id="agent-gpt4" value="gpt4">
-					<label for="agent-gpt4">
-						<div class="model-title">GPT-4 - Documentation & Review</div>
+				<div class="tool-item" onclick="selectAgent('coder')">
+					<input type="radio" name="agent" id="agent-coder" value="coder">
+					<label for="agent-coder">
+						<div class="model-title">💻 Coder - Implementation & Development</div>
 						<div class="model-description">
-							Excellent at code review, documentation, and testing
+							Writes code, implements features, and handles complex programming tasks
 						</div>
 					</label>
 				</div>
-				<div class="tool-item" onclick="selectAgent('claude-code')">
-					<input type="radio" name="agent" id="agent-claude-code" value="claude-code">
-					<label for="agent-claude-code">
-						<div class="model-title">Claude Code - Execution Layer</div>
+				<div class="tool-item" onclick="selectAgent('executor')">
+					<input type="radio" name="agent" id="agent-executor" value="executor">
+					<label for="agent-executor">
+						<div class="model-title">⚡ Executor - File Operations & Commands</div>
 						<div class="model-description">
-							MCP-enabled agent for file operations and code execution
+							Executes commands, manages files, runs tests, and handles system operations
 						</div>
 					</label>
 				</div>
-				<div class="tool-item" onclick="selectAgent('multi')">
-					<input type="radio" name="agent" id="agent-multi" value="multi">
-					<label for="agent-multi" class="default-model-layout">
+				<div class="tool-item" onclick="selectAgent('reviewer')">
+					<input type="radio" name="agent" id="agent-reviewer" value="reviewer">
+					<label for="agent-reviewer">
+						<div class="model-title">🔍 Reviewer - Code Review & Quality Assurance</div>
+						<div class="model-description">
+							Reviews code quality, suggests improvements, and ensures best practices
+						</div>
+					</label>
+				</div>
+				<div class="tool-item" onclick="selectAgent('documenter')">
+					<input type="radio" name="agent" id="agent-documenter" value="documenter">
+					<label for="agent-documenter">
+						<div class="model-title">📝 Documenter - Documentation & Communication</div>
+						<div class="model-description">
+							Creates documentation, writes comments, and explains complex concepts
+						</div>
+					</label>
+				</div>
+				<div class="tool-item" onclick="selectAgent('coordinator')">
+					<input type="radio" name="agent" id="agent-coordinator" value="coordinator">
+					<label for="agent-coordinator" class="default-model-layout">
 						<div class="model-option-content">
-							<div class="model-title">Multi-Agent - Collaborative Mode</div>
+							<div class="model-title">🤝 Coordinator - Multi-Agent Orchestration</div>
 							<div class="model-description">
-								Automatically delegates to the best agent for each task
+								Coordinates between agents, manages workflows, and delegates tasks
 							</div>
-						</div>
-						<div class="agent-handoff-indicator" style="margin-left: 10px;">
-							🤝
 						</div>
 					</label>
 				</div>

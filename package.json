@@ -1,13 +1,13 @@
 {
-  "name": "claude-code-chat",
-  "displayName": "Claude Code Chat",
-  "description": "Beautiful Claude Code Chat Interface for VS Code",
+  "name": "multi-agent-chat",
+  "displayName": "Multi Agent Chat",
+  "description": "Collaborative Multi-Agent AI Chat Interface for VS Code",
   "version": "1.0.6",
-  "publisher": "AndrePimenta",
-  "author": "Andre Pimenta",
+  "publisher": "CraigYappert",
+  "author": "Craig Yappert",
   "repository": {
     "type": "git",
-    "url": "https://github.com/andrepimenta/claude-code-chat"
+    "url": "https://github.com/craig-yappert/multi-agent-chat-extension"
   },
   "license": "SEE LICENSE IN LICENSE",
   "engines": {

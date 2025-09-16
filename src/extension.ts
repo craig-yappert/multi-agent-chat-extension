@@ -126,7 +126,7 @@ class ClaudeChatProvider {
 	}> = [];
 	private _currentClaudeProcess: cp.ChildProcess | undefined;
 	private _selectedModel: string = 'default'; // Default model (backwards compatibility)
-	private _selectedAgent: string = 'claude'; // Default agent
+	private _selectedAgent: string = 'architect'; // Default agent
 	private _isProcessing: boolean | undefined;
 	private _draftMessage: string = '';
 
@@ -2217,20 +2217,22 @@ class ClaudeChatProvider {
 
 	private _setSelectedAgent(agent: string): void {
 		// Validate agent name
-		const validAgents = ['claude', 'gpt4', 'claude-code', 'multi'];
+		const validAgents = ['architect', 'coder', 'executor', 'reviewer', 'documenter', 'coordinator'];
 		if (validAgents.includes(agent)) {
 			this._selectedAgent = agent;
 			console.log('Agent selected:', agent);
 
 			// Store the agent preference in workspace state
-			this._context.workspaceState.update('claude.selectedAgent', agent);
+			this._context.workspaceState.update('multiagent.selectedAgent', agent);
 
 			// Show confirmation with agent names
 			const agentNames: { [key: string]: string } = {
-				'claude': 'Claude (Analysis & Design)',
-				'gpt4': 'GPT-4 (Documentation & Review)',
-				'claude-code': 'Claude Code (Execution)',
-				'multi': 'Multi-Agent (Collaborative)'
+				'architect': '🏗️ Architect (System Design & Architecture)',
+				'coder': '💻 Coder (Implementation & Development)',
+				'executor': '⚡ Executor (File Operations & Commands)',
+				'reviewer': '🔍 Reviewer (Code Review & QA)',
+				'documenter': '📝 Documenter (Documentation)',
+				'coordinator': '🤝 Coordinator (Multi-Agent Orchestration)'
 			};
 			vscode.window.showInformationMessage(`Agent switched to: ${agentNames[agent] || agent}`);
 
@@ -2246,13 +2248,13 @@ class ClaudeChatProvider {
 	}
 
 	private _setSelectedModel(model: string): void {
-		// Map model to agent for backwards compatibility
+		// Map old model names to new agent roles for backwards compatibility
 		const modelToAgent: { [key: string]: string } = {
-			'opus': 'claude',
-			'sonnet': 'claude',
-			'default': 'multi'
+			'opus': 'architect',
+			'sonnet': 'coder',
+			'default': 'coordinator'
 		};
-		this._setSelectedAgent(modelToAgent[model] || 'claude');
+		this._setSelectedAgent(modelToAgent[model] || 'architect');
 	}
 
 	private _openModelTerminal(): void {

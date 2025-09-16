@@ -1701,12 +1701,14 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		function selectAgent(agent, fromBackend = false) {
 			currentAgent = agent;
 
-			// Update the display text
+			// Update the display text with new agent names
 			const displayNames = {
-				'claude': 'Claude',
-				'gpt4': 'GPT-4',
-				'claude-code': 'Claude Code',
-				'multi': 'Multi-Agent'
+				'architect': 'Architect',
+				'coder': 'Coder',
+				'executor': 'Executor',
+				'reviewer': 'Reviewer',
+				'documenter': 'Documenter',
+				'coordinator': 'Coordinator'
 			};
 			document.getElementById('selectedAgent').textContent = displayNames[agent] || agent;
 
@@ -2560,12 +2562,14 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			fileSearchInput.focus();
 			selectedFileIndex = -1;
 
-			// Display agents in the file list area
+			// Get agents from configuration (these will be loaded from backend)
 			const agents = [
-				{ name: 'claude', display: 'Claude (Analysis & Design)', icon: '🤖' },
-				{ name: 'gpt4', display: 'GPT-4 (Documentation & Review)', icon: '🤖' },
-				{ name: 'claude-code', display: 'Claude Code (Execution)', icon: '⚡' },
-				{ name: 'multi', display: 'Multi-Agent (Collaborative)', icon: '🤝' }
+				{ id: 'architect', name: 'Architect', role: 'System Design & Architecture', icon: '🏗️' },
+				{ id: 'coder', name: 'Coder', role: 'Implementation & Development', icon: '💻' },
+				{ id: 'executor', name: 'Executor', role: 'File Operations & Execution', icon: '⚡' },
+				{ id: 'reviewer', name: 'Reviewer', role: 'Code Review & QA', icon: '🔍' },
+				{ id: 'documenter', name: 'Documenter', role: 'Documentation & Explanation', icon: '📝' },
+				{ id: 'coordinator', name: 'Coordinator', role: 'Multi-Agent Orchestration', icon: '🤝' }
 			];
 
 			fileList.innerHTML = '';
@@ -2578,14 +2582,14 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				agentItem.innerHTML =
 					'<span class="file-icon">' + agent.icon + '</span>' +
 					'<div class="file-details">' +
-						'<div class="file-name">@' + agent.name + '</div>' +
-						'<div class="file-path">' + agent.display + '</div>' +
+						'<div class="file-name">@' + agent.id + ' (' + agent.name + ')</div>' +
+						'<div class="file-path">' + agent.role + '</div>' +
 					'</div>';
-				agentItem.onclick = () => selectAgent(agent.name);
+				agentItem.onclick = () => selectAgent(agent.id);
 				fileList.appendChild(agentItem);
 			});
 
-			filteredFiles = agents.map(a => ({ path: '@' + a.name, name: a.display }));
+			filteredFiles = agents.map(a => ({ path: '@' + a.id, name: a.role }));
 		}
 
 		function hideFilePicker() {

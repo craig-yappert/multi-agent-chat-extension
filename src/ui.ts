@@ -74,7 +74,7 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 					<div class="input-controls">
 						<div class="left-controls">
 							<button class="model-selector" id="modelSelector" onclick="showAgentSelector()" title="Select agent">
-								<span id="selectedAgent">Claude</span>
+								<span id="selectedAgent">Team</span>
 								<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
 									<path d="M1 2.5l3 3 3-3"></path>
 								</svg>
@@ -263,92 +263,16 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 	<div id="settingsModal" class="tools-modal" style="display: none;">
 		<div class="tools-modal-content">
 			<div class="tools-modal-header">
-				<span>Claude Code Chat Settings</span>
+				<span>Multi Agent Chat Settings</span>
 				<button class="tools-close-btn" onclick="hideSettingsModal()">✕</button>
 			</div>
 			<div class="tools-list">
-				<h3 style="margin-top: 0; margin-bottom: 16px; font-size: 14px; font-weight: 600;">WSL Configuration</h3>
-				<div>
-					<p style="font-size: 11px; color: var(--vscode-descriptionForeground); margin: 0;">
-						WSL integration allows you to run Claude Code from within Windows Subsystem for Linux.
-						This is useful if you have Claude installed in WSL instead of Windows.
+				<div style="text-align: center; padding: 40px 20px;">
+					<div style="font-size: 48px; margin-bottom: 16px;">⚙️</div>
+					<h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600;">Settings Coming Soon</h3>
+					<p style="font-size: 12px; color: var(--vscode-descriptionForeground); margin: 0; line-height: 1.4;">
+						Multi-agent configuration, provider settings, and advanced options will be available in future updates.
 					</p>
-				</div>
-				<div class="settings-group">
-					<div class="tool-item">
-						<input type="checkbox" id="wsl-enabled" onchange="updateSettings()">
-						<label for="wsl-enabled">Enable WSL Integration</label>
-					</div>
-					
-					<div id="wslOptions" style="margin-left: 24px; margin-top: 12px;">
-						<div style="margin-bottom: 12px;">
-							<label style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--vscode-descriptionForeground);">WSL Distribution</label>
-							<input type="text" id="wsl-distro" class="file-search-input" style="width: 100%;" placeholder="Ubuntu" onchange="updateSettings()">
-						</div>
-						
-						<div style="margin-bottom: 12px;">
-							<label style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--vscode-descriptionForeground);">Node.js Path in WSL</label>
-							<input type="text" id="wsl-node-path" class="file-search-input" style="width: 100%;" placeholder="/usr/bin/node" onchange="updateSettings()">
-							<p style="font-size: 11px; color: var(--vscode-descriptionForeground); margin: 4px 0 0 0;">
-								Find your node installation path in WSL by running: <code style="background: var(--vscode-textCodeBlock-background); padding: 2px 4px; border-radius: 3px;">which node</code>
-							</p>
-						</div>
-						
-						<div style="margin-bottom: 12px;">
-							<label style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--vscode-descriptionForeground);">Claude Path in WSL</label>
-							<input type="text" id="wsl-claude-path" class="file-search-input" style="width: 100%;" placeholder="/usr/local/bin/claude" onchange="updateSettings()">
-							<p style="font-size: 11px; color: var(--vscode-descriptionForeground); margin: 4px 0 0 0;">
-								Find your claude installation path in WSL by running: <code style="background: var(--vscode-textCodeBlock-background); padding: 2px 4px; border-radius: 3px;">which claude</code>
-							</p>
-						</div>
-					</div>
-				</div>
-
-				<h3 style="margin-top: 24px; margin-bottom: 16px; font-size: 14px; font-weight: 600;">Permissions</h3>
-				<div>
-					<p style="font-size: 11px; color: var(--vscode-descriptionForeground); margin: 0;">
-						Manage commands and tools that are automatically allowed without asking for permission.
-					</p>
-				</div>
-				<div class="settings-group">
-					<div id="permissionsList" class="permissions-list">
-						<div class="permissions-loading" style="text-align: center; padding: 20px; color: var(--vscode-descriptionForeground);">
-							Loading permissions...
-						</div>
-					</div>
-					<div class="permissions-add-section">
-						<div id="addPermissionForm" class="permissions-add-form" style="display: none;">
-							<div class="permissions-form-row">
-								<select id="addPermissionTool" class="permissions-tool-select" onchange="toggleCommandInput()">
-									<option value="">Select tool...</option>
-									<option value="Bash">Bash</option>
-									<option value="Read">Read</option>
-									<option value="Edit">Edit</option>
-									<option value="Write">Write</option>
-									<option value="MultiEdit">MultiEdit</option>
-									<option value="Glob">Glob</option>
-									<option value="Grep">Grep</option>
-									<option value="LS">LS</option>
-									<option value="WebSearch">WebSearch</option>
-									<option value="WebFetch">WebFetch</option>
-								</select>
-								<div style="flex-grow: 1; display: flex;">
-									<input type="text" id="addPermissionCommand" class="permissions-command-input" placeholder="Command pattern (e.g., npm i *)" style="display: none;" />
-								</div>
-								<button id="addPermissionBtn" class="permissions-add-btn" onclick="addPermission()">Add</button>
-							</div>
-							<div id="permissionsFormHint" class="permissions-form-hint">
-								Select a tool to add always-allow permission.
-							</div>
-						</div>
-						<button id="showAddPermissionBtn" class="permissions-show-add-btn" onclick="showAddPermissionForm()">
-							+ Add permission
-						</button>
-						<div class="yolo-mode-section">
-							<input type="checkbox" id="yolo-mode" onchange="updateSettings(); updateYoloWarning();">
-							<label for="yolo-mode">Enable Yolo Mode (Auto-allow all permissions)</label>
-						</div>
-					</div>
 				</div>
 
 				

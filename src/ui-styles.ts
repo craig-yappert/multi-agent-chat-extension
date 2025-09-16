@@ -678,8 +678,8 @@ const styles = `
     }
 
     .message {
-        margin-bottom: 10px;
-        padding: 8px;
+        margin-bottom: 6px;
+        padding: 6px 8px;
         border-radius: 4px;
     }
 
@@ -2472,8 +2472,8 @@ const styles = `
     }
 
     .message p {
-        margin: 0.5em 0;
-        line-height: 1.6;
+        margin: 0.2em 0;
+        line-height: 1.4;
     }
 
     .message p:first-child {
@@ -2486,6 +2486,11 @@ const styles = `
 
     .message br {
         line-height: 1.2;
+    }
+
+    .message .line {
+        display: inline;
+        line-height: 1.3;
     }
 
     .restore-container {

@@ -458,10 +458,12 @@ class ClaudeChatProvider {
 
 	private _parseAgentMentions(message: string): string[] {
 		const mentions: string[] = [];
-		const mentionRegex = /@(team|architect|coder|executor|reviewer|documenter|coordinator)\b/g;
+		// Make regex case insensitive for typo tolerance
+		const mentionRegex = /@(team|architect|coder|executor|reviewer|documenter|coordinator)\b/gi;
 		let match;
 		while ((match = mentionRegex.exec(message)) !== null) {
-			mentions.push(match[1]);
+			// Normalize to lowercase for consistent agent lookup
+			mentions.push(match[1].toLowerCase());
 		}
 		return mentions;
 	}
@@ -965,7 +967,7 @@ class ClaudeChatProvider {
 	}
 
 
-	private _newSession() {
+	private async _newSession() {
 
 		this._isProcessing = false
 
@@ -975,6 +977,12 @@ class ClaudeChatProvider {
 			data: { isProcessing: false }
 		});
 
+		// Save current conversation to history before starting new session
+		if (this._currentConversation.length > 0 && this._currentSessionId) {
+			await this._saveCurrentConversation();
+			console.log('Saved current conversation to history before starting new session');
+		}
+
 		// Try graceful termination first
 		if (this._currentClaudeProcess) {
 			const processToKill = this._currentClaudeProcess;
@@ -982,13 +990,13 @@ class ClaudeChatProvider {
 			processToKill.kill('SIGTERM');
 		}
 
-		// Clear current session
-		this._currentSessionId = undefined;
+		// Generate new session ID for the new conversation
+		this._currentSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
-		// Clear commits and conversation
+		// Clear commits and conversation (start fresh)
 		this._commits = [];
 		this._currentConversation = [];
-		this._conversationStartTime = undefined;
+		this._conversationStartTime = new Date().toISOString();
 
 		// Reset counters
 		this._totalCost = 0;

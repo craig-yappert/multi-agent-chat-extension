@@ -61,8 +61,15 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 						labelDiv.textContent = 'You';
 						break;
 					case 'claude':
-						iconDiv.textContent = '🤖';
-						labelDiv.textContent = 'Claude';
+						// Extract agent name and icon from response content if available
+						const agentMatch = content.match(/^(🏗️|💻|⚡|🔍|📝|🤝|👥)\s*\*\*([^*]+)\*\*/);
+						if (agentMatch) {
+							iconDiv.textContent = agentMatch[1]; // Use agent's icon
+							labelDiv.textContent = agentMatch[2].replace(' Response:', '').replace(' Error:', '').trim(); // Use agent's name
+						} else {
+							iconDiv.textContent = '🤖';
+							labelDiv.textContent = 'Claude';
+						}
 						break;
 					case 'error':
 						iconDiv.textContent = '⚠️';
@@ -883,10 +890,8 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				}
 				sendMessage();
 			} else if (e.key === '@' && !e.ctrlKey && !e.metaKey) {
-				// @ always shows agent picker now
-				setTimeout(() => {
-					showAgentPicker();
-				}, 0);
+				// @ key behavior - no modal, just let user type naturally
+				// Case insensitive agent detection will be handled in message processing
 			} else if (e.key === 'Escape' && filePickerModal.style.display === 'flex') {
 				e.preventDefault();
 				hideFilePicker();
@@ -2483,11 +2488,15 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				inOrderedList = false;
 				}
 
-				// Paragraph or break
+				// More economical formatting - avoid wrapping every line in <p>
 				if (line !== '') {
-				html += '<p>' + line + '</p>';
-				} else {
-				html += '<br>';
+					// Only create paragraphs for actual paragraph breaks
+					// Check if this line should be a paragraph vs simple text
+					if (line.match(/^#{1,6}\s/) || line.match(/^\*\*.*\*\*/) || line.length > 80) {
+						html += '<p>' + line + '</p>';
+					} else {
+						html += '<span class="line">' + line + '</span><br>';
+					}
 				}
 			}
 

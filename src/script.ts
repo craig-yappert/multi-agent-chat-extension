@@ -1,14 +1,19 @@
 const getScript = (isTelemetryEnabled: boolean) => `<script>
+		console.log('=== Multi Agent Chat Extension v1.1.9 LOADED ===');
+		console.log('Script loading at:', new Date().toISOString());
+
 		const vscode = acquireVsCodeApi();
-		const messagesDiv = document.getElementById('messages');
-		const messageInput = document.getElementById('messageInput');
-		const sendBtn = document.getElementById('sendBtn');
-		const statusDiv = document.getElementById('status');
-		const statusTextDiv = document.getElementById('statusText');
-		const filePickerModal = document.getElementById('filePickerModal');
-		const fileSearchInput = document.getElementById('fileSearchInput');
-		const fileList = document.getElementById('fileList');
-		const imageBtn = document.getElementById('imageBtn');
+
+		// DOM element references - will be initialized after DOM loads
+		let messagesDiv;
+		let messageInput;
+		let sendBtn;
+		let statusDiv;
+		let statusTextDiv;
+		let filePickerModal;
+		let fileSearchInput;
+		let fileList;
+		let imageBtn;
 
 		let isProcessRunning = false;
 		let filteredFiles = [];
@@ -36,24 +41,47 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			}
 		}
 
-		function addMessage(content, type = 'claude') {
+		function addMessage(content, type = 'claude', agentInfo = null) {
 			const messagesDiv = document.getElementById('messages');
 			const shouldScroll = shouldAutoScroll(messagesDiv);
-			
+
 			const messageDiv = document.createElement('div');
 			messageDiv.className = \`message \${type}\`;
-			
+
+			// Apply agent-specific color styling if agent info is provided
+			if (agentInfo && agentInfo.color && type === 'claude') {
+				// Create a unique style for this agent's color
+				const styleId = 'agent-color-' + Math.random().toString(36).substr(2, 9);
+				messageDiv.setAttribute('data-style-id', styleId);
+
+				// Add dynamic styles for this specific message
+				const style = document.createElement('style');
+				style.textContent = \`
+					[data-style-id="\${styleId}"]::before {
+						background: \${agentInfo.color} !important;
+						width: 4px !important;
+					}
+					[data-style-id="\${styleId}"] {
+						border-color: \${agentInfo.color}20 !important;
+					}
+					[data-style-id="\${styleId}"] .message-icon.claude {
+						background: \${agentInfo.color} !important;
+					}
+				\`;
+				document.head.appendChild(style);
+			}
+
 			// Add header for main message types (excluding system)
 			if (type === 'user' || type === 'claude' || type === 'error') {
 				const headerDiv = document.createElement('div');
 				headerDiv.className = 'message-header';
-				
+
 				const iconDiv = document.createElement('div');
 				iconDiv.className = \`message-icon \${type}\`;
-				
+
 				const labelDiv = document.createElement('div');
 				labelDiv.className = 'message-label';
-				
+
 				// Set icon and label based on type
 				switch(type) {
 					case 'user':
@@ -61,14 +89,24 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 						labelDiv.textContent = 'You';
 						break;
 					case 'claude':
-						// Extract agent name and icon from response content if available
-						const agentMatch = content.match(/^(🏗️|💻|⚡|🔍|📝|🤝|👥)\s*\*\*([^*]+)\*\*/);
-						if (agentMatch) {
-							iconDiv.textContent = agentMatch[1]; // Use agent's icon
-							labelDiv.textContent = agentMatch[2].replace(' Response:', '').replace(' Error:', '').trim(); // Use agent's name
+						// Use agent info if provided, otherwise extract from content
+						if (agentInfo) {
+							iconDiv.textContent = agentInfo.icon || '🤖';
+							labelDiv.textContent = agentInfo.name || 'Assistant';
+							// Apply agent color to icon background
+							if (agentInfo.color) {
+								iconDiv.style.background = agentInfo.color;
+							}
 						} else {
-							iconDiv.textContent = '🤖';
-							labelDiv.textContent = 'Claude';
+							// Fallback to extracting from content
+							const agentMatch = content.match(/^(🏗️|💻|⚡|🔍|📝|🤝|👥)\\s*\\*\\*([^*]+)\\*\\*/);
+							if (agentMatch) {
+								iconDiv.textContent = agentMatch[1];
+								labelDiv.textContent = agentMatch[2].replace(' Response:', '').replace(' Error:', '').trim();
+							} else {
+								iconDiv.textContent = '🤖';
+								labelDiv.textContent = 'Assistant';
+							}
 						}
 						break;
 					case 'error':
@@ -719,7 +757,8 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			}
 		}
 
-		function sendMessage() {
+		window.sendMessage = function() {
+			console.log('sendMessage called');
 			const text = messageInput.value.trim();
 			if (text) {
 				vscode.postMessage({
@@ -733,7 +772,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			}
 		}
 
-		function togglePlanMode() {
+		window.togglePlanMode = function() {
 			planModeEnabled = !planModeEnabled;
 			const switchElement = document.getElementById('planModeSwitch');
 			if (planModeEnabled) {
@@ -743,7 +782,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			}
 		}
 
-		function toggleThinkingMode() {
+		window.toggleThinkingMode = function() {
 			thinkingModeEnabled = !thinkingModeEnabled;
 			
 			if (thinkingModeEnabled) {
@@ -788,8 +827,8 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		}
 
 		function updateStatus(text, state = 'ready') {
-			statusTextDiv.textContent = text;
-			statusDiv.className = \`status \${state}\`;
+			if (statusTextDiv) statusTextDiv.textContent = text;
+			if (statusDiv) statusDiv.className = \`status \${state}\`;
 		}
 
 		function updateStatusWithTotals() {
@@ -867,11 +906,18 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			}
 		}
 
-		messageInput.addEventListener('input', adjustTextareaHeight);
-		
-		// Save input text as user types (debounced)
-		let saveInputTimeout;
-		messageInput.addEventListener('input', () => {
+		// Event listeners setup function (called after DOM loads)
+		function setupEventListeners() {
+			if (!messageInput) {
+				console.error('messageInput not found when setting up listeners');
+				return;
+			}
+
+			messageInput.addEventListener('input', adjustTextareaHeight);
+
+			// Save input text as user types (debounced)
+			let saveInputTimeout;
+			messageInput.addEventListener('input', () => {
 			clearTimeout(saveInputTimeout);
 			saveInputTimeout = setTimeout(() => {
 				vscode.postMessage({
@@ -1006,11 +1052,12 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			// but ensure paste will work when selected
 		});
 
-		// Initialize textarea height
-		adjustTextareaHeight();
+			// Initialize textarea height
+			adjustTextareaHeight();
 
-		// File picker event listeners
-		fileSearchInput.addEventListener('input', (e) => {
+			// File picker event listeners
+			if (fileSearchInput) {
+				fileSearchInput.addEventListener('input', (e) => {
 			filterFiles(e.target.value);
 		});
 
@@ -1031,13 +1078,17 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				hideFilePicker();
 			}
 		});
+			} // end if (fileSearchInput)
 
-		// Close modal when clicking outside
-		filePickerModal.addEventListener('click', (e) => {
-			if (e.target === filePickerModal) {
-				hideFilePicker();
+			// Close modal when clicking outside
+			if (filePickerModal) {
+				filePickerModal.addEventListener('click', (e) => {
+					if (e.target === filePickerModal) {
+						hideFilePicker();
+					}
+				});
 			}
-		});
+		} // end setupEventListeners()
 
 		// Tools modal functions
 		function showMCPModal() {
@@ -1046,7 +1097,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			loadMCPServers();
 		}
 		
-		function updateYoloWarning() {
+		window.updateYoloWarning = function() {
 			const yoloModeCheckbox = document.getElementById('yolo-mode');
 			const warning = document.getElementById('yoloWarning');
 			
@@ -1102,11 +1153,14 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		}
 
 		// Close MCP modal when clicking outside
-		document.getElementById('mcpModal').addEventListener('click', (e) => {
-			if (e.target === document.getElementById('mcpModal')) {
-				hideMCPModal();
-			}
-		});
+		const mcpModal = document.getElementById('mcpModal');
+		if (mcpModal) {
+			mcpModal.addEventListener('click', (e) => {
+				if (e.target === mcpModal) {
+					hideMCPModal();
+				}
+			});
+		}
 
 		// MCP Server management functions
 		function loadMCPServers() {
@@ -1330,7 +1384,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			}
 		}
 
-		function addPopularServer(name, config) {
+		window.addPopularServer = function(name, config) {
 			// Check if server already exists
 			const serversList = document.getElementById('mcpServersList');
 			const existingServers = serversList.querySelectorAll('.server-name');
@@ -1405,9 +1459,10 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		}
 
 		// Agent selector functions
-		let currentAgent = 'claude'; // Default agent
+		let currentAgent = 'team'; // Default agent
 
-		function showAgentSelector() {
+		window.showAgentSelector = function() {
+			console.log('showAgentSelector defined and called');
 			document.getElementById('modelModal').style.display = 'flex';
 			// Select the current agent radio button
 			const radioButton = document.getElementById('agent-' + currentAgent);
@@ -1421,12 +1476,12 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			showAgentSelector();
 		}
 
-		function hideModelModal() {
+		window.hideModelModal = function() {
 			document.getElementById('modelModal').style.display = 'none';
 		}
 
 		// Slash commands modal functions
-		function showSlashCommandsModal() {
+		window.showSlashCommandsModal = function() {
 			document.getElementById('slashCommandsModal').style.display = 'flex';
 			// Auto-focus the search input
 			setTimeout(() => {
@@ -1434,7 +1489,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			}, 100);
 		}
 
-		function hideSlashCommandsModal() {
+		window.hideSlashCommandsModal = function() {
 			document.getElementById('slashCommandsModal').style.display = 'none';
 		}
 
@@ -1447,7 +1502,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			document.getElementById('thinkingIntensityModal').style.display = 'flex';
 		}
 
-		function hideThinkingIntensityModal() {
+		window.hideThinkingIntensityModal = function() {
 			document.getElementById('thinkingIntensityModal').style.display = 'none';
 		}
 
@@ -1488,7 +1543,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			// Don't update toggle name until user confirms
 		}
 
-		function setThinkingIntensityValue(value) {
+		window.setThinkingIntensityValue = function(value) {
 			// Set slider value for thinking intensity modal
 			document.getElementById('thinkingIntensitySlider').value = value;
 			
@@ -1496,7 +1551,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			updateThinkingIntensityDisplay(value);
 		}
 
-		function confirmThinkingIntensity() {
+		window.confirmThinkingIntensity = function() {
 			// Get the current slider value
 			const currentValue = document.getElementById('thinkingIntensitySlider').value;
 			
@@ -1511,14 +1566,14 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		}
 
 		// WSL Alert functions
-		function showWSLAlert() {
+		window.showWSLAlert = function() {
 			const alert = document.getElementById('wslAlert');
 			if (alert) {
 				alert.style.display = 'block';
 			}
 		}
 
-		function dismissWSLAlert() {
+		window.dismissWSLAlert = function() {
 			const alert = document.getElementById('wslAlert');
 			if (alert) {
 				alert.style.display = 'none';
@@ -1529,7 +1584,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			});
 		}
 
-		function openWSLSettings() {
+		window.openWSLSettings = function() {
 			// Dismiss the alert
 			dismissWSLAlert();
 			
@@ -1537,7 +1592,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			toggleSettings();
 		}
 
-		function executeSlashCommand(command) {
+		window.executeSlashCommand = function(command) {
 			// Hide the modal
 			hideSlashCommandsModal();
 			
@@ -1569,7 +1624,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		// Store custom snippets data globally
 		let customSnippetsData = {};
 
-		function usePromptSnippet(snippetType) {
+		window.usePromptSnippet = function(snippetType) {
 			const builtInSnippets = {
 				'performance-analysis': 'Analyze this code for performance issues and suggest optimizations',
 				'security-review': 'Review this code for security vulnerabilities',
@@ -1602,19 +1657,19 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			}
 		}
 
-		function showAddSnippetForm() {
+		window.showAddSnippetForm = function() {
 			document.getElementById('addSnippetForm').style.display = 'block';
 			document.getElementById('snippetName').focus();
 		}
 
-		function hideAddSnippetForm() {
+		window.hideAddSnippetForm = function() {
 			document.getElementById('addSnippetForm').style.display = 'none';
 			// Clear form fields
 			document.getElementById('snippetName').value = '';
 			document.getElementById('snippetPrompt').value = '';
 		}
 
-		function saveCustomSnippet() {
+		window.saveCustomSnippet = function() {
 			const name = document.getElementById('snippetName').value.trim();
 			const prompt = document.getElementById('snippetPrompt').value.trim();
 			
@@ -1703,7 +1758,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			hideModelModal();
 		}
 
-		function selectAgent(agent, fromBackend = false) {
+		window.selectAgent = function(agent, fromBackend = false) {
 			currentAgent = agent;
 
 			// Update the display text with new agent names
@@ -1716,7 +1771,8 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				'documenter': 'Documenter',
 				'coordinator': 'Coordinator'
 			};
-			document.getElementById('selectedAgent').textContent = displayNames[agent] || agent;
+			// Agent selector UI removed - no need to update display
+			// document.getElementById('selectedAgent').textContent = displayNames[agent] || agent;
 
 			// Only send agent selection to VS Code extension if not from backend
 			if (!fromBackend) {
@@ -1748,8 +1804,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			selectAgent(modelToAgent[model] || 'claude', fromBackend);
 		}
 
-		// Initialize agent display without sending message
-		currentAgent = 'team';
+		// Agent display initialization moved to DOM load
 		const displayNames = {
 			'team': 'Team',
 			'architect': 'Architect',
@@ -1759,17 +1814,16 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			'documenter': 'Documenter',
 			'coordinator': 'Coordinator'
 		};
-		const selectedAgentElement = document.getElementById('selectedAgent');
-		if (selectedAgentElement) {
-			selectedAgentElement.textContent = displayNames[currentAgent] || currentAgent;
-		}
 
 		// Close model modal when clicking outside
-		document.getElementById('modelModal').addEventListener('click', (e) => {
-			if (e.target === document.getElementById('modelModal')) {
-				hideModelModal();
-			}
-		});
+		const modelModal = document.getElementById('modelModal');
+		if (modelModal) {
+			modelModal.addEventListener('click', (e) => {
+				if (e.target === modelModal) {
+					hideModelModal();
+				}
+			});
+		}
 
 		// Stop button functions
 		function showStopButton() {
@@ -1780,7 +1834,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			document.getElementById('stopBtn').style.display = 'none';
 		}
 
-		function stopRequest() {
+		window.stopRequest = function() {
 			sendStats('Stop request');
 			
 			vscode.postMessage({
@@ -1909,7 +1963,8 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 
 				case 'agentResponse':
 					if (message.data.trim()) {
-						addMessage(parseSimpleMarkdown(message.data), 'claude');
+						// Pass agent info to addMessage if available
+						addMessage(parseSimpleMarkdown(message.data), 'claude', message.agent || null);
 					}
 					updateStatusWithTotals();
 					break;
@@ -2283,7 +2338,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		});
 
 		// Session management functions
-		function newSession() {
+		window.newSession = function() {
 			sendStats('New chat');
 			
 			vscode.postMessage({
@@ -2380,7 +2435,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			}
 		}
 
-		updateStatus('Initializing...', 'disconnected');
+		// updateStatus will be called after DOM loads
 		
 
 		function parseSimpleMarkdown(markdown) {
@@ -2492,7 +2547,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				if (line !== '') {
 					// Only create paragraphs for actual paragraph breaks
 					// Check if this line should be a paragraph vs simple text
-					if (line.match(/^#{1,6}\s/) || line.match(/^\*\*.*\*\*/) || line.length > 80) {
+					if (line.match(/^#{1,6}\\s/) || line.match(/^\\*\\*.*\\*\\*/) || line.length > 80) {
 						html += '<p>' + line + '</p>';
 					} else {
 						html += '<span class="line">' + line + '</span><br>';
@@ -2513,7 +2568,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		}
 
 		// Conversation history functions
-		function toggleConversationHistory() {
+		window.toggleConversationHistory = function() {
 			const historyDiv = document.getElementById('conversationHistory');
 			const chatContainer = document.getElementById('chatContainer');
 			
@@ -2691,7 +2746,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		}
 
 		// Image handling functions
-		function selectImage() {
+		window.selectImage = function() {
 			// Use VS Code's native file picker instead of browser file picker
 			vscode.postMessage({
 				type: 'selectImageFile'
@@ -2777,7 +2832,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 
 		// Settings functions
 
-		function toggleSettings() {
+		window.toggleSettings = function() {
 			const settingsModal = document.getElementById('settingsModal');
 			if (settingsModal.style.display === 'none') {
 				// Request current settings from VS Code
@@ -2952,25 +3007,34 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		}
 
 		// Close settings modal when clicking outside
-		document.getElementById('settingsModal').addEventListener('click', (e) => {
-			if (e.target === document.getElementById('settingsModal')) {
-				hideSettingsModal();
-			}
-		});
+		const settingsModal = document.getElementById('settingsModal');
+		if (settingsModal) {
+			settingsModal.addEventListener('click', (e) => {
+				if (e.target === settingsModal) {
+					hideSettingsModal();
+				}
+			});
+		}
 
 		// Close thinking intensity modal when clicking outside
-		document.getElementById('thinkingIntensityModal').addEventListener('click', (e) => {
-			if (e.target === document.getElementById('thinkingIntensityModal')) {
-				hideThinkingIntensityModal();
-			}
-		});
+		const thinkingIntensityModal = document.getElementById('thinkingIntensityModal');
+		if (thinkingIntensityModal) {
+			thinkingIntensityModal.addEventListener('click', (e) => {
+				if (e.target === thinkingIntensityModal) {
+					hideThinkingIntensityModal();
+				}
+			});
+		}
 
 		// Close slash commands modal when clicking outside
-		document.getElementById('slashCommandsModal').addEventListener('click', (e) => {
-			if (e.target === document.getElementById('slashCommandsModal')) {
-				hideSlashCommandsModal();
-			}
-		});
+		const slashCommandsModal = document.getElementById('slashCommandsModal');
+		if (slashCommandsModal) {
+			slashCommandsModal.addEventListener('click', (e) => {
+				if (e.target === slashCommandsModal) {
+					hideSlashCommandsModal();
+				}
+			});
+		}
 
 		// Request custom snippets from VS Code on page load
 		vscode.postMessage({
@@ -2978,13 +3042,15 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		});
 
 		// Detect slash commands input
-		messageInput.addEventListener('input', (e) => {
-			const value = messageInput.value;
+		if (messageInput) {
+			messageInput.addEventListener('input', (e) => {
+				const value = messageInput.value;
 			// Only trigger when "/" is the very first and only character
 			if (value === '/') {
 				showSlashCommandsModal();
 			}
 		});
+		} // end if (messageInput)
 
 		// Add settings message handler to window message event
 		const originalMessageHandler = window.onmessage;
@@ -3022,17 +3088,27 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 					updateThinkingModeToggleName(sliderValue >= 0 ? sliderValue : 0);
 				}
 				
-				document.getElementById('wsl-enabled').checked = message.data['wsl.enabled'] || false;
-				document.getElementById('wsl-distro').value = message.data['wsl.distro'] || 'Ubuntu';
-				document.getElementById('wsl-node-path').value = message.data['wsl.nodePath'] || '/usr/bin/node';
-				document.getElementById('wsl-claude-path').value = message.data['wsl.claudePath'] || '/usr/local/bin/claude';
-				document.getElementById('yolo-mode').checked = message.data['permissions.yoloMode'] || false;
+				const wslEnabled = document.getElementById('wsl-enabled');
+				if (wslEnabled) wslEnabled.checked = message.data['wsl.enabled'] || false;
+
+				const wslDistro = document.getElementById('wsl-distro');
+				if (wslDistro) wslDistro.value = message.data['wsl.distro'] || 'Ubuntu';
+
+				const wslNodePath = document.getElementById('wsl-node-path');
+				if (wslNodePath) wslNodePath.value = message.data['wsl.nodePath'] || '/usr/bin/node';
+
+				const wslClaudePath = document.getElementById('wsl-claude-path');
+				if (wslClaudePath) wslClaudePath.value = message.data['wsl.claudePath'] || '/usr/local/bin/claude';
+
+				const yoloMode = document.getElementById('yolo-mode');
+				if (yoloMode) yoloMode.checked = message.data['permissions.yoloMode'] || false;
 				
 				// Update yolo warning visibility
 				updateYoloWarning();
 				
 				// Show/hide WSL options
-				document.getElementById('wslOptions').style.display = message.data['wsl.enabled'] ? 'block' : 'none';
+				const wslOptions = document.getElementById('wslOptions');
+				if (wslOptions) wslOptions.style.display = message.data['wsl.enabled'] ? 'block' : 'none';
 			}
 
 			if (message.type === 'platformInfo') {
@@ -3050,6 +3126,50 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				renderPermissions(message.data);
 			}
 		});
+
+		// Log what functions are available on window
+		console.log('Functions attached to window:', {
+			sendMessage: typeof window.sendMessage,
+			showAgentSelector: typeof window.showAgentSelector,
+			toggleSettings: typeof window.toggleSettings,
+			newSession: typeof window.newSession,
+			stopRequest: typeof window.stopRequest
+		});
+
+		// Initialize DOM elements and set up event listeners after they're loaded
+		function initializeAfterDOMLoaded() {
+			console.log('DOM Content Loaded - initializing elements');
+			messagesDiv = document.getElementById('messages');
+			messageInput = document.getElementById('messageInput');
+			sendBtn = document.getElementById('sendBtn');
+			statusDiv = document.getElementById('status');
+			statusTextDiv = document.getElementById('statusText');
+			filePickerModal = document.getElementById('filePickerModal');
+			fileSearchInput = document.getElementById('fileSearchInput');
+			fileList = document.getElementById('fileList');
+			imageBtn = document.getElementById('imageBtn');
+			console.log('DOM elements initialized');
+
+			// Initial status
+			updateStatus('Initializing...', 'disconnected');
+
+			// Agent selector UI removed - no initialization needed
+			// const selectedAgentElement = document.getElementById('selectedAgent');
+			// if (selectedAgentElement) {
+			// 	selectedAgentElement.textContent = displayNames[currentAgent] || currentAgent;
+			// }
+
+			// Now set up all the event listeners
+			setupEventListeners();
+		}
+
+		// Check if DOM is already loaded, otherwise wait for it
+		if (document.readyState === 'loading') {
+			document.addEventListener('DOMContentLoaded', initializeAfterDOMLoaded);
+		} else {
+			// DOM is already loaded
+			initializeAfterDOMLoaded();
+		}
 
 	</script>`
 

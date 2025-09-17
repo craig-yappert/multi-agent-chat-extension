@@ -1,347 +1,240 @@
-# 🚀 Claude Code Chat - Beautiful Claude Code Chat Interface for VS Code
+# 🤝 Multi Agent Chat - Collaborative AI Team for VS Code
 
-[![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension-blue?style=for-the-badge&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=andrepimenta.claude-code-chat)
-[![Claude Code](https://img.shields.io/badge/Powered%20by-Claude%20Code-orange?style=for-the-badge)](https://claude.ai/code)
+[![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension-blue?style=for-the-badge&logo=visual-studio-code)](https://marketplace.visualstudio.com/)
+[![Multi-Agent](https://img.shields.io/badge/Powered%20by-Multi--Agent%20AI-orange?style=for-the-badge)](https://github.com/craig-yappert/multi-agent-chat-extension)
 [![TypeScript](https://img.shields.io/badge/Built%20with-TypeScript-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 
-> **No more terminal commands. Chat with Claude Code through a beautiful, intuitive interface right inside VS Code.**
+> **Work with a team of specialized AI agents, each expert in their domain, collaborating to solve your coding challenges.**
 
-Ditch the command line and experience Claude Code like never before. This extension brings a stunning chat interface directly into your editor, making AI assistance accessible, visual, and enjoyable.
-
-🤖 **Built by Claude Code for Claude Code** - This extension was entirely developed using Claude Code itself. Claude Code created its own chat interface!
+Transform your development workflow with Multi Agent Chat - a VS Code extension that provides you with an entire AI development team. Each agent specializes in different aspects of software development, working together or individually to help you build better software faster.
 
 ---
 
-## ✨ **Why Choose Claude Code Chat?**
+## ✨ **Why Multi Agent Chat?**
 
-🖥️ **No Terminal Required** - Beautiful chat interface replaces command-line interactions  
-⏪ **Restore Checkpoints** - Undo changes and restore code to any previous state   
-🔌 **MCP Server Support** - Complete Model Context Protocol server management   
-💾 **Conversation History** - Automatic conversation history and session management  
-🎨 **VS Code Native** - Claude Code integrated directly into VS Code with native theming and sidebar support  
-🧠 **Plan and Thinking modes** - Plan First and configurable Thinking modes for better results  
-⚡ **Smart File/Image Context and Custom Commands** - Reference any file, paste images or screenshots and create custom commands  
-🤖 **Model Selection** - Choose between Opus, Sonnet, or Default based on your needs  
-🐧 **Windows/WSL Support** - Full native Windows and WSL support
+🤝 **Specialized AI Team** - Seven expert agents, each focused on their domain
+👥 **Collaborative Problem Solving** - Agents work together on complex tasks
+🎯 **Targeted Expertise** - Choose the right agent for the right job
+🔌 **MCP Server Integration** - Full Model Context Protocol support
+💬 **Beautiful Chat Interface** - Intuitive UI with markdown support
+⚡ **Smart Context Management** - Agents share context and collaborate
+🛠️ **Flexible Workflow** - Work with individual agents or the entire team
 
-![Claude Code Chat 1 0 0](https://github.com/user-attachments/assets/5954a74c-eff7-4205-8482-6a1c9de6e102)
+---
 
+## 🤖 **Meet Your AI Team**
+
+### 👥 **Team** (Default)
+The collaborative hub that coordinates all agents. When you're not sure which agent to use or need multiple perspectives, the Team automatically delegates to the right specialists and synthesizes their responses.
+
+### 🏗️ **Architect**
+Your system design expert who:
+- Designs application architecture and system structure
+- Reviews and improves existing architecture
+- Plans database schemas and API designs
+- Recommends design patterns and best practices
+- Creates technical specifications
+
+### 💻 **Coder**
+Your implementation specialist who:
+- Writes clean, efficient code in any language
+- Implements features based on specifications
+- Refactors and optimizes existing code
+- Follows coding best practices and conventions
+- Handles algorithm implementation
+
+### ⚡ **Executor**
+Your automation and operations expert who:
+- Executes commands and scripts
+- Manages file operations and project structure
+- Runs builds, tests, and deployments
+- Handles system integration tasks
+- Automates repetitive workflows
+
+### 🔍 **Reviewer**
+Your quality assurance specialist who:
+- Reviews code for bugs and issues
+- Suggests improvements and optimizations
+- Ensures code quality and standards
+- Identifies security vulnerabilities
+- Validates implementation against requirements
+
+### 📝 **Documenter**
+Your documentation expert who:
+- Writes clear, comprehensive documentation
+- Creates API documentation and guides
+- Generates code comments and docstrings
+- Produces user manuals and README files
+- Maintains changelog and release notes
+
+### 🤝 **Coordinator**
+Your project management specialist who:
+- Breaks down complex tasks into steps
+- Coordinates work between agents
+- Tracks progress and dependencies
+- Manages task prioritization
+- Ensures smooth workflow integration
 
 ---
 
 ## 🌟 **Key Features**
 
-### 💬 **Beautiful Chat Graphical Interface**
-- No terminal required - everything through the UI
-- Real-time streaming responses with typing indicators
-- One-click message copying with visual feedback
-- Enhanced markdown support with syntax highlighting
-- Auto-resizing input that grows with your content
-- Copy-to-clipboard for code blocks
+### 💬 **Beautiful Chat Interface**
+- Clean, modern UI integrated into VS Code
+- Real-time streaming responses
+- Full markdown support with syntax highlighting
+- Code block copying with one click
+- Auto-resizing input area
 
-### ⏪ **Checkpoint & Session Management**
-- **Restore Checkpoints** - Instantly undo changes and restore to any previous state
-- Automatic Git-based backup system for safe experimentation
-- Browse and restore from any conversation checkpoint
-- Automatic conversation saving and restoration
-- Real-time cost and token tracking
-- Session statistics and performance metrics
+### 🎯 **Smart Agent Selection**
+- Quick agent switcher in the chat interface
+- Automatic agent recommendation based on task
+- @ mentions for specific agent requests
+- Team mode for collaborative responses
 
-### 🔌 **MCP Server Management** ⭐ **NEW IN V1.0**
-- **Popular Servers Gallery** - One-click installation of common MCP servers
-- **Custom Server Creation** - Build and configure your own MCP servers
-- **Server Management** - Edit, delete, enable/disable servers through UI
-- **Automatic Integration** - Seamless permissions and tool integration
-- **Cross-platform Support** - Full WSL compatibility with path conversion
+### 🔌 **MCP Server Support**
+- Full Model Context Protocol integration
+- Configure and manage MCP servers
+- Access external tools and data sources
+- Seamless permission management
 
-### 🔒 **Advanced Permissions System** ⭐ **NEW IN V1.0**
-- **Interactive Permission Dialogs** - Detailed tool information with command previews
-- **Always Allow Functionality** - Smart command pattern matching for common tools (npm, git, docker)
-- **YOLO Mode** - Skip all permission checks for power users
-- **Workspace Permissions** - Granular control over what tools can execute
-- **Real-time Permission Management** - Add/remove permissions through intuitive UI
+### 📁 **Context Management**
+- Drag and drop files into chat
+- Image and screenshot support
+- Smart file referencing
+- Shared context between agents
 
-### 🖼️ **Image & Clipboard Support** ⭐ **NEW IN V1.0**
-- **Drag & Drop Images** - Simply drag images directly into the chat
-- **Clipboard Paste** - Press Ctrl+V to paste screenshots and copied images
-- **Multiple Image Selection** - Choose multiple images through VS Code's file picker
-- **Organized Storage** - Automatic organization in `.claude/claude-code-chat-images/`
-- **Format Support** - PNG, JPG, JPEG, GIF, SVG, WebP, BMP formats
-
-### 📱 **Sidebar Integration** ⭐ **NEW IN V1.0**
-- **Native VS Code Sidebar** - Full chat functionality in the sidebar panel
-- **Smart Panel Management** - Automatic switching between main and sidebar views
-- **Persistent Sessions** - State maintained across panel switches
-- **Activity Bar Integration** - Quick access from VS Code's activity bar
-
-### 📁 **Smart File Integration**
-- Type `@` to instantly search and reference workspace files
-- Image attachments via file browser and copy-paste screeshots
-- Lightning-fast file search across your entire project
-- Seamless context preservation for multi-file discussions
-
-### 🛠️ **Tool Management**
-- Visual dashboard showing all available Claude Code tools
-- Real-time tool execution with formatted results
-- Process control - start, stop, and monitor operations
-- Smart permission system for secure tool execution
-
-### 🎨 **VS Code Integration**
-- Native theming that matches your editor
-- Status bar integration with connection status
-- Activity bar panel for quick access
-- Responsive design for any screen size
-
-### 🤖 **Model Selection**
-- **Opus** - Most capable model for complex tasks requiring deep reasoning
-- **Sonnet** - Balanced model offering great performance for most use cases
-- **Default** - Uses your configured model setting
-- Model preference persists across sessions and is saved automatically
-- Easy switching via dropdown selector in the chat interface
-- Visual confirmation when switching between models
-- One-click model configuration through integrated terminal
-
-### ⚡ **Slash Commands Integration**
-- **Slash Commands Modal** - Type "/" to access all Claude Code commands instantly
-- **19+ Built-in Commands** - /cost, /status, /config, /help, /memory, /review, and more
-- **Custom Command Support** - Execute any Claude Code command with session context
-- **Session-Aware Execution** - All commands run with current conversation context
-- **Terminal Integration** - Commands open directly in VS Code terminal with WSL support
-
-### 🧠 **Advanced AI Modes**
-- **Plan First Mode** - Toggle to make Claude plan before implementing changes
-- **Thinking Mode** - Configurable intensity levels (Think, Think Hard, Think Harder, Ultrathink)
-- **Mode Toggles** - Simple switches above the text input area
-- **Intelligent Prompting** - Different prompts based on selected thinking intensity
-- **Token Awareness** - Higher thinking levels consume more tokens but provide deeper reasoning
+### ⚙️ **Advanced Configuration**
+- WSL support for Windows users
+- Customizable settings per agent
+- Thinking mode intensity levels
+- YOLO mode for power users
 
 ---
 
 ## 🚀 **Getting Started**
 
 ### Prerequisites
-- **VS Code 1.80+** - Latest version recommended
-- **Claude Code CLI** - [Install from Anthropic](https://claude.ai/code)
-- **Active Claude API or subscription** - API or Pro/Max plan
+- **VS Code 1.94+** - Latest version recommended
+- **Claude Desktop** - With API key configured
+- **Node.js** - For MCP server support (optional)
 
 ### Installation
 
 1. **Install from VS Code Marketplace**
    ```
-   ext install claude-code-chat
+   ext install CraigYappert.multi-agent-chat
    ```
 
-2. **Or install manually**
-   - Download the `.vsix` file from releases
-   - Run `code --install-extension claude-code-chat-x.x.x.vsix`
+2. **Or install from VSIX**
+   - Download the latest `.vsix` file from releases
+   - Install via Command Palette: `Extensions: Install from VSIX...`
 
-3. **Open Claude Code Chat**
+3. **Open Multi Agent Chat**
    - Press `Ctrl+Shift+C` (or `Cmd+Shift+C` on Mac)
-   - Or click the Claude icon in your status bar
-   - Or use Command Palette: `Claude Code: Open Chat`
+   - Or click the Multi Agent Chat icon in the activity bar
+   - Or use Command Palette: `Multi Agent Chat: Open Chat`
 
 ---
 
 ## 💡 **Usage Examples**
 
-### 🔥 **Code Review & Refactoring**
+### 🏗️ **Architecture Design**
 ```
-You: @src/components/UserProfile.tsx Can you review this component and suggest improvements?
+You: @architect Design a scalable microservices architecture for an e-commerce platform
 
-Claude: I'll analyze your UserProfile component. Looking at the code, here are my recommendations:
-
-1. **Performance Optimization**: Add React.memo() to prevent unnecessary re-renders
-2. **TypeScript Enhancement**: The props interface could be more specific
-3. **Accessibility**: Missing ARIA labels for screen readers
-
-[Detailed analysis with code examples follows...]
+Architect: I'll design a comprehensive microservices architecture for your e-commerce platform...
+[Detailed architecture with diagrams and explanations]
 ```
 
-### 📊 **Project Analysis**
+### 💻 **Implementation**
 ```
-You: Analyze the overall architecture of my project and identify potential issues
+You: @coder Implement the user authentication service we just designed
 
-Claude: I'll examine your project structure and identify areas for improvement:
-
-🏗️ **Architecture Overview**
-- React frontend with TypeScript
-- Node.js backend with Express
-- MongoDB database layer
-
-⚠️ **Identified Issues**
-- Missing error boundaries in React components
-- Database queries lack proper indexing
-- API routes missing input validation
-
-[Detailed recommendations with implementation examples...]
+Coder: I'll implement the authentication service based on the architecture...
+[Complete implementation with best practices]
 ```
 
-### 🐛 **Debugging Assistant**
+### 🔍 **Code Review**
 ```
-You: I'm getting a strange error in my API. Here's the stack trace: [paste error]
+You: @reviewer Review the authentication implementation for security issues
 
-Claude: Looking at this stack trace, the issue appears to be a race condition in your async middleware. Here's what's happening:
-
-1. **Root Cause**: Multiple requests are modifying shared state
-2. **Solution**: Implement proper request isolation
-3. **Prevention**: Add comprehensive error handling
-
-[Step-by-step debugging guide follows...]
+Reviewer: I'll perform a security-focused review of the authentication service...
+[Detailed security analysis with recommendations]
 ```
 
-### ⏪ **Safe Experimentation with Checkpoints**
+### 👥 **Team Collaboration**
 ```
-You: Can you refactor this entire component to use hooks instead of class components?
+You: Help me build a real-time chat feature for my application
 
-Claude: I'll refactor your component to use React hooks. Don't worry - I'll create a checkpoint first so you can easily restore if needed.
-
-[Creates automatic checkpoint]
-
-Here's the refactored component using hooks:
-[Shows the new implementation]
-
-If you want to revert these changes, just click "Restore Checkpoint" to go back to your original code instantly.
+Team: I'll coordinate the team to help you build this feature:
+- Architect will design the system
+- Coder will implement the functionality
+- Reviewer will ensure quality
+- Documenter will create the documentation
+[Comprehensive solution from multiple agents]
 ```
 
 ---
 
 ## ⚙️ **Configuration**
 
-### Keyboard Shortcuts
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+Shift+C` | Open Claude Code Chat |
-| `Enter` | Send message |
-| `@` | Open file picker |
-| `/` | Open slash commands modal |
+### Agent Selection
+- Click the agent selector button (shows current agent name)
+- Choose from Team, Architect, Coder, Executor, Reviewer, Documenter, or Coordinator
+- Your selection persists across sessions
 
-### WSL Configuration (Windows Users)
-If you're using Claude Code through WSL (Windows Subsystem for Linux), you can configure the extension to use WSL:
+### WSL Integration (Windows)
+For Windows users running Claude in WSL:
+1. Open settings (gear icon)
+2. Enable WSL integration
+3. Configure your WSL distribution name
+4. Set paths to Node.js and Claude
 
-1. Open VS Code Settings (`Ctrl+,` or `Cmd+,`)
-2. Search for "Claude Code Chat"
-3. Configure these settings:
-   - **Claude Code Chat: WSL Enabled** - Enable WSL integration
-   - **Claude Code Chat: WSL Distro** - Your WSL distribution name (e.g., `Ubuntu`, `Debian`)
-   - **Claude Code Chat: WSL Node Path** - Path to Node.js in WSL (default: `/usr/bin/node`)
-   - **Claude Code Chat: WSL Claude Path** - Path to Claude in WSL (default: `/usr/local/bin/claude`)
-
-Example configuration in `settings.json`:
-```json
-{
-  "claudeCodeChat.wsl.enabled": true,
-  "claudeCodeChat.wsl.distro": "Ubuntu",
-  "claudeCodeChat.wsl.nodePath": "/usr/bin/node",
-  "claudeCodeChat.wsl.claudePath": "/usr/local/bin/claude"
-}
-```
+### MCP Servers
+1. Click the MCP button (when available)
+2. Add servers from the popular gallery or custom configurations
+3. Manage permissions and tools
 
 ---
 
-## 🎯 **Pro Tips & Tricks**
+## 🛠️ **Troubleshooting**
 
-### 🔥 **File Context Magic**
-- Type `@` followed by your search term to quickly reference files
-- Use `@src/` to narrow down to specific directories
-- Reference multiple files in one message for cross-file analysis
-- **NEW**: Copy-paste images directly into chat for visual context
-- **NEW**: Paste screenshots with Ctrl+V for instant visual communication
+### Extension Not Loading
+- Ensure VS Code is version 1.94 or higher
+- Check that Claude Desktop is installed and configured
+- Reload VS Code window: `Developer: Reload Window`
 
-### ⚡ **Productivity Boosters**
-- **Creates checkpoints automatically** before changes for safe experimentation
-- **Restore instantly** if changes don't work out as expected
-- **NEW**: Permission system prevents accidental tool execution
-- **NEW**: YOLO mode for power users who want speed over safety
-- Use the stop button to cancel long-running operations
-- Copy message contents to reuse Claude's responses
-- Open history panel to reference previous conversations
-- **NEW**: Sidebar integration for multi-panel workflow
+### Agent Not Responding
+- Verify Claude API key is configured
+- Check internet connection
+- Try selecting a different agent and switching back
 
-### 🎨 **Interface Customization**
-- The UI automatically adapts to your VS Code theme
-- Messages are color-coded: Green for you, Blue for Claude
-- Hover over messages to reveal the copy button
-- **NEW**: Enhanced code block rendering with syntax highlighting
-- **NEW**: Copy-to-clipboard functionality for code blocks
-
----
-
-## 🔧 **Advanced Features**
-
-### 🛠️ **Tool Integration**
-Claude Code Chat provides secure access to all Claude Code tools:
-- **Bash** - Execute shell commands with permission controls
-- **File Operations** - Read, write, and edit files
-- **Search** - Grep and glob pattern matching across workspace
-- **Web** - Fetch and search web content
-- **Multi-edit** - Batch file modifications
-- **MCP Servers** - Extend functionality with Model Context Protocol servers
-- **Permissions System** - Granular control over tool execution for security
-
-### 📊 **Analytics & Monitoring**
-- **Real-time cost tracking** - Monitor your API usage
-- **Token consumption** - See input/output token counts
-- **Response timing** - Track performance metrics
-- **Session statistics** - Comprehensive usage analytics
-
-### ⏪ **Checkpoint System**
-- **Instant restoration** - One-click restore to any previous state
-- **Conversation checkpoints** - Every change creates a restore point
-- **Visual timeline** - See and navigate through all your project states
-
-### 🔄 **Conversation History**
-- **Automatic saving** - Every conversation is preserved
-- **Smart restoration** - Resume exactly where you left off
-- **Switch between chats** - Easily check and switch to previous conversations
-
----
-
-## 🤝 **Contributing**
-
-We welcome contributions! Here's how you can help:
-
-1. **🐛 Report Bugs** - Use our issue tracker
-2. **💡 Suggest Features** - Share your ideas
-3. **🔧 Submit PRs** - Help us improve the codebase
-4. **📚 Improve Docs** - Make the documentation better
-
-### Development Setup
-```bash
-git clone https://github.com/andrepimenta/claude-code-chat
-cd claude-code-chat
-npm install
-
-Click "F5" to run the extension or access the "Run and Debug" section in VSCode
-```
+### WSL Issues (Windows)
+- Ensure WSL is installed and running
+- Verify the distribution name in settings
+- Check that Claude is installed in WSL
 
 ---
 
 ## 📝 **License**
 
-See the [LICENSE](LICENSE) file for details.
+This extension is released under the MIT License. See [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙏 **Acknowledgments**
+## 🤝 **Contributing**
 
-- **Anthropic** - For creating the amazing Claude AI and more specifically the Claude Code SDK
-- **VS Code Team** - For the incredible extension platform
-- **Our Community** - For feedback, suggestions, and contributions
+Contributions are welcome! Please feel free to submit issues and pull requests on our [GitHub repository](https://github.com/craig-yappert/multi-agent-chat-extension).
 
 ---
 
-## 📞 **Support**
+## 📧 **Support**
 
-Need help? We've got you covered:
-
-- 🐛 **Issues**: [GitHub Issues](https://github.com/andrepimenta/claude-code-chat/issues)
+For issues, feature requests, or questions:
+- Open an issue on [GitHub](https://github.com/craig-yappert/multi-agent-chat-extension/issues)
+- Contact the author: Craig Yappert
 
 ---
 
-<div align="center">
-
-**⭐ Star us on GitHub if this project helped you!**
-
-[**Download Now**](https://marketplace.visualstudio.com/items?itemName=andrepimenta.claude-code-chat)
-
-</div>
+Built with ❤️ by Craig Yappert and the AI agents themselves

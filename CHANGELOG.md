@@ -1,299 +1,254 @@
-# Change Log
+# Changelog
 
-All notable changes to the "claude-code-chat" extension will be documented in this file.
+All notable changes to the Multi Agent Chat extension will be documented in this file.
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+## [1.2.3] - 2025-09-17
 
-## [1.0.6] - 2025-08-26
+### Unified Backend
+- All agents now use Claude Sonnet model for consistent LLM backend
+- Removed placeholder OpenAI and MCP providers - all agents functional with Claude
+- Standardized all agents (except Team) to use the same Claude provider
 
-### 🐛 Bug Fixes
-- Fixed typo in codebase
-- Removed priority settings that were no longer needed
+## [1.2.2] - 2025-09-17
 
-### 🔧 Technical Improvements
-- Moved script to separate file for better code organization
+### Enhanced
+- Team agent now properly coordinates responses from ALL 6 specialized agents
+- Team agent synthesizes multiple agent responses into a unified team recommendation
+- Improved agent color styling with full sidebar highlighting and icon backgrounds
 
-## [1.0.5] - 2025-07-30
+### Fixed
+- Removed "coming soon" fallback message from Team agent
+- Team agent now provides meaningful consolidated responses instead of placeholder text
+- Agent-specific colors now properly apply to both sidebar and icon backgrounds
 
-### 🚀 Features Added
-- **MCP Integration**: Added claude-code-chat-permissions-mcp folder for enhanced permission management
-- **Message Persistence**: Save message in text box for better user experience
-- **UI Improvements**: Always display history and new chat options
-- **Input Enhancement**: Removed maxlength limit for custom command prompt textarea
+## [1.2.1] - 2025-09-17
 
-### 🐛 Bug Fixes
-- Fixed new chat functionality
-- Fixed request start time isProcessing issue
-- Fixed close and open conversation behavior
+### Fixed
+- Fixed Documenter agent returning placeholder responses - now properly uses Claude
+- Fixed Reviewer agent returning placeholder responses - now properly uses Claude
+- Fixed Executor agent returning placeholder responses - now properly uses Claude
+- All agents now provide functional responses instead of "coming soon" messages
 
-### 🔄 Merged Pull Requests
-- Merged PR #87 from horatio-sans-serif/main
+## [1.2.0] - 2025-09-17
 
-## [1.0.4] - 2025-01-22
+### Visual Improvements
+- Agent-specific colors now applied to chat message sidebars matching colors from agents.ts
+- Response headers now show the actual agent name instead of generic "CLAUDE"
+- Each agent's unique color creates visual distinction in conversations
+- Improved agent identity visibility throughout the chat interface
 
-### 🐛 Bug Fixes
-- Fixed input text area overflow issue by adding `box-sizing: border-box` to prevent padding from extending beyond container width
-- Fixed command parameter handling for `claude-code-chat.openChat` to properly handle both ViewColumn and Uri parameters from different invocation contexts
+## [1.1.9] - 2025-09-17
 
-### 🔧 Technical Improvements
-- Enhanced `show()` method to accept optional ViewColumn parameter with ViewColumn.Two as default
-- Added proper type checking for command parameters to handle context menu invocations
-- Improved webview panel positioning with flexible column parameter support
+### Fixed
+- Fixed 'claude-code' provider warning by updating to 'multi-agent-chat'
+- Fixed selectAgent error trying to update removed UI element
+- Removed references to selectedAgent element that no longer exists
 
-### 🎨 UI/UX Improvements
-- Resolved text input container sizing issues that caused visual overflow
-- Better input field styling consistency across different VS Code themes
+## [1.1.8] - 2025-09-17
 
-## [1.0.0] - 2025-01-15
+### UI Improvements
+- Changed webview panel title from "Claude Code Chat" to "Multi Agent Chat"
+- Removed agent selector button and dropdown - use @agent mentions instead
+- @agent mentions are already case insensitive (e.g., @Team, @TEAM, @team all work)
+- Cleaned up UI to focus on @ mention workflow
 
-### 🚀 Major Features Added
+## [1.1.7] - 2025-09-17
 
-#### **Advanced Permissions Management System**
-- Complete permissions framework with MCP integration for secure tool execution
-- Interactive permission dialogs with detailed tool information and command previews
-- "Always Allow" functionality with smart command pattern matching for common tools (npm, git, docker, etc.)
-- YOLO mode for power users to skip all permission checks
-- Comprehensive permissions settings UI with ability to add/remove specific permissions
-- File system watcher for real-time permission request handling
-- Workspace-specific permission storage and management
+### Documentation
+- Completely rewritten README to reflect Multi Agent Chat functionality
+- Updated extension description and metadata
+- Removed references to original Claude Code Chat fork
+- Added comprehensive agent descriptions and usage examples
+- Restructured changelog for Multi Agent Chat focus
 
-#### **MCP (Model Context Protocol) Server Management**
-- Complete MCP server configuration interface
-- Popular MCP servers gallery with one-click installation
-- Custom MCP server creation with validation
-- Server management (edit, delete, enable/disable)
-- Automatic permissions server integration
-- WSL path conversion for cross-platform compatibility
+## [1.1.6] - 2025-09-17
 
-#### **Sidebar Integration & Multi-Panel Support**
-- Native VS Code sidebar view with full chat functionality
-- Smart panel management (auto-close main panel when sidebar opens)
-- Persistent session state across panel switches
-- Proper webview lifecycle management
-- Activity bar integration with custom icon
+### Fixed
+- Agent selector now properly defaults to "Team" instead of showing "multi"
+- Fixed null reference errors for settings elements
+- Improved agent display initialization after DOM loads
 
-#### **Image & Clipboard Enhancements**
-- Drag-and-drop image support directly into chat
-- Clipboard image paste functionality (Ctrl+V for screenshots)
-- Multiple image selection with VS Code's native file picker
-- Automatic image organization in `.claude/claude-code-chat-images/` folder
-- Automatic `.gitignore` creation for image folders
-- Support for PNG, JPG, JPEG, GIF, SVG, WebP, BMP formats
+## [1.1.5] - 2025-09-17
 
-#### **Code Block & Syntax Improvements**
-- Enhanced markdown parsing with proper code block detection
-- Syntax highlighting for code blocks with language detection
-- Copy-to-clipboard functionality for code blocks
-- Improved inline code rendering
-- Better handling of technical identifiers and underscores
+### Fixed
+- Fixed updateStatus function accessing undefined DOM elements
+- Added null checks for status display elements
+- Moved status initialization to after DOM loads
 
-### 🎨 UI/UX Improvements
+## [1.1.4] - 2025-09-17
 
-#### **Settings & Configuration**
-- Comprehensive settings modal with organized sections
-- YOLO mode toggle with visual warnings and explanations
-- Real-time settings synchronization between UI and VS Code config
-- Better visual hierarchy and professional styling
-- Smart configuration validation and error handling
+### Fixed
+- Added comprehensive null checks for all addEventListener calls
+- Protected all document.getElementById operations
+- Fixed messageInput event listener attachment issues
 
-#### **Message & Chat Interface**
-- Improved message spacing and visual consistency
-- Enhanced tool result display with better formatting
-- Smart scrolling behavior (only auto-scroll if user is at bottom)
-- Loading indicators and processing states
-- Better error handling and user feedback
+## [1.1.3] - 2025-09-17
 
-#### **YOLO Mode Visual Design**
-- Less subtle YOLO mode section (increased opacity and size)
-- Changed warning icon from ⚠️ to 🚀 for less intimidating appearance
-- Soft tomato red styling that's noticeable but not scary
-- Clear explanation of YOLO mode functionality
+### Fixed
+- Wrapped event listeners in setupEventListeners function
+- Added DOM ready checks before element access
+- Fixed undefined element errors during initialization
 
-### 🔧 Technical Enhancements
+## [1.1.2] - 2025-09-17
 
-#### **Session & State Management**
-- Persistent session state across VS Code restarts
-- Proper cleanup of resources and event listeners
-- Better error handling for failed operations
-- Improved memory management for large conversations
+### Fixed
+- Fixed critical regex syntax error preventing script execution
+- Properly escaped regex patterns in markdown parsing
 
-#### **Cross-Platform Compatibility**
-- Enhanced WSL support with proper path conversion
-- Windows-specific improvements and fixes
-- Better handling of different operating system environments
-- Improved subprocess management and cleanup
+## [1.1.1] - 2025-09-17
 
-#### **Performance Optimizations**
-- Reduced context usage with more efficient tool operations
-- Better file search and workspace integration
-- Optimized message handling and UI updates
-- Improved extension activation and initialization times
+### Fixed
+- Added debug logging to verify script loading
+- Added version identification in console
+- Fixed function scope issues
 
-#### **Developer Experience**
-- Better error messages and debugging information
-- Improved extension logging and troubleshooting
-- Enhanced development workflow support
-- Better TypeScript integration and type safety
+## [1.1.0] - 2025-09-17
 
-### 🐛 Bug Fixes
-- Fixed multiple permission prompts being sent simultaneously
-- Resolved panel management issues with multiple webviews
-- Fixed expand/collapse functionality for long content
-- Corrected Unix timestamp parsing for usage limit messages
-- Fixed WSL integration on Windows systems
-- Resolved markdown parsing issues with underscores in code
-- Fixed copy-paste functionality for images and code blocks
-- Corrected file path handling across different platforms
+### Fixed
+- Moved script tag to head for proper function definition
+- Functions now properly attached to window object
+- Fixed onclick handler reference errors
 
-### 🔄 Breaking Changes
-- Permission system now requires explicit approval for tool execution (unless YOLO mode is enabled)
-- Image files are now stored in `.claude/claude-code-chat-images/` instead of root directory
-- MCP configuration moved to extension storage instead of global config
+## [1.0.9] - 2025-09-17
 
-### 📚 Documentation & Community
-- Updated README with comprehensive feature documentation
-- Fixed GitHub issues link in repository
-- Enhanced examples and usage guides
-- Better onboarding experience for new users
+### Fixed
+- Converted all functions to window-scoped definitions
+- Fixed "function not defined" errors for onclick handlers
 
-## [0.1.3] - 2025-06-24
+## [1.0.8] - 2025-09-17
 
-### 🚀 Features Added
+### Fixed
+- Added window function assignments for all onclick handlers
+- Fixed scope issues with inline event handlers
 
-#### **MultiEdit and Edit Tool Diff Display**
-- Added comprehensive diff visualization for MultiEdit tool operations
-- Shows file path with click-to-open functionality
-- Displays multiple edits with numbered labels (Edit #1, Edit #2, etc.)
-- Smart truncation handling - shows complete edits within line limits
-- Expandable interface with "Show X more edits" button
-- Visual separators between individual edits
-- Consistent styling with existing Edit tool diff display
+## [1.0.7] - 2025-09-17
 
-#### **Enhanced Tool Result Management**
-- Added MultiEdit to hidden tool results list for cleaner interface
-- Tool results for Read, Edit, TodoWrite, and MultiEdit now show loading states instead of uninteresting success messages
-- Improved user experience by hiding redundant "Tool executed successfully" messages
+### Fixed
+- Fixed regex escaping issues in script
+- Version bump to clear extension cache
 
-### 🎨 UI/UX Improvements
+## [1.0.6] - 2025-09-17
 
-#### **Thinking Intensity Modal Enhancement**
-- Fixed bug where thinking mode toggle text changed before user confirmation
-- Toggle text now only updates when user clicks "Confirm" button
-- Preview selection highlighting still works during option exploration
-- Improved user experience with proper confirmation workflow
+### Stable Base Version
+- Multi-agent chat system with 7 specialized agents
+- Team, Architect, Coder, Executor, Reviewer, Documenter, and Coordinator agents
+- MCP (Model Context Protocol) server integration
+- Beautiful chat interface with markdown support
+- Agent selector dropdown
+- Settings panel with WSL support
+- Thinking mode intensity levels
+- Slash commands integration
+- File and image attachment support
+- Session management and history
 
-#### **Consistent Message Spacing**
-- Standardized spacing between tool messages and user/Claude messages
-- Updated tool input padding from 12px to 8px to match message spacing
-- Unified visual consistency across all message types
+## [1.0.5] - 2025-09-16
 
-#### **Refined Visual Design**
-- Changed MultiEdit edit number labels from purple to subtle professional styling
-- Used VS Code theme colors for better integration
-- Improved overall visual cohesion with more sober color palette
+### Multi-Agent Implementation
+- Implemented multi-agent routing system
+- Added agent-specific providers
+- Created specialized agent behaviors
+- Enhanced team coordination capabilities
 
-### 🔧 Technical Improvements
-- Enhanced tool message formatting infrastructure
-- Improved diff rendering performance for multiple edits
-- Better error handling for malformed MultiEdit tool inputs
-- Optimized truncation logic for complex multi-edit operations
+## [1.0.4] - 2025-09-16
 
-## [0.1.2] - 2025-06-20
+### UI Improvements
+- Simplified @ mentions for agent selection
+- Cleaned up multi-agent experience
+- Improved agent selector interface
+- Enhanced message formatting
 
-### 🐛 Bug Fixes
-- Fixed markdown parsing bug where underscores in code identifiers (like "protein_id") were incorrectly converted to italic formatting
-- Updated regex pattern to only apply italic formatting when underscores are surrounded by whitespace or at string boundaries
-- Preserved proper formatting for code snippets and technical identifiers
-- Always show New Chat button
+## [1.0.3] - 2025-09-16
 
-## [0.1.0] - 2025-06-20
+### Provider System
+- Implemented multi-provider system for AI agent routing
+- Fixed Claude provider arguments
+- Removed unsupported options
 
-### 🚀 Major Features Added
+## [1.0.2] - 2025-09-16
 
-#### **Interactive Thinking Mode with Intensity Control**
-- Added configurable thinking mode with 4 intensity levels: Think, Think Hard, Think Harder, Ultrathink
-- Beautiful slider interface in settings for intensity selection
-- Clickable intensity labels for easy selection
-- Different thinking prompts based on selected intensity level
-- Higher intensities provide more detailed reasoning but consume more tokens
-- Settings persist across sessions with VS Code configuration integration
+### Agent System Foundation
+- Added base agent infrastructure
+- Implemented agent manager
+- Created provider abstraction layer
 
-#### **Plan First Mode**
-- New toggle for "Plan First" mode that instructs Claude to plan before making changes
-- Requires user approval before proceeding with implementation
-- Safer experimentation workflow for complex changes
-- Simple switch interface above the text input area
+## [1.0.1] - 2025-09-16
 
-#### **Slash Commands Modal System**
-- Type "/" to open beautiful slash commands modal with 19+ commands
-- Complete Claude Code command integration: /bug, /clear, /compact, /config, /cost, /doctor, /help, /init, /login, /logout, /mcp, /memory, /model, /permissions, /pr_comments, /review, /status, /terminal-setup, /vim
-- Custom command input field for executing any Claude Code command
-- Session-aware command execution with automatic session resumption
-- Commands open in VS Code terminal with proper WSL support
-- Visual feedback and user guidance for terminal interaction
+### Initial Fork
+- Forked from Claude Code Chat extension
+- Rebranded to Multi Agent Chat
+- Updated package metadata
+- Changed extension ID and publisher
 
-#### **Enhanced Model Configuration**
-- Updated "Default" model to show "User configured" instead of "Smart allocation"
-- Added "Configure" button next to Default model option
-- Configure button opens terminal with `claude /model` command for easy model setup
-- Session-aware model configuration with current session context
-- Clear user messaging about terminal interaction and return workflow
+## [1.0.0] - 2025-09-15
 
-#### **Advanced Settings Management**
-- Restructured settings with better organization and grouping
-- Added "Coming Soon" sections for Custom Slash Commands and MCP Configuration
-- Consistent UI patterns across all settings sections
-- Clean, professional design matching VS Code aesthetics
+### Original Base
+- Initial codebase from Claude Code Chat
+- Basic chat interface
+- MCP server support
+- File and image attachment capabilities
 
-### 🎨 **UI/UX Improvements**
-- Smaller, more subtle mode toggle switches (reduced by 2px)
-- Clickable text labels for all toggle switches
-- Improved slider positioning and label alignment
-- Sober, clean interface design without unnecessary colors or decorations
-- Better visual hierarchy in settings modal
-- Responsive design improvements
+---
 
-### 🔧 **Technical Enhancements**
-- Session ID now passed to all slash commands for context awareness
-- Improved message handling between frontend and backend
-- Better error handling and user feedback
-- Enhanced WSL compatibility for all new features
-- Modular code structure for easier maintenance
+## Agent Capabilities Summary
 
-### 📚 **Documentation Updates**
-- Updated keyboard shortcuts documentation
-- Enhanced configuration examples
-- Improved feature descriptions and usage examples
+### 👥 Team Agent
+- Coordinates between all agents
+- Automatically delegates tasks to appropriate specialists
+- Synthesizes responses from multiple agents
+- Default agent for complex tasks
 
-## [0.0.9] - 2025-06-19
+### 🏗️ Architect Agent
+- System design and architecture planning
+- Database schema design
+- API design and documentation
+- Design patterns and best practices
+- Technical specifications
 
-### Added
-- Model selector dropdown in the chat interface
-  - Located to the left of the tools selector at the bottom of the chat box
-  - Supports three models: Opus (most capable), Sonnet (balanced), and Default (smart allocation)
-  - Model preference is saved and persists across sessions
-  - Validates model selection to prevent invalid model names
-  - Shows confirmation message when switching models
+### 💻 Coder Agent
+- Code implementation in any language
+- Feature development
+- Code refactoring
+- Algorithm implementation
+- Best practices enforcement
 
-### Changed
-- Reorganized input controls into left-controls and right-controls sections for better layout
-- Claude command now includes the --model flag when a specific model is selected
+### ⚡ Executor Agent
+- Command execution
+- File operations
+- Build and deployment tasks
+- System integration
+- Workflow automation
 
-## [0.0.8] - 2025-06-19
+### 🔍 Reviewer Agent
+- Code review and quality assurance
+- Bug identification
+- Security vulnerability detection
+- Performance optimization suggestions
+- Standards compliance
 
-### Added
-- WSL (Windows Subsystem for Linux) configuration support
-  - New setting: `claudeCodeChat.wsl.enabled` to enable WSL integration
-  - New setting: `claudeCodeChat.wsl.distro` to specify WSL distribution
-  - New setting: `claudeCodeChat.wsl.nodePath` to configure Node.js path in WSL
-  - New setting: `claudeCodeChat.wsl.claudePath` to configure Claude path in WSL
-- Automatic detection of execution environment (native vs WSL)
-- WSL support for Claude login terminal command
+### 📝 Documenter Agent
+- Technical documentation
+- API documentation
+- Code comments and docstrings
+- User guides and manuals
+- README and changelog maintenance
 
-### Changed
-- Claude execution now supports both native and WSL environments based on configuration
-- Terminal login command adapts to WSL settings when enabled
+### 🤝 Coordinator Agent
+- Task breakdown and planning
+- Work coordination between agents
+- Progress tracking
+- Dependency management
+- Workflow optimization
 
-## [0.0.7] - Previous Release
+---
 
-- Initial release
+## Future Roadmap
+
+### Planned Features
+- Enhanced agent collaboration protocols
+- Custom agent creation and training
+- Agent performance analytics
+- Advanced context sharing between agents
+- Plugin system for extending agent capabilities
+- Visual agent workflow designer
+- Real-time collaboration features
+- Integration with more AI providers

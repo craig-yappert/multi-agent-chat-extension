@@ -2,7 +2,7 @@
   "name": "multi-agent-chat",
   "displayName": "Multi Agent Chat",
   "description": "Collaborative Multi-Agent AI Chat Interface for VS Code",
-  "version": "1.0.6",
+  "version": "1.2.3",
   "publisher": "CraigYappert",
   "author": "Craig Yappert",
   "repository": {

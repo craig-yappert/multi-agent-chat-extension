@@ -99,20 +99,22 @@ export class ClaudeProvider implements AIProvider {
 }
 
 export class OpenAIProvider implements AIProvider {
+	constructor(private claudeProvider: ClaudeProvider) {}
+
 	async sendMessage(message: string, agentConfig: AgentConfig, context?: any): Promise<string> {
-		// TODO: Implement OpenAI API integration
-		// For now, return a placeholder response
-		const roleContext = `${agentConfig.icon} **${agentConfig.name} Response:**\n\nAs your ${agentConfig.role}, I'll help with: "${message}"\n\n*Note: OpenAI integration coming soon! For now, this is a mock response.*`;
-		return roleContext;
+		// OpenAI integration not yet implemented - use Claude as fallback
+		// Pass the agent's role and capabilities to Claude for proper response
+		return this.claudeProvider.sendMessage(message, agentConfig, context);
 	}
 }
 
 export class MCPProvider implements AIProvider {
+	constructor(private claudeProvider: ClaudeProvider) {}
+
 	async sendMessage(message: string, agentConfig: AgentConfig, context?: any): Promise<string> {
-		// TODO: Implement MCP integration for executor agent
-		// For now, return a placeholder response
-		const roleContext = `${agentConfig.icon} **${agentConfig.name} Response:**\n\nReady to execute: "${message}"\n\n*Note: MCP integration coming soon! For now, this is a mock response.*`;
-		return roleContext;
+		// MCP integration not yet implemented - use Claude as fallback
+		// Pass the agent's role and capabilities to Claude for proper response
+		return this.claudeProvider.sendMessage(message, agentConfig, context);
 	}
 }
 
@@ -120,17 +122,65 @@ export class MultiProvider implements AIProvider {
 	constructor(
 		private claudeProvider: ClaudeProvider,
 		private openaiProvider: OpenAIProvider,
-		private mcpProvider: MCPProvider
+		private mcpProvider: MCPProvider,
+		private agentManager?: any
 	) {}
 
 	async sendMessage(message: string, agentConfig: AgentConfig, context?: any): Promise<string> {
-		// For team agent, coordinate with multiple providers
-		const responses = await Promise.all([
-			this.claudeProvider.sendMessage(`Architect perspective: ${message}`, agentConfig, context),
-			this.claudeProvider.sendMessage(`Coder perspective: ${message}`, agentConfig, context)
-		]);
+		// Define the specialized agents to poll (excluding 'team' itself)
+		const specializedAgents = [
+			{ id: 'architect', name: 'Architect', role: 'System Design & Architecture' },
+			{ id: 'coder', name: 'Coder', role: 'Implementation & Development' },
+			{ id: 'executor', name: 'Executor', role: 'File Operations & Command Execution' },
+			{ id: 'reviewer', name: 'Reviewer', role: 'Code Review & Quality Assurance' },
+			{ id: 'documenter', name: 'Documenter', role: 'Documentation & Communication' },
+			{ id: 'coordinator', name: 'Coordinator', role: 'Multi-Agent Orchestration' }
+		];
 
-		return `${agentConfig.icon} **${agentConfig.name} Response:**\n\nCoordinating team response for: "${message}"\n\n${responses.join('\n\n')}\n\n*Note: Full multi-agent orchestration coming soon!*`;
+		// Gather responses from all specialized agents in parallel
+		const agentResponses = await Promise.all(
+			specializedAgents.map(async (agent) => {
+				try {
+					// Create a minimal agent config for each specialized agent
+					const specializedConfig = {
+						...agentConfig,
+						id: agent.id,
+						name: agent.name,
+						role: agent.role
+					};
+
+					// Get a brief response from each agent
+					const response = await this.claudeProvider.sendMessage(
+						`As the ${agent.name} (${agent.role}), provide a brief (2-3 sentence) perspective on: ${message}`,
+						specializedConfig,
+						context
+					);
+
+					return `**${agent.name}:** ${response}`;
+				} catch (error) {
+					return `**${agent.name}:** Unable to provide input at this time.`;
+				}
+			})
+		);
+
+		// Now synthesize all responses through Claude
+		const synthesisPrompt = `You are the Team coordinator. You've gathered input from multiple specialized agents.
+Please synthesize their responses into a unified team response that:
+1. Identifies key consensus points
+2. Highlights any important differences in perspective
+3. Provides a clear, actionable team recommendation
+
+Original user request: "${message}"
+
+Team member responses:
+${agentResponses.join('\n\n')}
+
+Provide a concise synthesis (3-5 sentences) that represents the team's collective wisdom.`;
+
+		const synthesis = await this.claudeProvider.sendMessage(synthesisPrompt, agentConfig, context);
+
+		// Format the final team response
+		return `${agentConfig.icon} **${agentConfig.name} Response:**\n\n${synthesis}\n\n---\n*Team Members Consulted: ${specializedAgents.map(a => a.name).join(', ')}*`;
 	}
 }
 
@@ -140,11 +190,11 @@ export class ProviderManager {
 	private mcpProvider: MCPProvider;
 	private multiProvider: MultiProvider;
 
-	constructor(context: vscode.ExtensionContext) {
+	constructor(context: vscode.ExtensionContext, agentManager?: any) {
 		this.claudeProvider = new ClaudeProvider(context);
-		this.openaiProvider = new OpenAIProvider();
-		this.mcpProvider = new MCPProvider();
-		this.multiProvider = new MultiProvider(this.claudeProvider, this.openaiProvider, this.mcpProvider);
+		this.openaiProvider = new OpenAIProvider(this.claudeProvider);
+		this.mcpProvider = new MCPProvider(this.claudeProvider);
+		this.multiProvider = new MultiProvider(this.claudeProvider, this.openaiProvider, this.mcpProvider, agentManager);
 	}
 
 	getProvider(agentConfig: AgentConfig): AIProvider {

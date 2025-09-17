@@ -9,11 +9,11 @@ import { ProviderManager } from './providers';
 const exec = util.promisify(cp.exec);
 
 export function activate(context: vscode.ExtensionContext) {
-	console.log('Claude Code Chat extension is being activated!');
+	console.log('Multi Agent Chat extension is being activated!');
 	const provider = new ClaudeChatProvider(context.extensionUri, context);
 
 	const disposable = vscode.commands.registerCommand('claude-code-chat.openChat', (column?: vscode.ViewColumn) => {
-		console.log('Claude Code Chat command executed!');
+		console.log('Multi Agent Chat command executed!');
 		provider.show(column);
 	});
 
@@ -36,12 +36,12 @@ export function activate(context: vscode.ExtensionContext) {
 	// Create status bar item
 	const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
 	statusBarItem.text = "Claude";
-	statusBarItem.tooltip = "Open Claude Code Chat (Ctrl+Shift+C)";
+	statusBarItem.tooltip = "Open Multi Agent Chat (Ctrl+Shift+C)";
 	statusBarItem.command = 'claude-code-chat.openChat';
 	statusBarItem.show();
 
 	context.subscriptions.push(disposable, loadConversationDisposable, configChangeDisposable, statusBarItem);
-	console.log('Claude Code Chat extension activation completed successfully!');
+	console.log('Multi Agent Chat extension activation completed successfully!');
 }
 
 export function deactivate() { }
@@ -139,7 +139,7 @@ class ClaudeChatProvider {
 		private readonly _context: vscode.ExtensionContext
 	) {
 		this._agentManager = new AgentManager();
-		this._providerManager = new ProviderManager(_context);
+		this._providerManager = new ProviderManager(_context, this._agentManager);
 
 		// Initialize backup repository and conversations
 		this._initializeBackupRepo();
@@ -171,7 +171,7 @@ class ClaudeChatProvider {
 
 		this._panel = vscode.window.createWebviewPanel(
 			'claudeChat',
-			'Claude Code Chat',
+			'Multi Agent Chat',
 			actualColumn,
 			{
 				enableScripts: true,
@@ -490,10 +490,16 @@ class ClaudeChatProvider {
 				workspaceRoot: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
 			});
 
-			// Send response back to UI
+			// Send response back to UI with agent metadata
 			this._sendAndSaveMessage({
 				type: 'agentResponse',
-				data: response
+				data: response,
+				agent: {
+					id: agentConfig.id,
+					name: agentConfig.name,
+					icon: agentConfig.icon,
+					color: agentConfig.color
+				}
 			});
 
 		} catch (error) {
@@ -1097,7 +1103,7 @@ class ClaudeChatProvider {
 
 				// Initialize git repo with workspace as work-tree
 				await exec(`git --git-dir="${this._backupRepoPath}" --work-tree="${workspacePath}" init`);
-				await exec(`git --git-dir="${this._backupRepoPath}" config user.name "Claude Code Chat"`);
+				await exec(`git --git-dir="${this._backupRepoPath}" config user.name "Multi Agent Chat"`);
 				await exec(`git --git-dir="${this._backupRepoPath}" config user.email "claude@anthropic.com"`);
 
 				console.log(`Initialized backup repository at: ${this._backupRepoPath}`);
@@ -1912,7 +1918,7 @@ class ClaudeChatProvider {
 		return path.join(configPath);
 	}
 
-	private _sendAndSaveMessage(message: { type: string, data: any }): void {
+	private _sendAndSaveMessage(message: { type: string, data: any, agent?: any }): void {
 		// Initialize conversation if this is the first message
 		if (this._currentConversation.length === 0) {
 			this._conversationStartTime = new Date().toISOString();

@@ -9,6 +9,7 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Multi Agent Chat</title>
 	${styles}
+	${getScript(isTelemetryEnabled)}
 </head>
 <body>
 	<div class="header">
@@ -73,12 +74,7 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 					<textarea class="input-field" id="messageInput" placeholder="Type your message or @mention an agent..." rows="1"></textarea>
 					<div class="input-controls">
 						<div class="left-controls">
-							<button class="model-selector" id="modelSelector" onclick="showAgentSelector()" title="Select agent">
-								<span id="selectedAgent">Team</span>
-								<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
-									<path d="M1 2.5l3 3 3-3"></path>
-								</svg>
-							</button>
+							<!-- Agent selector removed - use @agent mentions instead -->
 							<!-- MCP configuration hidden for multi-agent setup -->
 							<button class="tools-btn" onclick="showMCPModal()" title="Configure MCP servers" style="display: none;">
 								MCP
@@ -281,6 +277,7 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 	</div>
 
 	<!-- Agent selector modal -->
+	<!-- Agent selector modal removed - use @agent mentions instead -->
 	<div id="modelModal" class="tools-modal" style="display: none;">
 		<div class="tools-modal-content" style="width: 450px;">
 			<div class="tools-modal-header">
@@ -661,9 +658,7 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 		</div>
 	</div>
 
-	${getScript(isTelemetryEnabled)}
-	
-	<!-- 
+	<!--
 	Analytics FAQ:
 	
 	1. Is Umami GDPR compliant?

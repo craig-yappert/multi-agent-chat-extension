@@ -22,7 +22,7 @@ export const defaultAgents: AgentConfig[] = [
 		color: '#4A90E2',
 		capabilities: ['system-design', 'api-design', 'architecture-review', 'tech-strategy'],
 		provider: 'claude',
-		model: 'opus',
+		model: 'sonnet',
 		specializations: ['microservices', 'distributed-systems', 'database-design', 'scalability']
 	},
 	{
@@ -45,8 +45,8 @@ export const defaultAgents: AgentConfig[] = [
 		icon: '⚡',
 		color: '#FF6B35',
 		capabilities: ['file-operations', 'command-execution', 'testing', 'deployment'],
-		provider: 'mcp',
-		mcpServer: 'claude-code',
+		provider: 'claude',
+		model: 'sonnet',
 		specializations: ['bash', 'git', 'npm', 'docker', 'ci-cd']
 	},
 	{
@@ -57,8 +57,8 @@ export const defaultAgents: AgentConfig[] = [
 		icon: '🔍',
 		color: '#9B59B6',
 		capabilities: ['code-review', 'quality-assurance', 'best-practices', 'security-audit'],
-		provider: 'openai',
-		model: 'gpt-4',
+		provider: 'claude',
+		model: 'sonnet',
 		specializations: ['security', 'performance', 'maintainability', 'testing-strategy']
 	},
 	{
@@ -69,8 +69,8 @@ export const defaultAgents: AgentConfig[] = [
 		icon: '📝',
 		color: '#F39C12',
 		capabilities: ['documentation', 'explanation', 'comments', 'tutorials'],
-		provider: 'openai',
-		model: 'gpt-4',
+		provider: 'claude',
+		model: 'sonnet',
 		specializations: ['technical-writing', 'api-docs', 'user-guides', 'readme']
 	},
 	{
@@ -82,7 +82,7 @@ export const defaultAgents: AgentConfig[] = [
 		color: '#E67E22',
 		capabilities: ['task-delegation', 'workflow-management', 'agent-coordination', 'conflict-resolution'],
 		provider: 'claude',
-		model: 'opus',
+		model: 'sonnet',
 		specializations: ['project-management', 'task-planning', 'team-coordination', 'decision-making']
 	},
 	{

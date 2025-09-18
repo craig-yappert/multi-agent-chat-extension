@@ -5,11 +5,18 @@ import * as path from 'path';
 import getHtml from './ui';
 import { AgentManager } from './agents';
 import { ProviderManager } from './providers';
+import { AgentCommunicationHub } from './agentCommunication';
+import { MCPServerManager } from './mcp-server/serverManager';
 
 const exec = util.promisify(cp.exec);
 
 export function activate(context: vscode.ExtensionContext) {
 	console.log('Multi Agent Chat extension is being activated!');
+
+	// Initialize MCP Server Manager for fast agent responses
+	const mcpServerManager = new MCPServerManager(context);
+	context.subscriptions.push(mcpServerManager);
+
 	const provider = new ClaudeChatProvider(context.extensionUri, context);
 
 	const disposable = vscode.commands.registerCommand('claude-code-chat.openChat', (column?: vscode.ViewColumn) => {
@@ -19,6 +26,18 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const loadConversationDisposable = vscode.commands.registerCommand('claude-code-chat.loadConversation', (filename: string) => {
 		provider.loadConversation(filename);
+	});
+
+	const clearConversationsDisposable = vscode.commands.registerCommand('claude-code-chat.clearAllConversations', async () => {
+		const answer = await vscode.window.showWarningMessage(
+			'Are you sure you want to delete all conversation history? This cannot be undone.',
+			'Yes, Clear All',
+			'Cancel'
+		);
+
+		if (answer === 'Yes, Clear All') {
+			await provider._clearAllConversations();
+		}
 	});
 
 	// Register webview view provider for sidebar chat (using shared provider instance)
@@ -40,7 +59,7 @@ export function activate(context: vscode.ExtensionContext) {
 	statusBarItem.command = 'claude-code-chat.openChat';
 	statusBarItem.show();
 
-	context.subscriptions.push(disposable, loadConversationDisposable, configChangeDisposable, statusBarItem);
+	context.subscriptions.push(disposable, loadConversationDisposable, clearConversationsDisposable, configChangeDisposable, statusBarItem);
 	console.log('Multi Agent Chat extension activation completed successfully!');
 }
 
@@ -56,8 +75,9 @@ interface ConversationData {
 		input: number;
 		output: number;
 	};
-	messages: Array<{ timestamp: string, messageType: string, data: any }>;
+	messages: Array<{ timestamp: string, messageType: string, data: any, agent?: any }>;
 	filename: string;
+	agentContext?: Record<string, any[]>;
 }
 
 class ClaudeChatWebviewProvider implements vscode.WebviewViewProvider {
@@ -114,7 +134,8 @@ class ClaudeChatProvider {
 	private _permissionRequestsPath: string | undefined;
 	private _permissionWatcher: vscode.FileSystemWatcher | undefined;
 	private _pendingPermissionResolvers: Map<string, (approved: boolean) => void> | undefined;
-	private _currentConversation: Array<{ timestamp: string, messageType: string, data: any }> = [];
+	private _currentConversation: Array<{ timestamp: string, messageType: string, data: any, agent?: any }> = [];
+	private _agentConversationContext?: Map<string, any[]>;
 	private _conversationStartTime: string | undefined;
 	private _conversationIndex: Array<{
 		filename: string,
@@ -133,13 +154,35 @@ class ClaudeChatProvider {
 	private _draftMessage: string = '';
 	private _agentManager: AgentManager;
 	private _providerManager: ProviderManager;
+	private _communicationHub: AgentCommunicationHub;
+	private _outputChannel: vscode.OutputChannel;
 
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
 		private readonly _context: vscode.ExtensionContext
 	) {
 		this._agentManager = new AgentManager();
-		this._providerManager = new ProviderManager(_context, this._agentManager);
+		this._outputChannel = vscode.window.createOutputChannel('Multi-Agent Communication');
+
+		// Create streaming callback if needed
+		const streamCallback = (chunk: string, agentId: string) => {
+			// Send streaming chunks to UI if enabled
+			const config = vscode.workspace.getConfiguration('claudeCodeChat');
+			if (config.get<boolean>('performance.enableStreaming', true)) {
+				this._postMessage({
+					type: 'streamChunk',
+					data: chunk,
+					agentId: agentId
+				});
+			}
+		};
+
+		// Initialize provider manager with streaming support
+		this._providerManager = new ProviderManager(_context, this._agentManager, undefined, streamCallback);
+		// Create communication hub
+		this._communicationHub = new AgentCommunicationHub(this._agentManager, this._providerManager, this._outputChannel);
+		// Update provider manager with communication hub
+		this._providerManager = new ProviderManager(_context, this._agentManager, this._communicationHub, streamCallback);
 
 		// Initialize backup repository and conversations
 		this._initializeBackupRepo();
@@ -346,6 +389,9 @@ class ClaudeChatProvider {
 			case 'saveInputText':
 				this._saveInputText(message.text);
 				return;
+			case 'clearAllConversations':
+				this._clearAllConversations();
+				return;
 		}
 	}
 
@@ -483,12 +529,27 @@ class ClaudeChatProvider {
 			// Get appropriate provider for this agent
 			const provider = this._providerManager.getProvider(agentConfig);
 
-			// Send message to provider
+			// Check if inter-agent communication is enabled
+			const config = vscode.workspace.getConfiguration('claudeCodeChat');
+			const interAgentCommEnabled = config.get<boolean>('interAgentComm.enabled', false);
+
+			// Get conversation history for this agent
+			const agentHistory = this._agentConversationContext?.get(agentConfig.id) || [];
+
+			// Send message to provider with inter-agent communication context and history
 			const response = await provider.sendMessage(message, agentConfig, {
 				planMode,
 				thinkingMode,
-				workspaceRoot: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+				workspaceRoot: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
+				useInterAgentComm: interAgentCommEnabled,
+				conversationHistory: agentHistory,
+				extensionContext: this._context
 			});
+
+			// Parse response for file operations if this is the Executor agent
+			if (agentConfig.id === 'executor') {
+				await this._handleFileOperations(response);
+			}
 
 			// Send response back to UI with agent metadata
 			this._sendAndSaveMessage({
@@ -501,6 +562,19 @@ class ClaudeChatProvider {
 					color: agentConfig.color
 				}
 			});
+
+			// Store agent response in conversation context for next message
+			if (!this._agentConversationContext) {
+				this._agentConversationContext = new Map();
+			}
+			const updatedHistory = this._agentConversationContext.get(agentConfig.id) || [];
+			updatedHistory.push({ role: 'user', content: message });
+			updatedHistory.push({ role: 'assistant', content: response });
+			// Keep last 10 exchanges (20 messages) per agent for context
+			if (updatedHistory.length > 20) {
+				updatedHistory.splice(0, updatedHistory.length - 20);
+			}
+			this._agentConversationContext.set(agentConfig.id, updatedHistory);
 
 		} catch (error) {
 			console.error(`Error with ${agentConfig.name} provider:`, error);
@@ -1003,6 +1077,7 @@ class ClaudeChatProvider {
 		this._commits = [];
 		this._currentConversation = [];
 		this._conversationStartTime = new Date().toISOString();
+		this._agentConversationContext = new Map();
 
 		// Reset counters
 		this._totalCost = 0;
@@ -1927,12 +2002,19 @@ class ClaudeChatProvider {
 		// Send to UI using the helper method
 		this._postMessage(message);
 
-		// Save to conversation
-		this._currentConversation.push({
+		// Save to conversation with agent metadata if present
+		const conversationEntry: any = {
 			timestamp: new Date().toISOString(),
 			messageType: message.type,
 			data: message.data
-		});
+		};
+
+		// Include agent metadata if present
+		if (message.agent) {
+			conversationEntry.agent = message.agent;
+		}
+
+		this._currentConversation.push(conversationEntry);
 
 		// Persist conversation
 		void this._saveCurrentConversation();
@@ -1970,7 +2052,8 @@ class ClaudeChatProvider {
 					output: this._totalTokensOutput
 				},
 				messages: this._currentConversation,
-				filename
+				filename,
+				agentContext: this._agentConversationContext ? Object.fromEntries(this._agentConversationContext) : undefined
 			};
 
 			const filePath = path.join(this._conversationsPath, filename);
@@ -2121,6 +2204,148 @@ class ClaudeChatProvider {
 		}
 	}
 
+	private async _handleFileOperations(response: string): Promise<void> {
+		// Parse response for file operations
+		// Look for patterns like "Creating file: <filename>" or "Writing to: <filename>"
+		const fileCreatePattern = /(?:Creating|Writing|Created|Wrote)(?:\s+(?:a\s+)?(?:new\s+)?file)?:?\s+[`"]?([^\s`"]+)[`"]?/gi;
+		const fileContentPattern = /```(?:[\w+]+)?\n([\s\S]*?)```/g;
+
+		let match;
+		const fileOperations: { filename: string, content: string }[] = [];
+
+		// Find file names mentioned
+		const fileNames: string[] = [];
+		while ((match = fileCreatePattern.exec(response)) !== null) {
+			fileNames.push(match[1]);
+		}
+
+		// Find code blocks that might be file contents
+		const codeBlocks: string[] = [];
+		while ((match = fileContentPattern.exec(response)) !== null) {
+			codeBlocks.push(match[1]);
+		}
+
+		// Match file names with code blocks
+		for (let i = 0; i < fileNames.length && i < codeBlocks.length; i++) {
+			fileOperations.push({
+				filename: fileNames[i],
+				content: codeBlocks[i]
+			});
+		}
+
+		// Execute file operations
+		for (const op of fileOperations) {
+			try {
+				const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+				if (workspaceFolder) {
+					const filePath = path.isAbsolute(op.filename) ?
+						op.filename :
+						path.join(workspaceFolder.uri.fsPath, op.filename);
+
+					const fileUri = vscode.Uri.file(filePath);
+					const content = new TextEncoder().encode(op.content);
+					await vscode.workspace.fs.writeFile(fileUri, content);
+
+					console.log(`File created/updated by Executor agent: ${filePath}`);
+					vscode.window.showInformationMessage(`File created: ${op.filename}`);
+				}
+			} catch (error) {
+				console.error(`Failed to create file ${op.filename}:`, error);
+			}
+		}
+	}
+
+	public async _clearAllConversations(): Promise<void> {
+		try {
+			// Clear conversation index from workspace state
+			this._conversationIndex = [];
+			await this._context.workspaceState.update('claude.conversationIndex', []);
+			console.log('Cleared conversation index from workspace state');
+
+			// Clear conversations directory if it exists
+			if (this._conversationsPath) {
+				try {
+					const conversationsUri = vscode.Uri.file(this._conversationsPath);
+					const files = await vscode.workspace.fs.readDirectory(conversationsUri);
+
+					// Delete all JSON files in conversations directory
+					for (const [filename, fileType] of files) {
+						if (filename.endsWith('.json')) {
+							const fileUri = vscode.Uri.file(path.join(this._conversationsPath, filename));
+							await vscode.workspace.fs.delete(fileUri);
+							console.log(`Deleted conversation file: ${filename}`);
+						}
+					}
+					console.log('All conversation files deleted');
+				} catch (error) {
+					console.log('Conversations directory may not exist or is already empty');
+				}
+			}
+
+			// Clear current session
+			this._currentConversation = [];
+			this._agentConversationContext = new Map();
+			this._conversationStartTime = undefined;
+			this._currentSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+			// Reset totals
+			this._totalCost = 0;
+			this._totalTokensInput = 0;
+			this._totalTokensOutput = 0;
+			this._requestCount = 0;
+
+			// Notify UI
+			this._postMessage({
+				type: 'sessionCleared'
+			});
+
+			this._postMessage({
+				type: 'conversationList',
+				data: []
+			});
+
+			vscode.window.showInformationMessage('All conversation history has been cleared');
+
+		} catch (error) {
+			console.error('Failed to clear conversations:', error);
+			vscode.window.showErrorMessage('Failed to clear conversation history');
+		}
+	}
+
+	private _rebuildAgentContextFromHistory(): void {
+		// Rebuild agent conversation context from loaded history
+		if (!this._agentConversationContext) {
+			this._agentConversationContext = new Map();
+		}
+
+		// Go through conversation history and rebuild context
+		for (let i = 0; i < this._currentConversation.length; i++) {
+			const msg = this._currentConversation[i];
+
+			// Track user inputs
+			if (msg.messageType === 'userInput') {
+				// Look ahead for agent response
+				for (let j = i + 1; j < this._currentConversation.length; j++) {
+					const nextMsg = this._currentConversation[j];
+					if (nextMsg.messageType === 'agentResponse' && (nextMsg as any).agent) {
+						const agentInfo = (nextMsg as any).agent;
+						const agentId = agentInfo.id;
+						const history = this._agentConversationContext.get(agentId) || [];
+						history.push({ role: 'user', content: msg.data });
+						history.push({ role: 'assistant', content: nextMsg.data });
+
+						// Keep last 10 exchanges per agent
+						if (history.length > 20) {
+							history.splice(0, history.length - 20);
+						}
+						this._agentConversationContext.set(agentId, history);
+						break;
+					}
+				}
+			}
+		}
+	}
+
 	private _updateConversationIndex(filename: string, conversationData: ConversationData): void {
 		// Extract first and last user messages
 		const userMessages = conversationData.messages.filter((m: any) => m.messageType === 'userInput');
@@ -2182,6 +2407,14 @@ class ClaudeChatProvider {
 			this._totalTokensInput = conversationData.totalTokens?.input || 0;
 			this._totalTokensOutput = conversationData.totalTokens?.output || 0;
 
+			// Restore agent conversation context if present
+			if ((conversationData as any).agentContext) {
+				this._agentConversationContext = new Map(Object.entries((conversationData as any).agentContext));
+			} else {
+				// Rebuild context from message history for backward compatibility
+				this._rebuildAgentContextFromHistory();
+			}
+
 			// Clear UI messages first, then send all messages to recreate the conversation
 			setTimeout(() => {
 				// Clear existing messages
@@ -2205,10 +2438,17 @@ class ClaudeChatProvider {
 							}
 						}
 
-						this._postMessage({
+						// Include agent metadata if present (for agentResponse messages)
+						const postMsg: any = {
 							type: message.messageType,
 							data: message.data
-						});
+						};
+
+						if (message.agent) {
+							postMsg.agent = message.agent;
+						}
+
+						this._postMessage(postMsg);
 						if (message.messageType === 'userInput') {
 							try {
 								requestStartTime = new Date(message.timestamp).getTime()

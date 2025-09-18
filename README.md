@@ -8,6 +8,8 @@
 
 Transform your development workflow with Multi Agent Chat - a VS Code extension that provides you with an entire AI development team. Each agent specializes in different aspects of software development, working together or individually to help you build better software faster.
 
+> 📌 **This extension is built upon the excellent foundation of [Claude Code Chat](https://github.com/andrepimenta/claude-code-chat) by André Pimenta, enhanced with multi-agent capabilities and specialized AI team features.**
+
 ---
 
 ## ✨ **Why Multi Agent Chat?**
@@ -234,6 +236,25 @@ Contributions are welcome! Please feel free to submit issues and pull requests o
 For issues, feature requests, or questions:
 - Open an issue on [GitHub](https://github.com/craig-yappert/multi-agent-chat-extension/issues)
 - Contact the author: Craig Yappert
+
+---
+
+## 🙏 **Acknowledgments**
+
+This project is a fork and extension of [Claude Code Chat](https://github.com/andrepimenta/claude-code-chat) by **André Pimenta**. We are deeply grateful for the excellent foundation and core functionality provided by the original project.
+
+### Original Project Credits
+- **Author**: André Pimenta
+- **Repository**: [https://github.com/andrepimenta/claude-code-chat](https://github.com/andrepimenta/claude-code-chat)
+- **License**: MIT
+
+### Enhancements in This Fork
+- Multi-agent system with specialized AI roles (Architect, Coder, Reviewer, etc.)
+- Team collaboration mode for complex tasks
+- Enhanced agent routing and context management
+- Specialized agent capabilities for different development tasks
+
+We maintain full compatibility with the original Claude Code Chat features while extending its capabilities to provide a comprehensive AI development team experience.
 
 ---
 

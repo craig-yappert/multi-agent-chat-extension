@@ -2,7 +2,7 @@
   "name": "multi-agent-chat",
   "displayName": "Multi Agent Chat",
   "description": "Collaborative Multi-Agent AI Chat Interface for VS Code",
-  "version": "1.2.3",
+  "version": "1.8.0",
   "publisher": "CraigYappert",
   "author": "Craig Yappert",
   "repository": {
@@ -57,6 +57,46 @@
         "title": "Open Multi Agent Chat",
         "category": "Multi Agent Chat",
         "icon": "icon.png"
+      },
+      {
+        "command": "multi-agent-chat.startMCPServer",
+        "title": "Start MCP Server",
+        "category": "Multi Agent Chat"
+      },
+      {
+        "command": "multi-agent-chat.stopMCPServer",
+        "title": "Stop MCP Server",
+        "category": "Multi Agent Chat"
+      },
+      {
+        "command": "multi-agent-chat.restartMCPServer",
+        "title": "Restart MCP Server",
+        "category": "Multi Agent Chat"
+      },
+      {
+        "command": "multi-agent-chat.toggleMCPServer",
+        "title": "Toggle MCP Server",
+        "category": "Multi Agent Chat"
+      },
+      {
+        "command": "claude-code-chat.clearAllConversations",
+        "title": "Clear All Conversation History",
+        "category": "Multi Agent Chat"
+      },
+      {
+        "command": "multi-agent-chat.showMCPServerLogs",
+        "title": "Show MCP Server Logs",
+        "category": "Multi Agent Chat"
+      },
+      {
+        "command": "multi-agent-chat.validateMCPServer",
+        "title": "Validate MCP Server",
+        "category": "Multi Agent Chat"
+      },
+      {
+        "command": "multi-agent-chat.mcpServerStatus",
+        "title": "MCP Server Quick Status",
+        "category": "Multi Agent Chat"
       }
     ],
     "keybindings": [
@@ -185,6 +225,163 @@
           "type": "boolean",
           "default": false,
           "description": "Enable Yolo Mode to skip all permission checks. Use with caution as Claude can execute any command without asking."
+        },
+        "claudeCodeChat.interAgentComm.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable inter-agent communication for enhanced collaboration between agents"
+        },
+        "claudeCodeChat.interAgentComm.showInUI": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show inter-agent communication messages in the UI"
+        },
+        "claudeCodeChat.interAgentComm.maxConcurrent": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Maximum number of agents that can communicate concurrently"
+        },
+        "claudeCodeChat.performance.enableStreaming": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable response streaming for faster feedback"
+        },
+        "claudeCodeChat.performance.enableCache": {
+          "type": "boolean",
+          "default": true,
+          "description": "Cache responses for repeated queries (5 minute TTL)"
+        },
+        "claudeCodeChat.performance.quickTeamMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Quick team mode: Only query 3 most relevant agents instead of all 6"
+        },
+        "claudeCodeChat.performance.localSynthesis": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use local synthesis for team responses to avoid extra API call"
+        },
+        "claudeCodeChat.performance.minimalContext": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use minimal role context to reduce token usage and improve speed"
+        },
+        "claudeCodeChat.performance.agentTimeout": {
+          "type": "number",
+          "default": 12000,
+          "minimum": 3000,
+          "maximum": 30000,
+          "description": "Timeout per agent in milliseconds (default: 12 seconds)"
+        },
+        "claudeCodeChat.performance.minAgentsRequired": {
+          "type": "number",
+          "default": 2,
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Minimum number of agents required for team response"
+        },
+        "claudeCodeChat.performance.maxTeamWaitTime": {
+          "type": "number",
+          "default": 15000,
+          "minimum": 5000,
+          "maximum": 60000,
+          "description": "Maximum time to wait for team responses in milliseconds"
+        },
+        "claudeCodeChat.performance.useFirstResponders": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use first responders strategy (faster) vs batched strategy (more thorough)"
+        },
+        "claudeCodeChat.performance.ultraFastMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Ultra-fast mode: Only wait for 2 agents, 8 second timeout, minimal context"
+        },
+        "claudeCodeChat.performance.maxConcurrentAgents": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Maximum number of agents to query concurrently for team responses"
+        },
+        "claudeCodeChat.performance.smartAgentSelection": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use AI to select only the most relevant agents for each query"
+        },
+        "claudeCodeChat.performance.requestTimeout": {
+          "type": "number",
+          "default": 15000,
+          "minimum": 5000,
+          "maximum": 60000,
+          "description": "Timeout per agent request in milliseconds"
+        },
+        "claudeCodeChat.mcp.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable MCP WebSocket server for fast agent responses"
+        },
+        "claudeCodeChat.mcp.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start MCP server when extension loads"
+        },
+        "claudeCodeChat.mcp.serverUrl": {
+          "type": "string",
+          "default": "ws://localhost:3030",
+          "description": "MCP WebSocket server URL"
+        },
+        "claudeCodeChat.mcp.wsPort": {
+          "type": "number",
+          "default": 3030,
+          "description": "MCP WebSocket server port"
+        },
+        "claudeCodeChat.mcp.httpPort": {
+          "type": "number",
+          "default": 3031,
+          "description": "MCP HTTP API server port"
+        },
+        "claudeCodeChat.mcp.useRealClaude": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use real Claude CLI for MCP server responses (slower but real)"
+        },
+        "claudeCodeChat.api.url": {
+          "type": "string",
+          "default": "http://localhost:3031/api",
+          "description": "HTTP API URL for fallback"
+        },
+        "claudeCodeChat.api.key": {
+          "type": "string",
+          "default": "",
+          "description": "API key for HTTP API (if required)"
+        },
+        "claudeCodeChat.routing.preferWebSocket": {
+          "type": "boolean",
+          "default": true,
+          "description": "Prefer WebSocket over HTTP API"
+        },
+        "claudeCodeChat.routing.fallbackToHttp": {
+          "type": "boolean",
+          "default": true,
+          "description": "Fallback to HTTP API if WebSocket fails"
+        },
+        "claudeCodeChat.routing.fallbackToCLI": {
+          "type": "boolean",
+          "default": true,
+          "description": "Fallback to CLI if both WebSocket and HTTP fail (slower but always works)"
+        },
+        "claudeCodeChat.routing.adaptive": {
+          "type": "boolean",
+          "default": true,
+          "description": "Adaptively route based on performance metrics"
+        },
+        "claudeCodeChat.routing.logVerbose": {
+          "type": "boolean",
+          "default": true,
+          "description": "Log detailed routing information"
         }
       }
     }
@@ -208,5 +405,11 @@
     "@vscode/vsce": "^3.5.0",
     "eslint": "^9.25.1",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@types/express": "^5.0.3",
+    "@types/ws": "^8.18.1",
+    "express": "^5.1.0",
+    "ws": "^8.18.3"
   }
 }

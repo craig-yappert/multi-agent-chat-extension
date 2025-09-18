@@ -761,6 +761,9 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			console.log('sendMessage called');
 			const text = messageInput.value.trim();
 			if (text) {
+				// Show status bar immediately when sending
+				showAgentStatus('Sending message to agents...');
+
 				vscode.postMessage({
 					type: 'sendMessage',
 					text: text,
@@ -1912,6 +1915,16 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				case 'ready':
 					addMessage(message.data, 'system');
 					updateStatusWithTotals();
+					hideAgentStatus();
+					break;
+				case 'agentStatus':
+					// Update agent status bar
+					if (message.data.message) {
+						showAgentStatus(message.data.message, message.data.agents || []);
+					}
+					if (message.data.agentId && message.data.status) {
+						updateAgentStatus(message.data.agentId, message.data.status);
+					}
 					break;
 					
 				case 'restoreInputText':
@@ -1967,6 +1980,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 						addMessage(parseSimpleMarkdown(message.data), 'claude', message.agent || null);
 					}
 					updateStatusWithTotals();
+					hideAgentStatus(); // Hide status spinner after response
 					break;
 					
 				case 'loading':
@@ -3127,13 +3141,57 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			}
 		});
 
+		// Agent Status Bar functions
+		window.showAgentStatus = function(message, agents = []) {
+			const statusBar = document.getElementById('agentStatusBar');
+			const statusText = document.getElementById('agentStatusText');
+			const agentList = document.getElementById('agentStatusList');
+
+			if (statusBar && statusText) {
+				statusBar.style.display = 'block';
+				statusText.textContent = message;
+
+				// Update agent list if provided
+				if (agentList && agents.length > 0) {
+					agentList.innerHTML = agents.map(agent =>
+						'<div class="agent-status-item ' + agent.status + '">' +
+						'<span class="agent-status-icon">' + agent.icon + '</span>' +
+						'<span>' + agent.name + '</span>' +
+						'</div>'
+					).join('');
+				} else if (agentList) {
+					agentList.innerHTML = '';
+				}
+			}
+		}
+
+		window.updateAgentStatus = function(agentId, status) {
+			const agentElements = document.querySelectorAll('.agent-status-item');
+			agentElements.forEach(el => {
+				if (el.textContent?.includes(agentId)) {
+					el.className = 'agent-status-item ' + status;
+				}
+			});
+		}
+
+		window.hideAgentStatus = function() {
+			const statusBar = document.getElementById('agentStatusBar');
+			if (statusBar) {
+				setTimeout(() => {
+					statusBar.style.display = 'none';
+				}, 500); // Small delay before hiding
+			}
+		}
+
 		// Log what functions are available on window
 		console.log('Functions attached to window:', {
 			sendMessage: typeof window.sendMessage,
 			showAgentSelector: typeof window.showAgentSelector,
 			toggleSettings: typeof window.toggleSettings,
 			newSession: typeof window.newSession,
-			stopRequest: typeof window.stopRequest
+			stopRequest: typeof window.stopRequest,
+			showAgentStatus: typeof window.showAgentStatus,
+			hideAgentStatus: typeof window.hideAgentStatus
 		});
 
 		// Initialize DOM elements and set up event listeners after they're loaded

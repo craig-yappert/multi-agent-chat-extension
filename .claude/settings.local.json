@@ -8,7 +8,17 @@
       "Bash(npx tsc:*)",
       "Bash(npx vsce:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "WebFetch(domain:www.infoq.com)",
+      "Bash(npm install:*)",
+      "Bash(node:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(dir:*)",
+      "Bash(powershell:*)",
+      "Read(//c/Users/cyapp/AppData/Roaming/Code/User/**)",
+      "Bash(tree:*)"
     ],
     "deny": []
   },

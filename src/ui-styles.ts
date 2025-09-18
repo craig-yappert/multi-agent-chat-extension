@@ -2879,6 +2879,107 @@ const styles = `
         overflow: hidden;
         text-overflow: ellipsis;
     }
+
+    /* Agent Status Bar */
+    .agent-status-bar {
+        position: sticky;
+        bottom: 0;
+        background: var(--vscode-editor-background);
+        border-top: 1px solid var(--vscode-widget-border, #2d2d2d);
+        padding: 8px 20px;
+        z-index: 10;
+        animation: slideUp 0.3s ease-out;
+        min-height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .agent-status-bar .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 0;
+        white-space: nowrap;
+    }
+
+    .status-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--vscode-progressBar-background, #007acc);
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .agent-status-bar .status-text {
+        color: var(--vscode-foreground);
+        font-size: 13px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .status-agents {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 4px;
+    }
+
+    .agent-status-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 12px;
+        background: var(--vscode-badge-background);
+        font-size: 11px;
+        color: var(--vscode-badge-foreground);
+        transition: all 0.2s ease;
+    }
+
+    .agent-status-item.pending {
+        opacity: 0.5;
+    }
+
+    .agent-status-item.active {
+        background: var(--vscode-progressBar-background, #007acc);
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .agent-status-item.completed {
+        background: var(--vscode-testing-iconPassed, #73c991);
+    }
+
+    .agent-status-item.failed {
+        background: var(--vscode-testing-iconFailed, #f14c4c);
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+
+    .agent-status-icon {
+        font-size: 12px;
+    }
 </style>`
 
 export default styles

@@ -56,7 +56,16 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 				</div>
 			</div>
 		</div>
-		
+
+		<!-- Agent Status Indicator -->
+		<div id="agentStatusBar" class="agent-status-bar" style="display: none;">
+			<div class="status-indicator">
+				<div class="status-spinner"></div>
+				<div class="status-text" id="agentStatusText">Message sent, awaiting response...</div>
+			</div>
+			<div class="status-agents" id="agentStatusList"></div>
+		</div>
+
 		<div class="input-container" id="inputContainer">
 			<!-- Hiding Plan and Thinking modes for multi-agent setup -->
 			<div class="input-modes" style="display: none;">

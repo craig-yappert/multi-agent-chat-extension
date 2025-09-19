@@ -1,5 +1,14 @@
 import * as vscode from 'vscode';
 import { AgentConfig, defaultAgents } from '../agents';
+import { MODEL_CONFIGS, DEFAULT_MODELS } from '../config/models';
+
+export interface AgentSettings {
+    model: string;
+    provider: 'claude' | 'openai' | 'local' | 'mcp';
+    systemPrompt?: string;
+    temperature?: number;
+    maxTokens?: number;
+}
 
 export interface SettingsData {
     apiKeys: {
@@ -7,20 +16,12 @@ export interface SettingsData {
         openai?: string;
     };
     agents: {
-        [agentId: string]: {
-            model: string;
-            provider: 'claude' | 'openai' | 'local' | 'mcp';
-            permissions: {
-                fileWrite: boolean;
-                commandExecution: boolean;
-            };
-            customPrompt?: string;
-        };
+        [agentId: string]: AgentSettings;
     };
-    global: {
-        yoloMode: boolean;
-        defaultPermission: 'ask' | 'allow' | 'deny';
+    projectAgents?: {
+        [agentId: string]: AgentSettings;
     };
+    useProjectSettings?: boolean;
 }
 
 export class SettingsPanel {
@@ -38,19 +39,35 @@ export class SettingsPanel {
     public getHtml(): string {
         try {
             const settings = this.loadSettings();
+            const hasProjectSettings = this.hasProjectConfig();
 
-            // Build HTML in parts to avoid truncation
             let html = '<div class="settings-container">';
-            html += '<h2>⚙️ Settings</h2>';
+
+            // Settings Source Indicator
+            if (hasProjectSettings) {
+                html += `
+                    <div class="settings-source-indicator">
+                        <span>📁 Project settings active (.machat/config.json)</span>
+                        <label style="margin-left: 20px;">
+                            <input type="checkbox" id="use-project-settings"
+                                ${settings.useProjectSettings !== false ? 'checked' : ''}
+                                onchange="toggleProjectSettings(this.checked)" />
+                            <span>Use project settings</span>
+                        </label>
+                    </div>
+                `;
+            }
 
             // API Keys Section
             html += this.renderApiKeysSection(settings);
 
-            // Simplified agents section for now
-            html += this.renderSimplifiedAgentsSection(settings);
-
-            // Global settings
-            html += this.renderGlobalSection(settings);
+            // Agent Definitions Section
+            try {
+                html += this.renderAgentDefinitionsSection(settings, hasProjectSettings);
+            } catch (error) {
+                console.error('Error rendering agent definitions:', error);
+                html += '<div class="settings-section"><p>Error loading agent definitions: ' + error + '</p></div>';
+            }
 
             // Footer
             html += `
@@ -117,153 +134,110 @@ export class SettingsPanel {
         `;
     }
 
-    private renderSimplifiedAgentsSection(settings: SettingsData): string {
-        return `
-            <div class="settings-section">
-                <h3>🤖 Agent Configuration</h3>
-                <div style="padding: 10px;">
-                    <p style="color: var(--vscode-descriptionForeground);">
-                        Select default models for each agent:
-                    </p>
-                    <div style="margin-top: 10px;">
-                        <label>Executor Agent:</label>
-                        <select id="executor-model" style="margin-left: 10px;">
-                            <option value="sonnet">Claude 3.5 Sonnet</option>
-                            <option value="opus">Claude 3 Opus</option>
-                        </select>
-                    </div>
-                    <div style="margin-top: 10px;">
-                        <label>Architect Agent:</label>
-                        <select id="architect-model" style="margin-left: 10px;">
-                            <option value="sonnet">Claude 3.5 Sonnet</option>
-                            <option value="opus">Claude 3 Opus</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    private renderAgentsSection(settings: SettingsData): string {
-        console.log('Rendering agents section, defaultAgents:', defaultAgents);
-        const agents = defaultAgents.filter(a => a.id !== 'team'); // Exclude team agent
-        console.log('Filtered agents:', agents);
-
-        let html = `
-            <div class="settings-section">
-                <h3>🤖 Agent Configuration</h3>
-                <div class="agents-container">
-        `;
-
-        for (const agent of agents) {
-            const agentSettings = settings.agents[agent.id] || this.getDefaultAgentSettings(agent);
-
-            html += `
-                <div class="agent-config" data-agent-id="${agent.id}">
-                    <div class="agent-header">
-                        <span class="agent-icon">${agent.icon}</span>
-                        <span class="agent-name">${agent.name}</span>
-                    </div>
-
-                    <div class="agent-settings">
-                        <div class="setting-row">
-                            <label>Model:</label>
-                            <select id="model-${agent.id}" class="model-select">
-                                ${this.getModelOptions(agentSettings.provider, agentSettings.model)}
-                            </select>
-                        </div>
-
-                        <div class="setting-row">
-                            <label>Provider:</label>
-                            <select id="provider-${agent.id}" class="provider-select"
-                                    onchange="updateModelOptions('${agent.id}')">
-                                <option value="claude" ${agentSettings.provider === 'claude' ? 'selected' : ''}>Claude</option>
-                                <option value="openai" ${agentSettings.provider === 'openai' ? 'selected' : ''}>OpenAI</option>
-                                <option value="local" ${agentSettings.provider === 'local' ? 'selected' : ''}>Local</option>
-                            </select>
-                        </div>
-
-                        <div class="setting-row">
-                            <label>Permissions:</label>
-                            <div class="permissions">
-                                <label class="checkbox-label">
-                                    <input type="checkbox"
-                                           id="filewrite-${agent.id}"
-                                           ${agentSettings.permissions.fileWrite ? 'checked' : ''} />
-                                    File Write
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox"
-                                           id="commands-${agent.id}"
-                                           ${agentSettings.permissions.commandExecution ? 'checked' : ''} />
-                                    Commands
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
+    private renderAgentDefinitionsSection(settings: SettingsData, hasProjectSettings: boolean): string {
+        // Check if defaultAgents is available
+        if (!defaultAgents || !Array.isArray(defaultAgents)) {
+            console.error('defaultAgents is not available or not an array:', defaultAgents);
+            return '<div class="settings-section"><p>Agent definitions not available</p></div>';
         }
 
-        html += `
-                </div>
-            </div>
-        `;
+        const agents = defaultAgents.filter(a => a.id !== 'team');
+        const useProject = settings.useProjectSettings !== false && hasProjectSettings;
+        const agentSettings = useProject && settings.projectAgents ? settings.projectAgents : settings.agents || {};
+
+        let html = '<div class="settings-section">';
+        html += '<h3>🤖 Agent Definitions</h3>';
+        html += '<p style="color: var(--vscode-descriptionForeground); margin: 10px 0;">Configure each agent\'s model, provider, and behavior.';
+
+        if (hasProjectSettings) {
+            html += '<br><small>';
+            html += useProject ? '📁 Using project-specific definitions' : '🌐 Using global definitions';
+            html += '</small>';
+        }
+
+        html += '</p><div class="agents-grid">';
+
+        for (const agent of agents) {
+            const config = agentSettings[agent.id] || this.getDefaultAgentSettings(agent);
+            const isInherited = useProject && settings.projectAgents && !settings.projectAgents[agent.id];
+
+            // Build agent card HTML piece by piece to avoid template literal issues
+            html += '<div class="agent-card" data-agent-id="' + agent.id + '">';
+            html += '<div class="agent-header">';
+            html += '<span class="agent-icon">' + agent.icon + '</span>';
+            html += '<span class="agent-name">' + agent.name + '</span>';
+
+            if (isInherited) {
+                html += '<span class="inherited-badge">inherited</span>';
+            }
+
+            html += '</div>';
+            html += '<div class="agent-config">';
+
+            // Provider selection
+            html += '<div class="config-row">';
+            html += '<label>Provider:</label>';
+            html += '<select id="provider-' + agent.id + '" onchange="updateModelOptions(\'' + agent.id + '\')">';
+            html += '<option value="claude"' + (config.provider === 'claude' ? ' selected' : '') + '>Claude</option>';
+            html += '<option value="mcp"' + (config.provider === 'mcp' ? ' selected' : '') + '>MCP (Claude)</option>';
+            html += '<option value="openai"' + (config.provider === 'openai' ? ' selected' : '') + '>OpenAI</option>';
+            html += '</select>';
+            html += '</div>';
+
+            // Model selection
+            html += '<div class="config-row">';
+            html += '<label>Model:</label>';
+            html += '<select id="model-' + agent.id + '">';
+            html += this.getModelOptions(config.provider, config.model);
+            html += '</select>';
+            html += '</div>';
+
+            // Advanced settings (hidden by default)
+            html += '<div class="config-row advanced" style="display: none;">';
+            html += '<label>Temperature:</label>';
+            html += '<input type="number" id="temp-' + agent.id + '" value="' + (config.temperature || 0.7) + '" min="0" max="2" step="0.1" style="width: 60px;" />';
+            html += '</div>';
+
+            html += '<div class="config-row advanced" style="display: none;">';
+            html += '<label>Max Tokens:</label>';
+            html += '<input type="number" id="tokens-' + agent.id + '" value="' + (config.maxTokens || 4000) + '" min="100" max="100000" step="100" style="width: 80px;" />';
+            html += '</div>';
+
+            // Advanced toggle button
+            html += '<button class="toggle-advanced" onclick="toggleAdvanced(\'' + agent.id + '\')">⚙️ Advanced</button>';
+
+            html += '</div>'; // Close agent-config
+            html += '</div>'; // Close agent-card
+        }
+
+        html += '</div>'; // Close agents-grid
+        html += '</div>'; // Close settings-section
 
         return html;
     }
 
-    private renderGlobalSection(settings: SettingsData): string {
-        const yoloChecked = settings.global?.yoloMode ? 'checked' : '';
-        const defaultPerm = settings.global?.defaultPermission || 'ask';
 
-        return `
-            <div class="settings-section">
-                <h3>⚙️ Global Options</h3>
-                <div style="padding: 10px;">
-                    <div style="margin-bottom: 10px;">
-                        <label>
-                            <input type="checkbox" id="yolo-mode" ${yoloChecked} />
-                            <span style="margin-left: 8px;">⚡ YOLO Mode</span>
-                            <span style="font-size: 12px; color: var(--vscode-descriptionForeground); margin-left: 8px;">
-                                (Auto-approve all permissions)
-                            </span>
-                        </label>
-                    </div>
+    private hasProjectConfig(): boolean {
+        // Check if .machat/config.json exists
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) {
+            return false;
+        }
 
-                    <div>
-                        <label for="default-permission">Default Permission:</label>
-                        <select id="default-permission" style="margin-left: 10px;">
-                            <option value="ask" ${defaultPerm === 'ask' ? 'selected' : ''}>Always Ask</option>
-                            <option value="allow" ${defaultPerm === 'allow' ? 'selected' : ''}>Allow by Default</option>
-                            <option value="deny" ${defaultPerm === 'deny' ? 'selected' : ''}>Deny by Default</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-        `;
+        const fs = require('fs');
+        const path = require('path');
+        const projectRoot = workspaceFolders[0].uri.fsPath;
+        const configPath = path.join(projectRoot, '.machat', 'config.json');
+
+        try {
+            return fs.existsSync(configPath);
+        } catch {
+            return false;
+        }
     }
 
     private getModelOptions(provider: string, selectedModel: string): string {
-        const models = {
-            claude: [
-                { value: 'sonnet', label: 'Claude 3.5 Sonnet' },
-                { value: 'opus', label: 'Claude 3 Opus' },
-                { value: 'haiku', label: 'Claude 3 Haiku' }
-            ],
-            openai: [
-                { value: 'gpt-4', label: 'GPT-4' },
-                { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
-                { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' }
-            ],
-            local: [
-                { value: 'llama', label: 'Llama 2' },
-                { value: 'mistral', label: 'Mistral' },
-                { value: 'custom', label: 'Custom Model' }
-            ]
-        };
-
-        const providerModels = models[provider as keyof typeof models] || models.claude;
+        const providerModels = MODEL_CONFIGS[provider] || MODEL_CONFIGS.claude;
 
         return providerModels.map(model =>
             `<option value="${model.value}" ${model.value === selectedModel ? 'selected' : ''}>
@@ -272,64 +246,109 @@ export class SettingsPanel {
         ).join('');
     }
 
-    private getDefaultAgentSettings(agent: AgentConfig): any {
+    private getDefaultAgentSettings(agent: AgentConfig): AgentSettings {
+        const provider = agent.provider as string || 'claude';
         return {
-            model: agent.model || 'sonnet',
-            provider: agent.provider as string || 'claude',
-            permissions: {
-                fileWrite: agent.id === 'executor',
-                commandExecution: agent.id === 'executor'
-            }
+            model: agent.model || DEFAULT_MODELS[provider] || 'claude-3-5-sonnet-latest',
+            provider: provider as any,
+            temperature: 0.7,
+            maxTokens: 4000
         };
     }
 
     public loadSettings(): SettingsData {
         const config = vscode.workspace.getConfiguration('multiAgentChat');
 
-        // Load saved settings or return defaults
-        const savedSettings = this._context.globalState.get<SettingsData>('settings');
+        // Load global settings
+        const globalSettings = this._context.globalState.get<SettingsData>('settings') || {};
 
-        if (savedSettings) {
-            return savedSettings;
+        // Load project settings if available
+        let projectSettings: any = {};
+        if (this.hasProjectConfig()) {
+            try {
+                const fs = require('fs');
+                const path = require('path');
+                const workspaceFolders = vscode.workspace.workspaceFolders!;
+                const projectRoot = workspaceFolders[0].uri.fsPath;
+                const configPath = path.join(projectRoot, '.machat', 'config.json');
+                const configContent = fs.readFileSync(configPath, 'utf8');
+                const projectConfig = JSON.parse(configContent);
+                projectSettings = projectConfig.agents ? { projectAgents: projectConfig.agents } : {};
+            } catch (error) {
+                console.error('Failed to load project config:', error);
+            }
         }
 
-        // Return default settings
+        // Merge settings
         const defaultSettings: SettingsData = {
             apiKeys: {
-                claude: config.get<string>('apiKey') || '',
-                openai: ''
+                claude: config.get<string>('apiKeys.claude') || '',
+                openai: config.get<string>('apiKeys.openai') || ''
             },
             agents: {},
-            global: {
-                yoloMode: false,
-                defaultPermission: 'ask'
-            }
+            useProjectSettings: true
         };
 
-        // Initialize agent defaults
+        // Initialize default agent settings
         for (const agent of defaultAgents) {
             if (agent.id !== 'team') {
                 defaultSettings.agents[agent.id] = this.getDefaultAgentSettings(agent);
             }
         }
 
-        return defaultSettings;
+        // Merge with saved and project settings
+        return {
+            ...defaultSettings,
+            ...globalSettings,
+            ...projectSettings
+        };
     }
 
     public async saveSettings(settings: SettingsData): Promise<void> {
-        // Save to global state
-        await this._context.globalState.update('settings', settings);
-
-        // Update VS Code configuration for API key
+        // Save API keys to VS Code settings
         const config = vscode.workspace.getConfiguration('multiAgentChat');
         if (settings.apiKeys.claude) {
-            await config.update('apiKey', settings.apiKeys.claude, vscode.ConfigurationTarget.Global);
+            await config.update('apiKeys.claude', settings.apiKeys.claude, vscode.ConfigurationTarget.Global);
+        }
+        if (settings.apiKeys.openai) {
+            await config.update('apiKeys.openai', settings.apiKeys.openai, vscode.ConfigurationTarget.Global);
+        }
+
+        // Determine where to save agent settings
+        if (settings.useProjectSettings && this.hasProjectConfig()) {
+            // Save to project config
+            try {
+                const fs = require('fs');
+                const path = require('path');
+                const workspaceFolders = vscode.workspace.workspaceFolders!;
+                const projectRoot = workspaceFolders[0].uri.fsPath;
+                const configPath = path.join(projectRoot, '.machat', 'config.json');
+
+                let projectConfig: any = {};
+                if (fs.existsSync(configPath)) {
+                    const content = fs.readFileSync(configPath, 'utf8');
+                    projectConfig = JSON.parse(content);
+                }
+
+                // Update agent definitions
+                projectConfig.agents = settings.agents;
+                projectConfig.useProjectSettings = true;
+
+                // Save back to file
+                fs.writeFileSync(configPath, JSON.stringify(projectConfig, null, 2));
+                vscode.window.showInformationMessage('📁 Project agent settings saved');
+            } catch (error) {
+                console.error('Failed to save project settings:', error);
+                vscode.window.showErrorMessage('Failed to save project settings: ' + error);
+            }
+        } else {
+            // Save to global state
+            await this._context.globalState.update('settings', settings);
+            vscode.window.showInformationMessage('🌐 Global agent settings saved');
         }
 
         // Notify about changes
         this._onSettingsChanged(settings);
-
-        vscode.window.showInformationMessage('Settings saved successfully');
     }
 
     public getScript(): string {
@@ -347,27 +366,50 @@ export class SettingsPanel {
                 }
             }
 
+            function toggleProjectSettings(useProject) {
+                // Reload settings when toggling between global and project
+                vscode.postMessage({
+                    type: 'toggleProjectSettings',
+                    useProject: useProject
+                });
+            }
+
+            function toggleAdvanced(agentId) {
+                const card = document.querySelector('[data-agent-id="' + agentId + '"]');
+                const advancedRows = card.querySelectorAll('.advanced');
+                const button = card.querySelector('.toggle-advanced');
+
+                advancedRows.forEach(row => {
+                    row.style.display = row.style.display === 'none' ? 'flex' : 'none';
+                });
+
+                button.textContent = advancedRows[0].style.display === 'none' ? '⚙️ Advanced' : '⚙️ Hide Advanced';
+            }
+
             function updateModelOptions(agentId) {
                 const providerSelect = document.getElementById('provider-' + agentId);
                 const modelSelect = document.getElementById('model-' + agentId);
                 const provider = providerSelect.value;
 
                 // Update model options based on provider
+                // Note: These models are defined in src/config/models.ts
+                // Update that file when models change
                 const models = {
                     claude: [
-                        { value: 'sonnet', label: 'Claude 3.5 Sonnet' },
-                        { value: 'opus', label: 'Claude 3 Opus' },
-                        { value: 'haiku', label: 'Claude 3 Haiku' }
+                        { value: 'claude-3-5-sonnet-latest', label: 'Claude 3.5 Sonnet (Latest)' },
+                        { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet (Oct 2024)' },
+                        { value: 'claude-3-opus-latest', label: 'Claude 3 Opus' },
+                        { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku' }
+                    ],
+                    mcp: [
+                        { value: 'claude-3-5-sonnet-latest', label: 'Claude 3.5 Sonnet (via MCP)' },
+                        { value: 'claude-3-opus-latest', label: 'Claude 3 Opus (via MCP)' }
                     ],
                     openai: [
+                        { value: 'gpt-4o', label: 'GPT-4o' },
+                        { value: 'gpt-4-turbo-preview', label: 'GPT-4 Turbo' },
                         { value: 'gpt-4', label: 'GPT-4' },
-                        { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
                         { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' }
-                    ],
-                    local: [
-                        { value: 'llama', label: 'Llama 2' },
-                        { value: 'mistral', label: 'Mistral' },
-                        { value: 'custom', label: 'Custom Model' }
                     ]
                 };
 
@@ -378,29 +420,30 @@ export class SettingsPanel {
             }
 
             function gatherSettings() {
+                const useProjectCheckbox = document.getElementById('use-project-settings');
+                const useProject = useProjectCheckbox ? useProjectCheckbox.checked : false;
+
                 const settings = {
                     apiKeys: {
                         claude: document.getElementById('claude-api-key').value,
                         openai: document.getElementById('openai-api-key').value
                     },
                     agents: {},
-                    global: {
-                        yoloMode: document.getElementById('yolo-mode').checked,
-                        defaultPermission: document.getElementById('default-permission').value
-                    }
+                    useProjectSettings: useProject
                 };
 
                 // Gather agent settings
-                const agentConfigs = document.querySelectorAll('.agent-config');
-                agentConfigs.forEach(config => {
-                    const agentId = config.getAttribute('data-agent-id');
+                const agentCards = document.querySelectorAll('.agent-card');
+                agentCards.forEach(card => {
+                    const agentId = card.getAttribute('data-agent-id');
+                    const tempInput = document.getElementById('temp-' + agentId);
+                    const tokensInput = document.getElementById('tokens-' + agentId);
+
                     settings.agents[agentId] = {
                         model: document.getElementById('model-' + agentId).value,
                         provider: document.getElementById('provider-' + agentId).value,
-                        permissions: {
-                            fileWrite: document.getElementById('filewrite-' + agentId).checked,
-                            commandExecution: document.getElementById('commands-' + agentId).checked
-                        }
+                        temperature: tempInput ? parseFloat(tempInput.value) : 0.7,
+                        maxTokens: tokensInput ? parseInt(tokensInput.value) : 4000
                     };
                 });
 

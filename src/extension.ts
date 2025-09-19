@@ -10,6 +10,8 @@ import { SettingsManager } from './settings/SettingsManager';
 import { ConversationManager, ConversationIndex } from './conversations/ConversationManager';
 import { ProjectContextManager } from './context/ProjectContextManager';
 import { MigrationCommands } from './commands/MigrationCommands';
+import { MCPServerManager } from './mcp-server/serverManager';
+import { SettingsPanel } from './ui/SettingsPanel';
 
 const exec = util.promisify(cp.exec);
 
@@ -22,6 +24,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Initialize Conversation Manager
 	const conversationManager = ConversationManager.getInstance(context, settingsManager);
+	await conversationManager.ensureInitialized();
 
 	// Initialize Project Context Manager
 	const contextManager = ProjectContextManager.getInstance(context, settingsManager);
@@ -30,7 +33,11 @@ export async function activate(context: vscode.ExtensionContext) {
 	const migrationCommands = new MigrationCommands(context, settingsManager, conversationManager, contextManager);
 	migrationCommands.registerCommands();
 
-	const provider = new ClaudeChatProvider(context.extensionUri, context, settingsManager, conversationManager, contextManager);
+	// Initialize MCP Server Manager
+	const mcpServerManager = new MCPServerManager(context);
+	console.log('MCP Server Manager initialized');
+
+	const provider = new ClaudeChatProvider(context.extensionUri, context, settingsManager, conversationManager, contextManager, mcpServerManager);
 
 	const disposable = vscode.commands.registerCommand('multiAgentChat.openChat', (column?: vscode.ViewColumn) => {
 		console.log('Multi Agent Chat command executed!');
@@ -154,13 +161,16 @@ class ClaudeChatProvider {
 	private _providerManager: ProviderManager;
 	private _communicationHub: AgentCommunicationHub;
 	private _outputChannel: vscode.OutputChannel;
+	private _settingsPanel: SettingsPanel | undefined;
+	private _currentView: 'chat' | 'settings' | 'history' = 'chat';
 
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
 		private readonly _context: vscode.ExtensionContext,
 		private readonly _settingsManager: SettingsManager,
 		private readonly _conversationManager: ConversationManager,
-		private readonly _contextManager: ProjectContextManager
+		private readonly _contextManager: ProjectContextManager,
+		private readonly _mcpServerManager?: MCPServerManager
 	) {
 		this._agentManager = new AgentManager();
 		this._outputChannel = vscode.window.createOutputChannel('Multi-Agent Communication');
@@ -179,19 +189,23 @@ class ClaudeChatProvider {
 		};
 
 		// Initialize provider manager with streaming support
-		this._providerManager = new ProviderManager(_context, this._agentManager, undefined, streamCallback);
+		this._providerManager = new ProviderManager(_context, this._agentManager, undefined, streamCallback, this._mcpServerManager);
 		// Create communication hub
 		this._communicationHub = new AgentCommunicationHub(this._agentManager, this._providerManager, this._outputChannel);
 		// Update provider manager with communication hub
-		this._providerManager = new ProviderManager(_context, this._agentManager, this._communicationHub, streamCallback);
+		this._providerManager = new ProviderManager(_context, this._agentManager, this._communicationHub, streamCallback, this._mcpServerManager);
 
 		// Initialize backup repository and conversations
 		this._initializeBackupRepo();
 		this._initializeConversations();
 		this._initializeMCPConfig();
 
-		// Load conversation index from workspace state
-		this._conversationIndex = this._context.workspaceState.get('claude.conversationIndex', []);
+		// Load conversation index from conversation manager (uses .machat folder when available)
+		// Ensure ConversationManager is initialized first
+		this._conversationManager.ensureInitialized().then(() => {
+			this._conversationIndex = this._conversationManager.getConversationIndex();
+			console.log('Loaded conversation index:', this._conversationIndex);
+		});
 
 		// Load saved model preference
 		this._selectedModel = this._context.workspaceState.get('claude.selectedModel', 'default');
@@ -310,13 +324,24 @@ class ClaudeChatProvider {
 				this._restoreToCommit(message.commitSha);
 				return;
 			case 'getConversationList':
+				console.log('Received getConversationList request');
 				this._sendConversationList();
 				return;
 			case 'loadSettings':
 				this._sendSettingsToUI();
 				return;
 			case 'saveSettings':
-				this._saveSettings(message.settings);
+				if (this._settingsPanel) {
+					this._settingsPanel.saveSettings(message.settings);
+				}
+				return;
+			case 'closeSettings':
+				this._currentView = 'chat';
+				this._initializeWebview();
+				return;
+			case 'toggleProjectSettings':
+				this._currentView = 'settings';
+				this._initializeWebview();
 				return;
 			case 'getWorkspaceFiles':
 				this._sendWorkspaceFiles(message.searchTerm);
@@ -443,6 +468,12 @@ class ClaudeChatProvider {
 	}
 
 	private _initializeWebview() {
+		// Reload conversation index in case it wasn't loaded yet
+		this._conversationIndex = this._conversationManager.getConversationIndex();
+
+		// Send conversation list to webview
+		this._sendConversationList();
+
 		// Resume session from latest conversation
 		const latestConversation = this._getLatestConversation();
 		this._currentSessionId = latestConversation?.sessionId;
@@ -1376,7 +1407,7 @@ class ClaudeChatProvider {
 				console.log(`Created permission requests directory at: ${this._permissionRequestsPath}`);
 			}
 
-			console.log("DIRECTORY-----", this._permissionRequestsPath)
+			// console.log("DIRECTORY-----", this._permissionRequestsPath);
 
 			// Set up file watcher for *.request files
 			this._permissionWatcher = vscode.workspace.createFileSystemWatcher(
@@ -2052,32 +2083,11 @@ class ClaudeChatProvider {
 
 	private async _deleteConversation(filename: string): Promise<void> {
 		try {
-			// Get the file path
-			const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-			if (!workspaceFolder) {
-				vscode.window.showErrorMessage('No workspace folder found');
-				return;
-			}
+			// Delete conversation using conversation manager (handles both .machat and global storage)
+			await this._conversationManager.deleteConversation(filename);
 
-			const filePath = path.join(workspaceFolder.uri.fsPath, '.vscode', 'multi-agent-chat-history', filename);
-			const fileUri = vscode.Uri.file(filePath);
-
-			// Try to delete the file, but don't fail if it doesn't exist
-			try {
-				await vscode.workspace.fs.delete(fileUri);
-			} catch (fileError: any) {
-				// If file doesn't exist, that's OK - just continue to remove from index
-				if (fileError.code !== 'FileNotFound' && fileError.code !== 'EntryNotFound') {
-					throw fileError; // Re-throw if it's a different error
-				}
-				console.log(`File not found, removing from index only: ${filename}`);
-			}
-
-			// Remove from conversation index regardless of whether file existed
-			this._conversationIndex = this._conversationIndex.filter(conv => conv.filename !== filename);
-
-			// Save the updated index to workspace state
-			await this._context.workspaceState.update('claude.conversationIndex', this._conversationIndex);
+			// Update local index from conversation manager
+			this._conversationIndex = this._conversationManager.getConversationIndex();
 
 			// Send updated list to webview
 			this._sendConversationList();
@@ -2090,6 +2100,7 @@ class ClaudeChatProvider {
 	}
 
 	private _sendConversationList(): void {
+		console.log('Sending conversation list:', this._conversationIndex);
 		this._postMessage({
 			type: 'conversationList',
 			data: this._conversationIndex
@@ -2728,15 +2739,17 @@ class ClaudeChatProvider {
 			// Import SettingsPanel dynamically
 			const { SettingsPanel } = await import('./ui/SettingsPanel.js');
 
-			// Create a new instance of SettingsPanel
-			const settingsPanel = new SettingsPanel(this._context, (settings: any) => {
-				// Handle settings change
-				this._applySettings(settings);
-			});
+			// Create or reuse SettingsPanel instance
+			if (!this._settingsPanel) {
+				this._settingsPanel = new SettingsPanel(this._context, (settings: any) => {
+					// Handle settings change
+					this._applySettings(settings);
+				});
+			}
 
 			// Get the HTML and send it to the webview
-			const html = settingsPanel.getHtml();
-			const script = settingsPanel.getScript();
+			const html = this._settingsPanel.getHtml();
+			const script = this._settingsPanel.getScript();
 
 			console.log('Sending settings to UI...');
 			this._postMessage({
@@ -2744,7 +2757,7 @@ class ClaudeChatProvider {
 				data: {
 					html: html,
 					script: script,
-					settings: settingsPanel.loadSettings()
+					settings: this._settingsPanel.loadSettings()
 				}
 			});
 		} catch (error) {
@@ -2761,33 +2774,10 @@ class ClaudeChatProvider {
 	}
 
 	private async _saveSettings(settings: any): Promise<void> {
-		try {
-			// Save to global state
-			await this._context.globalState.update('settings', settings);
-
-			// Update VS Code configuration for API key
-			const config = vscode.workspace.getConfiguration('multiAgentChat');
-			if (settings.apiKeys?.claude) {
-				await config.update('apiKey', settings.apiKeys.claude, vscode.ConfigurationTarget.Global);
-			}
-
-			// Apply settings immediately
-			this._applySettings(settings);
-
-			// Notify success
-			this._postMessage({
-				type: 'settingsSaved',
-				data: { success: true }
-			});
-
-			vscode.window.showInformationMessage('Settings saved successfully');
-		} catch (error) {
-			console.error('Error saving settings:', error);
-			this._postMessage({
-				type: 'settingsSaved',
-				data: { success: false, error: error }
-			});
-			vscode.window.showErrorMessage('Failed to save settings');
+		// This method is now handled by SettingsPanel.saveSettings
+		// Kept for backward compatibility
+		if (this._settingsPanel) {
+			await this._settingsPanel.saveSettings(settings);
 		}
 	}
 

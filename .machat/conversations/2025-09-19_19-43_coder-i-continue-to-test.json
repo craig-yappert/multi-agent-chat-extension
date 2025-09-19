@@ -1,0 +1,31 @@
+{
+  "sessionId": "session_1758310999295_kbswoukrk",
+  "startTime": "2025-09-19T19:43:34.357Z",
+  "endTime": "2025-09-19T19:43:40.996Z",
+  "messageCount": 2,
+  "totalCost": 0,
+  "totalTokens": {
+    "input": 0,
+    "output": 0
+  },
+  "messages": [
+    {
+      "timestamp": "2025-09-19T19:43:34.357Z",
+      "messageType": "userInput",
+      "data": "@coder I continue to test"
+    },
+    {
+      "timestamp": "2025-09-19T19:43:40.996Z",
+      "messageType": "agentResponse",
+      "data": "I see you're continuing to test the Multi Agent Chat extension. What specific aspect would you like me to help test or implement? \n\nI can help with:\n- Testing specific agent functionality\n- Debugging issues you've encountered\n- Implementing new features\n- Refactoring existing code\n- Running the development commands\n\nWhat would you like to focus on?",
+      "agent": {
+        "id": "coder",
+        "name": "Coder",
+        "icon": "💻",
+        "color": "#50C878"
+      }
+    }
+  ],
+  "filename": "2025-09-19_19-43_coder-i-continue-to-test.json",
+  "agentContext": {}
+}

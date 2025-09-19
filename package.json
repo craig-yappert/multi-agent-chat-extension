@@ -2,8 +2,8 @@
   "name": "multi-agent-chat",
   "displayName": "Multi Agent Chat",
   "description": "Collaborative Multi-Agent AI Chat Interface for VS Code",
-  "version": "1.10.0",
-  "publisher": "CraigYappert",
+  "version": "1.13.0",
+  "publisher": "craig-yappert",
   "author": "Craig Yappert",
   "repository": {
     "type": "git",
@@ -64,18 +64,43 @@
         "category": "Multi Agent Chat"
       },
       {
-        "command": "multi-agent-chat.initializeProject",
+        "command": "multiAgentChat.initializeProject",
         "title": "Initialize Multi Agent Chat Project",
         "category": "Multi Agent Chat"
       },
       {
-        "command": "multi-agent-chat.migrateConversations",
+        "command": "multiAgentChat.migrateConversations",
         "title": "Migrate Conversations to Project",
         "category": "Multi Agent Chat"
       },
       {
-        "command": "multi-agent-chat.showMigrationStatus",
+        "command": "multiAgentChat.showMigrationStatus",
         "title": "Show Migration Status",
+        "category": "Multi Agent Chat"
+      },
+      {
+        "command": "multiAgentChat.startMCPServer",
+        "title": "Start MCP Server",
+        "category": "Multi Agent Chat"
+      },
+      {
+        "command": "multiAgentChat.stopMCPServer",
+        "title": "Stop MCP Server",
+        "category": "Multi Agent Chat"
+      },
+      {
+        "command": "multiAgentChat.restartMCPServer",
+        "title": "Restart MCP Server",
+        "category": "Multi Agent Chat"
+      },
+      {
+        "command": "multiAgentChat.toggleMCPServer",
+        "title": "Toggle MCP Server",
+        "category": "Multi Agent Chat"
+      },
+      {
+        "command": "multiAgentChat.showMCPServerLogs",
+        "title": "Show MCP Server Logs",
         "category": "Multi Agent Chat"
       }
     ],
@@ -323,6 +348,45 @@
             "maximum": 30000,
             "description": "Timeout per agent in milliseconds (default: 12 seconds)",
             "order": 16
+          }
+        }
+      },
+      {
+        "title": "MCP Server",
+        "properties": {
+          "multiAgentChat.mcp.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable MCP (Model Context Protocol) server for enhanced agent capabilities",
+            "order": 17
+          },
+          "multiAgentChat.mcp.autoStart": {
+            "type": "boolean",
+            "default": true,
+            "description": "Automatically start MCP server when extension activates",
+            "order": 18
+          },
+          "multiAgentChat.mcp.wsPort": {
+            "type": "number",
+            "default": 3030,
+            "minimum": 1024,
+            "maximum": 65535,
+            "description": "WebSocket port for MCP server",
+            "order": 19
+          },
+          "multiAgentChat.mcp.httpPort": {
+            "type": "number",
+            "default": 3031,
+            "minimum": 1024,
+            "maximum": 65535,
+            "description": "HTTP port for MCP server API",
+            "order": 20
+          },
+          "multiAgentChat.mcp.preferWebSocket": {
+            "type": "boolean",
+            "default": true,
+            "description": "Prefer WebSocket over HTTP for better performance",
+            "order": 21
           }
         }
       }

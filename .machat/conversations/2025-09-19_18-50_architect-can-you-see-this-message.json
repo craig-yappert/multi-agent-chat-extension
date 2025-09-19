@@ -1,0 +1,31 @@
+{
+  "sessionId": "session_1758307739557_wp9a40ytp",
+  "startTime": "2025-09-19T18:50:14.651Z",
+  "endTime": "2025-09-19T18:50:24.234Z",
+  "messageCount": 2,
+  "totalCost": 0,
+  "totalTokens": {
+    "input": 0,
+    "output": 0
+  },
+  "messages": [
+    {
+      "timestamp": "2025-09-19T18:50:14.652Z",
+      "messageType": "userInput",
+      "data": "@architect can you see this message"
+    },
+    {
+      "timestamp": "2025-09-19T18:50:24.234Z",
+      "messageType": "agentResponse",
+      "data": "Yes, I can see your message! I'm the Architect agent, specialized in system design and architecture. How can I help you with architectural decisions, system design, or API design for your multi-agent chat extension?",
+      "agent": {
+        "id": "architect",
+        "name": "Architect",
+        "icon": "🏗️",
+        "color": "#4A90E2"
+      }
+    }
+  ],
+  "filename": "2025-09-19_18-50_architect-can-you-see-this-message.json",
+  "agentContext": {}
+}

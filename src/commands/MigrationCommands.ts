@@ -14,19 +14,19 @@ export class MigrationCommands {
     public registerCommands(): void {
         // Initialize project settings
         const initProjectCmd = vscode.commands.registerCommand(
-            'multi-agent-chat.initializeProject',
+            'multiAgentChat.initializeProject',
             () => this.initializeProject()
         );
 
         // Migrate conversations to project
         const migrateConvCmd = vscode.commands.registerCommand(
-            'multi-agent-chat.migrateConversations',
+            'multiAgentChat.migrateConversations',
             () => this.migrateConversations()
         );
 
         // Show migration status
         const statusCmd = vscode.commands.registerCommand(
-            'multi-agent-chat.showMigrationStatus',
+            'multiAgentChat.showMigrationStatus',
             () => this.showMigrationStatus()
         );
 

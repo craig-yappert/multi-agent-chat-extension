@@ -19,7 +19,9 @@
       "Bash(powershell:*)",
       "Read(//c/Users/cyapp/AppData/Roaming/Code/User/**)",
       "Bash(tree:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(npm run lint)",
+      "WebSearch"
     ],
     "deny": []
   },

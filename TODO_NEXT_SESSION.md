@@ -1,128 +1,141 @@
 # Multi Agent Chat Extension - Next Session Todos
 
-## Recently Completed (This Session) ✅
+## Recently Completed (v1.13.0) ✅
 
-### Fixed Critical Issues
-1. **Agent Tag Persistence**
-   - Agent metadata (name, icon, color) now saves with messages
-   - Tags properly reload when viewing conversation history
-   - Added agent field to ConversationData interface
+### Major Architecture Changes
 
-2. **Agent Memory System**
-   - Implemented conversation context per agent
-   - Each agent maintains last 10 exchanges (20 messages)
-   - Context persists across session saves/loads
-   - Added backward compatibility for old conversations
+1. **Per-Project Settings System**
+   - Implemented hierarchical settings (VS Code → Global → Project → Workspace)
+   - Created SettingsManager for unified settings handling
+   - Project settings stored in `.machat/config.json`
+   - Settings auto-merge with proper precedence
 
-3. **File Operations Support**
-   - Executor agent can now create/write files
-   - Automatic file creation from agent responses
-   - Pattern matching for file operations in responses
+2. **Project-Local Conversations**
+   - ConversationManager handles local/global storage
+   - Conversations stored in `.machat/conversations/`
+   - Migration utilities for existing conversations
+   - Automatic .gitignore for project folders
 
-4. **Conversation Cleanup**
-   - Added command to clear all conversation history
-   - Clears workspace state and files
-   - Fresh start capability for testing
+3. **Project Context Management**
+   - ProjectContextManager for agent memory isolation
+   - Project-specific prompts and documentation
+   - Agent context scoped to projects
 
-## Priority Tasks (In Order)
+4. **Legacy Code Removal**
+   - Removed entire MCP server infrastructure (~30KB)
+   - Removed WSL support and configuration
+   - Removed 8 unused provider files
+   - Cleaned up WebSocket implementations
 
-### 1. ~~Inter-Agent Communication~~ ✓ Partially Complete
-- Basic framework exists in agentCommunication.ts
-- Need to test and refine the implementation
-- Add visual indicators when agents are collaborating
+5. **Branding Unification**
+   - Fixed all references from "claudeCodeChat" to "multiAgentChat"
+   - Updated all command IDs and configurations
+   - Consistent naming throughout extension
 
-### 2. ~~New Chat and History Saving~~ ✓ COMPLETED
-- Session management implemented
-- Conversation history saves automatically
-- Load previous conversations working
-- Clear all conversations command added
-- Agent context preserved across sessions
+## Priority Tasks for Next Session
 
-### 3. Settings Screen Enhancement
-- Create more comprehensive settings UI
-- Add inter-agent communication toggles
-- Agent-specific model selection controls
-- Performance tuning options
+### 1. Dynamic Model Discovery System 🆕
 
-### 4. Code Cleanup
-- Remove old Claude Chat remnants
-- Clean up unused styles from ui-styles.ts
-- Remove hidden UI objects that are no longer needed
-- Consolidate duplicate code
+**Goal:** Replace static model lists with dynamic discovery from provider APIs
 
-### 5. Agent Response Streaming
-- Real-time streaming already partially implemented
-- Need to improve UI updates during streaming
-- Add better typing indicators for agents
+- [ ] Implement ModelRegistry core service
+- [ ] Create provider adapters (Ollama, OpenRouter, HuggingFace, OpenAI)
+- [ ] Add caching layer with provider-specific TTLs
+- [ ] Update UI to use discovered models
+- [ ] Support for local models via Ollama
 
-### 6. Testing & Validation Phase
-- Test agent memory across multiple sessions
-- Validate file operations with different file types
-- Test conversation reload with new agent metadata
-- Verify inter-agent communication workflows
+**Benefits:**
+- Automatic detection of new models
+- Support for 400+ models via OpenRouter
+- Local model support through Ollama
+- Real-time pricing and availability info
 
-### 7. Agent Specialization Refinement
-- Fine-tune each agent's role context
-- Improve specialized responses
-- Add more specific capabilities per agent
-- Optimize prompts for better agent differentiation
+### 2. Settings UI Enhancement ✅ PARTIAL
 
-### 8. Custom Agent Creation
-- Allow users to define their own agents
-- Custom roles and capabilities
-- Agent configuration UI
-- Save/load custom agent definitions
+- [x] Agent configuration cards implemented
+- [x] Per-project settings working
+- [ ] Visual refinement for compact layout
+- [ ] Responsive design for different screen sizes
+- [ ] Agent persona/prompt customization
 
-### 9. Three-Tier Agent Memory System
-- **Short-term memory**: ✓ Implemented (current conversation)
-- **Long-term memory**: Cross-session learning needed
-- **Project-specific memory**: Isolated contexts per project
-  - Prevent context bleeding between projects
-  - Project-aware agent responses
+### 3. Performance Optimization
 
-### 10. Error Recovery
-- Better handling of Claude API failures
-- Timeout recovery
-- Retry logic with exponential backoff
-- User-friendly error messages
+- [ ] Implement smart agent selection based on query analysis
+- [ ] Add response caching with TTL
+- [ ] Optimize streaming for multiple agents
+- [ ] Implement agent response timeout controls
 
-## Testing Instructions for Next Session
+### 4. Testing & Validation
 
-1. **Clear All Conversations First**
-   - Press `Ctrl+Shift+P`
-   - Run "Clear All Conversation History"
-   - Confirm deletion
+- [ ] Test per-project settings isolation
+- [ ] Verify conversation migration
+- [ ] Validate agent memory boundaries
+- [ ] Test with multiple workspaces
 
-2. **Test Agent Memory**
-   - Start conversation with Coder agent
-   - Ask follow-up questions
-   - Switch agents and verify context switches
-   - Reload VS Code and verify memory persists
+### 5. Documentation Update
 
-3. **Test File Operations**
-   - Ask Executor to create a test file
-   - Verify file appears in workspace
-   - Check file contents match request
+- [ ] Update README with new features
+- [ ] Create user guide for project settings
+- [ ] Document agent customization
+- [ ] Add troubleshooting guide
 
-4. **Test Agent Tags**
-   - Have conversations with different agents
-   - Close and reopen chat
-   - Verify agent names/icons display correctly
+## Current State (v1.11.0)
 
-## Current State (v1.8.0+)
+### What's Working
 
-- All agents using Claude Sonnet model
-- Agent conversation memory implemented
-- File operations working through Executor
-- Agent metadata persists across sessions
-- Conversation cleanup command available
-- Team agent coordinates all 6 specialized agents
-- Visual agent identification with colors working
-- All agents functional with real Claude backend
+- ✅ All agents functional with Claude backend
+- ✅ Per-project settings architecture complete
+- ✅ Project-local conversation storage
+- ✅ Agent memory and context persistence
+- ✅ File operations through Executor agent
+- ✅ Team coordination with all 6 agents
+- ✅ Clean, unified codebase without legacy code
 
-## Notes
+### Known Issues
 
-- Focus on testing the new features thoroughly
-- Monitor console for any errors during agent operations
-- Check that agent context doesn't grow too large (limited to 20 messages)
-- Ensure file operations are safe and controlled
+- ✅ ~~Settings UI only shows API Keys section~~ Fixed in v1.13.0
+- Model lists are static and require manual updates
+- Some performance settings not yet wired up
+- Agent response synthesis could be improved
+
+## Testing Checklist
+
+1. **Project Settings**
+   - [ ] Create `.machat` folder in new project
+   - [ ] Verify settings cascade properly
+   - [ ] Test project-specific API keys
+
+2. **Conversation Storage**
+   - [ ] Verify conversations save to project folder
+   - [ ] Test migration from global storage
+   - [ ] Confirm .gitignore works
+
+3. **Agent Operations**
+   - [ ] Test each specialized agent
+   - [ ] Verify team coordination
+   - [ ] Check memory isolation between projects
+
+## Architecture Notes
+
+```
+Extension Structure:
+├── src/
+│   ├── settings/          # Settings management
+│   ├── conversations/     # Conversation storage
+│   ├── context/          # Project context
+│   ├── agents.ts         # Agent definitions
+│   ├── providers.ts      # AI providers (cleaned)
+│   └── extension.ts      # Main extension
+└── .machat/              # Project-local storage
+    ├── config.json       # Project settings
+    ├── conversations/    # Local conversations
+    └── context/         # Agent memory
+```
+
+## Next Major Milestones
+
+1. **v1.13.0** - ✅ Settings UI with Agent Configuration (COMPLETED)
+2. **v1.14.0** - Dynamic Model Discovery
+3. **v1.15.0** - Performance Optimizations
+4. **v1.16.0** - Agent Personas & Templates
+5. **v2.0.0** - Multi-workspace Support

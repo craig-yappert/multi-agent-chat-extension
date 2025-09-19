@@ -1,5 +1,5 @@
 const getScript = (isTelemetryEnabled: boolean) => `<script>
-		console.log('=== Multi Agent Chat Extension v1.1.9 LOADED ===');
+		console.log('=== Multi Agent Chat Extension v1.13.0 LOADED ===');
 		console.log('Script loading at:', new Date().toISOString());
 
 		const vscode = acquireVsCodeApi();
@@ -816,17 +816,9 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		let requestStartTime = null;
 		let requestTimer = null;
 
-		// Send usage statistics
+		// Send usage statistics - disabled
 		function sendStats(eventName) {
-			${isTelemetryEnabled ? 
-			`try {
-				if (typeof umami !== 'undefined' && umami.track) {
-					umami.track(eventName);
-				}
-			} catch (error) {
-				console.error('Error sending stats:', error);
-			}` : 
-			`// Telemetry disabled - no tracking`}
+			// Telemetry disabled - no-op function
 		}
 
 		function updateStatus(text, state = 'ready') {
@@ -2613,7 +2605,6 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		}
 
 		function displaySettings(data) {
-			console.log('Displaying settings:', data);
 			const settingsContent = document.getElementById('settingsContent');
 			if (settingsContent) {
 				if (data && data.html) {
@@ -2662,6 +2653,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		}
 
 		function requestConversationList() {
+			console.log('Requesting conversation list from extension');
 			vscode.postMessage({
 				type: 'getConversationList'
 			});
@@ -2899,7 +2891,12 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		}
 
 		function displayConversationList(conversations) {
+			console.log('Displaying conversation list:', conversations);
 			const listDiv = document.getElementById('conversationList');
+			if (!listDiv) {
+				console.error('conversationList element not found');
+				return;
+			}
 			listDiv.innerHTML = '';
 
 			if (conversations.length === 0) {
@@ -2911,15 +2908,21 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				const item = document.createElement('div');
 				item.className = 'conversation-item';
 
-				const date = new Date(conv.startTime).toLocaleDateString();
-				const time = new Date(conv.startTime).toLocaleTimeString();
+				// Parse timestamp for date/time display
+				const date = new Date(conv.timestamp).toLocaleDateString();
+				const time = new Date(conv.timestamp).toLocaleTimeString();
+
+				// Extract title from filename (e.g., "2025-09-19_18-34_coder-do-you-see-this-message.json")
+				const filenameParts = conv.filename.replace('.json', '').split('_');
+				const agent = filenameParts[2] ? filenameParts[2].split('-')[0] : 'unknown';
+				const titleText = filenameParts.slice(2).join(' ').replace(/-/g, ' ') || 'Conversation';
 
 				item.innerHTML = \`
 					<div style="display: flex; justify-content: space-between; align-items: start;">
 						<div style="flex: 1; cursor: pointer;" onclick="loadConversation('\${conv.filename}')">
-							<div class="conversation-title">\${conv.firstUserMessage.substring(0, 60)}\${conv.firstUserMessage.length > 60 ? '...' : ''}</div>
+							<div class="conversation-title">\${agent.charAt(0).toUpperCase() + agent.slice(1)}: \${titleText.substring(0, 60)}\${titleText.length > 60 ? '...' : ''}</div>
 							<div class="conversation-meta">\${date} at \${time} • \${conv.messageCount} messages • $\${conv.totalCost.toFixed(3)}</div>
-							<div class="conversation-preview">Last: \${conv.lastUserMessage.substring(0, 80)}\${conv.lastUserMessage.length > 80 ? '...' : ''}</div>
+							<div class="conversation-preview">Session: \${conv.sessionId.substring(0, 20)}...</div>
 						</div>
 						<button class="delete-conversation-btn" onclick="event.stopPropagation(); deleteConversation('\${conv.filename}')" title="Delete conversation">
 							🗑️
@@ -3203,13 +3206,12 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			}
 
 			if (message.type === 'platformInfo') {
-				// Check if user is on Windows and show WSL alert if not dismissed and WSL not already enabled
-				if (message.data.isWindows && !message.data.wslAlertDismissed && !message.data.wslEnabled) {
-					// Small delay to ensure UI is ready
-					setTimeout(() => {
-						showWSLAlert();
-					}, 1000);
-				}
+				// WSL alert disabled - not needed for this extension
+				// if (message.data.isWindows && !message.data.wslAlertDismissed && !message.data.wslEnabled) {
+				//	setTimeout(() => {
+				//		showWSLAlert();
+				//	}, 1000);
+				// }
 			}
 			
 			if (message.type === 'permissionsData') {
@@ -3261,19 +3263,19 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		}
 
 		// Log what functions are available on window
-		console.log('Functions attached to window:', {
-			sendMessage: typeof window.sendMessage,
-			showAgentSelector: typeof window.showAgentSelector,
-			toggleSettings: typeof window.toggleSettings,
-			newSession: typeof window.newSession,
-			stopRequest: typeof window.stopRequest,
-			showAgentStatus: typeof window.showAgentStatus,
-			hideAgentStatus: typeof window.hideAgentStatus
-		});
+		// console.log('Functions attached to window:', {
+		//	sendMessage: typeof window.sendMessage,
+		//	showAgentSelector: typeof window.showAgentSelector,
+		//	toggleSettings: typeof window.toggleSettings,
+		//	newSession: typeof window.newSession,
+		//	stopRequest: typeof window.stopRequest,
+		//	showAgentStatus: typeof window.showAgentStatus,
+		//	hideAgentStatus: typeof window.hideAgentStatus
+		// });
 
 		// Initialize DOM elements and set up event listeners after they're loaded
 		function initializeAfterDOMLoaded() {
-			console.log('DOM Content Loaded - initializing elements');
+			// console.log('DOM Content Loaded - initializing elements');
 			messagesDiv = document.getElementById('messages');
 			messageInput = document.getElementById('messageInput');
 			sendBtn = document.getElementById('sendBtn');
@@ -3283,7 +3285,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			fileSearchInput = document.getElementById('fileSearchInput');
 			fileList = document.getElementById('fileList');
 			imageBtn = document.getElementById('imageBtn');
-			console.log('DOM elements initialized');
+			// console.log('DOM elements initialized');
 
 			// Initial status
 			updateStatus('Initializing...', 'disconnected');

@@ -3,7 +3,7 @@ import * as cp from 'child_process';
 import { AgentConfig } from './agents';
 import { AgentCommunicationHub } from './agentCommunication';
 import { StreamingClaudeProvider, OptimizedMultiProvider, ResponseCache } from './performanceOptimizer';
-// Legacy providers removed - using direct Claude CLI integration
+import { MCPWebSocketProvider } from './providers/mcpWebSocketProvider';
 
 export interface AIProvider {
 	sendMessage(message: string, agentConfig: AgentConfig, context?: any): Promise<string>;
@@ -11,17 +11,45 @@ export interface AIProvider {
 
 export class ClaudeProvider implements AIProvider {
 	private streamingProvider?: StreamingClaudeProvider;
+	private mcpWebSocketProvider?: MCPWebSocketProvider;
 	private cache: ResponseCache = new ResponseCache();
 
-	constructor(private context: vscode.ExtensionContext, onStreamCallback?: (chunk: string, agentId: string) => void) {
+	constructor(
+		private context: vscode.ExtensionContext,
+		onStreamCallback?: (chunk: string, agentId: string) => void,
+		mcpServerManager?: any
+	) {
 		const config = vscode.workspace.getConfiguration('multiAgentChat');
 		if (config.get<boolean>('performance.enableStreaming', true)) {
 			this.streamingProvider = new StreamingClaudeProvider(context, onStreamCallback);
+		}
+
+		// Initialize MCP WebSocket provider if MCP is enabled
+		if (config.get<boolean>('mcp.enabled', true)) {
+			const wsPort = config.get<number>('mcp.wsPort', 3030);
+			const httpPort = config.get<number>('mcp.httpPort', 3031);
+			this.mcpWebSocketProvider = new MCPWebSocketProvider(
+				`ws://localhost:${wsPort}`,
+				`http://localhost:${httpPort}/api`,
+				context
+			);
 		}
 	}
 
 	async sendMessage(message: string, agentConfig: AgentConfig, context?: any): Promise<string> {
 		const config = vscode.workspace.getConfiguration('multiAgentChat');
+
+		// Try MCP WebSocket provider first if available and connected
+		if (this.mcpWebSocketProvider && config.get<boolean>('mcp.preferWebSocket', true)) {
+			try {
+				if (this.mcpWebSocketProvider.isConnected) {
+					console.log(`[ClaudeProvider] Using MCP WebSocket for ${agentConfig.id}`);
+					return await this.mcpWebSocketProvider.sendMessage(message, agentConfig, context);
+				}
+			} catch (error) {
+				console.warn('[ClaudeProvider] MCP WebSocket failed, falling back:', error);
+			}
+		}
 
 		// Use streaming provider if available and enabled
 		if (this.streamingProvider && config.get<boolean>('performance.enableStreaming', true)) {
@@ -159,33 +187,16 @@ export class OpenAIProvider implements AIProvider {
 }
 
 export class MCPProvider implements AIProvider {
-	private intelligentProvider?: IntelligentProvider;
 
 	constructor(
 		private claudeProvider: ClaudeProvider,
 		private context?: vscode.ExtensionContext
 	) {
-		// Initialize intelligent provider if context is available
-		if (context) {
-			this.intelligentProvider = new IntelligentProvider(context);
-			// Initialize connection in background
-			this.intelligentProvider.initialize().catch(err => {
-				console.error('[MCPProvider] Failed to initialize intelligent provider:', err);
-			});
-		}
+		// MCP functionality removed - using direct Claude CLI
 	}
 
 	async sendMessage(message: string, agentConfig: AgentConfig, context?: any): Promise<string> {
-		// Try intelligent routing first (WebSocket -> HTTP -> CLI)
-		if (this.intelligentProvider) {
-			try {
-				return await this.intelligentProvider.sendMessage(message, agentConfig, context);
-			} catch (err) {
-				console.error('[MCPProvider] Intelligent provider failed, falling back to Claude:', err);
-			}
-		}
-
-		// Fallback to direct Claude provider
+		// Direct pass-through to Claude provider
 		return this.claudeProvider.sendMessage(message, agentConfig, context);
 	}
 }
@@ -209,39 +220,6 @@ export class MultiProvider implements AIProvider {
 
 	async sendMessage(message: string, agentConfig: AgentConfig, context?: any): Promise<string> {
 		const config = vscode.workspace.getConfiguration('multiAgentChat');
-
-		// Use simple WebSocket provider first (fastest, most reliable)
-		if (this.simpleWsProvider && this.simpleWsProvider.isConnected()) {
-			try {
-				console.log('[MultiProvider] Using Simple WebSocket provider');
-				const allAgents = this.agentManager?.getAllAgents() || [];
-				const teamAgents = allAgents.filter((a: AgentConfig) => a.id !== 'team');
-				return await this.simpleWsProvider.sendTeamMessage(message, teamAgents, agentConfig);
-			} catch (error) {
-				console.error('[MultiProvider] Simple WebSocket failed:', error);
-				// Fall through to other providers
-			}
-		}
-
-		// Use V2 provider for better performance
-		if (this.fastTeamProviderV2 && config.get<boolean>('performance.smartAgentSelection', true)) {
-			console.log('[MultiProvider] Using FastTeamV2 with smart agent selection');
-			return this.fastTeamProviderV2.sendFastTeamMessage(message, agentConfig, context);
-		}
-
-		// Check for ultra-fast mode first
-		if (config.get<boolean>('performance.ultraFastMode', false) && this.fastTeamProvider) {
-			console.log('[MultiProvider] Using FastTeam provider');
-			return this.fastTeamProvider.sendFastTeamMessage(message, agentConfig, context);
-		}
-
-		// Check if any timeout/first responder settings are configured
-		if (this.fastTeamProvider &&
-			(config.get<boolean>('performance.useFirstResponders', true) ||
-			 config.get<number>('performance.agentTimeout', 8000) < 30000)) {
-			console.log('[MultiProvider] Using FastTeam provider with timeout controls');
-			return this.fastTeamProvider.sendFastTeamMessage(message, agentConfig, context);
-		}
 
 		// Use optimized provider if available and performance settings are enabled
 		if (this.optimizedProvider &&
@@ -367,9 +345,10 @@ export class ProviderManager {
 		context: vscode.ExtensionContext,
 		agentManager?: any,
 		communicationHub?: AgentCommunicationHub,
-		onStreamCallback?: (chunk: string, agentId: string) => void
+		onStreamCallback?: (chunk: string, agentId: string) => void,
+		mcpServerManager?: any
 	) {
-		this.claudeProvider = new ClaudeProvider(context, onStreamCallback);
+		this.claudeProvider = new ClaudeProvider(context, onStreamCallback, mcpServerManager);
 		this.openaiProvider = new OpenAIProvider(this.claudeProvider);
 		this.mcpProvider = new MCPProvider(this.claudeProvider, context);
 		this.communicationHub = communicationHub;

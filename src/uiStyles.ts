@@ -2670,6 +2670,7 @@ const styles = `
         display: flex;
         flex-direction: column;
         animation: slideIn 0.2s ease-out;
+        /* Remove overflow: hidden to allow child scrolling */
     }
 
     @keyframes slideIn {
@@ -2688,6 +2689,7 @@ const styles = `
         padding: 16px 20px;
         border-bottom: 1px solid var(--vscode-panel-border);
         background-color: var(--vscode-editor-background);
+        flex-shrink: 0; /* Prevent header from shrinking */
     }
 
     .settings-header h3 {
@@ -2697,14 +2699,18 @@ const styles = `
     }
 
     .settings-content {
-        flex: 1;
+        flex: 1 1 auto;
         overflow-y: auto;
+        overflow-x: hidden;
         padding: 20px;
+        min-height: 0; /* Important for flexbox scrolling */
+        height: 100%;
     }
 
     .settings-container {
         max-width: 800px;
         margin: 0 auto;
+        padding-bottom: 100px; /* Extra padding to ensure last items are scrollable */
     }
 
     .settings-container h2 {
@@ -2857,13 +2863,121 @@ const styles = `
         margin-left: 8px;
     }
 
+    .settings-source-indicator {
+        background-color: var(--vscode-editorWidget-background);
+        border: 1px solid var(--vscode-panel-border);
+        border-radius: 4px;
+        padding: 10px 12px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 13px;
+    }
+
+    .agents-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+    }
+
+    .agent-card {
+        background-color: var(--vscode-editorWidget-background);
+        border: 1px solid var(--vscode-editorWidget-border);
+        border-radius: 6px;
+        padding: 14px;
+        transition: border-color 0.2s;
+    }
+
+    .agent-card:hover {
+        border-color: var(--vscode-focusBorder);
+    }
+
+    .agent-card .agent-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        font-weight: 600;
+        color: var(--vscode-foreground);
+        position: relative;
+    }
+
+    .inherited-badge {
+        position: absolute;
+        right: 0;
+        font-size: 10px;
+        background-color: var(--vscode-badge-background);
+        color: var(--vscode-badge-foreground);
+        padding: 2px 6px;
+        border-radius: 3px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .agent-config {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .config-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .config-row.advanced {
+        display: flex;
+    }
+
+    .config-row label {
+        font-size: 12px;
+        color: var(--vscode-descriptionForeground);
+        min-width: 70px;
+    }
+
+    .config-row select,
+    .config-row input[type="number"] {
+        flex: 1;
+        padding: 4px 8px;
+        background-color: var(--vscode-dropdown-background);
+        border: 1px solid var(--vscode-dropdown-border);
+        color: var(--vscode-dropdown-foreground);
+        border-radius: 4px;
+        font-size: 12px;
+    }
+
+    .toggle-advanced {
+        margin-top: 8px;
+        padding: 4px 8px;
+        background-color: transparent;
+        color: var(--vscode-textLink-foreground);
+        border: 1px solid transparent;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 11px;
+        transition: all 0.2s;
+        align-self: flex-start;
+    }
+
+    .toggle-advanced:hover {
+        background-color: var(--vscode-list-hoverBackground);
+        border-color: var(--vscode-panel-border);
+    }
+
     .settings-footer {
         display: flex;
         gap: 12px;
         justify-content: flex-end;
         margin-top: 24px;
+        margin-bottom: 20px;
         padding-top: 16px;
         border-top: 1px solid var(--vscode-panel-border);
+        position: sticky;
+        bottom: 0;
+        background-color: var(--vscode-editor-background);
+        z-index: 10;
     }
 
     .save-btn, .cancel-btn {

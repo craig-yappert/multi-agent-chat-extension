@@ -1,165 +1,261 @@
-# 🤖 Multi-Agent Chat: Your AI Dream Team in VS Code!
+# 🤝 Multi Agent Chat - Collaborative AI Team for VS Code
 
-> **Imagine having an entire AI development team at your fingertips. Now stop imagining - it's here!** 🚀
+[![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension-blue?style=for-the-badge&logo=visual-studio-code)](https://marketplace.visualstudio.com/)
+[![Multi-Agent](https://img.shields.io/badge/Powered%20by-Multi--Agent%20AI-orange?style=for-the-badge)](https://github.com/craig-yappert/multi-agent-chat-extension)
+[![TypeScript](https://img.shields.io/badge/Built%20with-TypeScript-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 
-## 🎭 Meet Your New AI Colleagues (They Never Need Coffee Breaks!)
+> **Work with a team of specialized AI agents, each expert in their domain, collaborating to solve your coding challenges.**
 
-Welcome to the future of coding, where you don't just get one AI assistant - you get an **ENTIRE TEAM** of specialized AI agents who actually *talk to each other* to solve your problems! It's like having a tech startup in your VS Code, minus the ping-pong table.
+Transform your development workflow with Multi Agent Chat - a VS Code extension that provides you with an entire AI development team. Each agent specializes in different aspects of software development, working together or individually to help you build better software faster.
 
-### 🌟 The Squad That's Got Your Back:
-
-**🏗️ The Architect** - *"Let me design that system for you"*
-- The visionary who sees the big picture
-- Draws up blueprints while you grab a snack
-- Loves design patterns more than their morning latte
-
-**💻 The Coder** - *"I speak fluent JavaScript, Python, and 47 other languages"*
-- Writes code faster than you can say "semicolon"
-- Debugs with the precision of a Swiss watchmaker
-- Never argues about tabs vs spaces (uses your preference!)
-
-**⚡ The Executor** - *"Consider it done!"*
-- The action hero of file operations
-- Runs commands with military precision
-- Makes terminal tasks look effortless
-
-**🔍 The Reviewer** - *"Actually, there's a better way..."*
-- The quality guardian who catches bugs before they hatch
-- Security expert who keeps your code fortress safe
-- Best friend you never knew you needed
-
-**📝 The Documenter** - *"Let me explain that in human terms"*
-- Turns your spaghetti code into a Michelin-star recipe
-- Makes documentation actually enjoyable to read
-- The Shakespeare of README files
-
-**🎯 The Coordinator** - *"Team, assemble!"*
-- The project manager who never schedules unnecessary meetings
-- Orchestrates the whole team like a symphony conductor
-- Gets things done while you focus on the big stuff
-
-## 🎪 What Makes This Extension Absolutely BONKERS?
-
-### 💬 **They Actually Talk to Each Other!**
-Watch in amazement as agents @ mention each other like they're in a Slack channel:
-- "Hey @coder, can you implement what @architect just designed?"
-- "@reviewer, please check what @coder just built"
-- It's like watching a heist movie, but for code!
-
-### ⚡ **5-10x Faster Than Traditional AI Tools**
-Our custom Fast MCP server makes responses blazing fast. It's like upgrading from dial-up to fiber optic, but for AI!
-
-### 🎨 **Beautiful Chat Interface**
-- Gorgeous UI that matches your VS Code theme perfectly
-- Drag & drop images, paste screenshots, reference files with @
-- It's so pretty, you'll forget you're actually working
-
-### ⏪ **Time Travel with Checkpoints**
-Made a mistake? No problem! Every change creates a checkpoint. It's like having infinite "undo" buttons. Your code is safer than Fort Knox!
-
-### 🛡️ **Permission System That Actually Makes Sense**
-- Interactive dialogs show you exactly what's about to happen
-- "YOLO Mode" for when you're feeling dangerous 😎
-- Smart patterns recognize safe commands automatically
-
-## 🚀 Quick Start (Easier Than Making Instant Noodles)
-
-1. **Install** → Click that install button (you know you want to)
-2. **Open** → `Ctrl+Shift+C` (or `Cmd+Shift+C` for our Mac friends)
-3. **Chat** → Start talking to your new AI team!
-4. **Magic** → Watch as they collaborate to solve your problems
-
-## 💎 Hidden Gems & Pro Tips
-
-### 🎯 **The @ Symbol is Your Magic Wand**
-- Type `@` to reference any file in your project instantly
-- Mention `@architect` when you need system design
-- Use `@team` to get everyone's opinion (democracy wins!)
-
-### 🖼️ **Visual Communication FTW**
-- Drag images directly into chat
-- Paste screenshots with Ctrl+V
-- Show, don't just tell!
-
-### ⚡ **Slash Commands = Superpowers**
-Type `/` to unlock 19+ powerful commands:
-- `/cost` - Keep track of your AI spending
-- `/status` - Health check for your AI team
-- `/help` - When you need a helping hand
-
-### 🧠 **Thinking Modes for Different Moods**
-- **Normal**: Quick and snappy responses
-- **Think Hard**: For when things get serious
-- **ULTRATHINK**: When you need to solve P=NP (kidding... or are we?)
-
-## 🎪 Real-World Magic Tricks
-
-```
-You: "Help, my app is slower than a sloth on sedatives!"
-Team: "@architect, let's analyze the architecture. @coder, profile the bottlenecks.
-      @executor, run performance tests. Team, assemble!"
-Result: Your app now runs faster than Usain Bolt! 🏃‍♂️
-```
-
-```
-You: "I need to refactor this 1000-line monster function"
-Team: "Creating checkpoint... @architect designs the new structure,
-      @coder implements it, @reviewer ensures quality. Done!
-      (And you can restore if needed!)"
-```
-
-## 🎮 Why Developers Are Losing Their Minds (In a Good Way)
-
-> "It's like having a senior dev team that never sleeps!" - *Happy Developer*
-
-> "The agents actually understand context and work together. Mind = Blown!" - *Amazed User*
-
-> "I asked it to debug my code and it found issues I didn't even know existed" - *Grateful Coder*
-
-> "The checkpoint system saved my bacon more times than I can count" - *Relief Personified*
-
-## 🔥 Features That'll Make Your Friends Jealous
-
-✅ **Multi-Agent Collaboration** - Watch AI agents work together like a well-oiled machine
-✅ **Lightning Fast Responses** - No more waiting for the spinning wheel of doom
-✅ **Full File System Access** - Read, write, execute (with your permission, of course!)
-✅ **Time Travel Checkpoints** - Undo anything, anytime, anywhere
-✅ **Beautiful Native UI** - Looks like it belongs in VS Code (because it does!)
-✅ **Smart Permissions** - Keeps you safe while letting you work fast
-✅ **Image Support** - Show and tell with screenshots and diagrams
-✅ **Session Memory** - Picks up right where you left off
-✅ **Cost Tracking** - Know exactly what you're spending on AI
-✅ **WSL Support** - Windows users, we got you covered!
-
-## 🎯 Perfect For...
-
-- **🚀 Startups** - Get a whole dev team for the price of... well, just this extension!
-- **👨‍💻 Solo Developers** - Never code alone again
-- **👥 Teams** - Augment your human brilliance with AI superpowers
-- **🎓 Learners** - Best coding teacher you'll ever have
-- **🔧 Debuggers** - Find and fix bugs faster than ever
-- **📚 Documenters** - Make documentation painless (yes, really!)
-
-## 🌈 The Bottom Line
-
-This isn't just another AI coding assistant. This is a **REVOLUTION** in how you write code. It's like having Iron Man's JARVIS, but specifically trained for software development.
-
-Your code will thank you. Your future self will thank you. Heck, even your rubber duck will thank you (it was getting tired of listening to your debugging sessions).
-
-## 🚀 Ready to Level Up Your Coding Game?
-
-**Stop coding alone. Start coding with a team that never sleeps, never complains, and always has your back.**
-
-### [🎯 Install Now and Join the Multi-Agent Revolution!](#)
+> 📌 **This extension is built upon the excellent foundation of [Claude Code Chat](https://github.com/andrepimenta/claude-code-chat) by André Pimenta, enhanced with multi-agent capabilities and specialized AI team features.**
 
 ---
 
-<div align="center">
+## ✨ **Why Multi Agent Chat?**
 
-### ⭐ Star us on GitHub if we made your day better!
+🤝 **Specialized AI Team** - Seven expert agents, each focused on their domain
+👥 **Collaborative Problem Solving** - Agents work together on complex tasks
+🎯 **Targeted Expertise** - Choose the right agent for the right job
+🔌 **MCP Server Integration** - Full Model Context Protocol support
+💬 **Beautiful Chat Interface** - Intuitive UI with markdown support
+⚡ **Smart Context Management** - Agents share context and collaborate
+🛠️ **Flexible Workflow** - Work with individual agents or the entire team
 
-**Built with ❤️ by developers, for developers**
+---
 
-*P.S. - The agents wanted us to mention they're available 24/7 and never ask for vacation days. They're basically the perfect employees!* 🤖
+## 🤖 **Meet Your AI Team**
 
-</div>
+### 👥 **Team** (Default)
+The collaborative hub that coordinates all agents. When you're not sure which agent to use or need multiple perspectives, the Team automatically delegates to the right specialists and synthesizes their responses.
+
+### 🏗️ **Architect**
+Your system design expert who:
+- Designs application architecture and system structure
+- Reviews and improves existing architecture
+- Plans database schemas and API designs
+- Recommends design patterns and best practices
+- Creates technical specifications
+
+### 💻 **Coder**
+Your implementation specialist who:
+- Writes clean, efficient code in any language
+- Implements features based on specifications
+- Refactors and optimizes existing code
+- Follows coding best practices and conventions
+- Handles algorithm implementation
+
+### ⚡ **Executor**
+Your automation and operations expert who:
+- Executes commands and scripts
+- Manages file operations and project structure
+- Runs builds, tests, and deployments
+- Handles system integration tasks
+- Automates repetitive workflows
+
+### 🔍 **Reviewer**
+Your quality assurance specialist who:
+- Reviews code for bugs and issues
+- Suggests improvements and optimizations
+- Ensures code quality and standards
+- Identifies security vulnerabilities
+- Validates implementation against requirements
+
+### 📝 **Documenter**
+Your documentation expert who:
+- Writes clear, comprehensive documentation
+- Creates API documentation and guides
+- Generates code comments and docstrings
+- Produces user manuals and README files
+- Maintains changelog and release notes
+
+### 🤝 **Coordinator**
+Your project management specialist who:
+- Breaks down complex tasks into steps
+- Coordinates work between agents
+- Tracks progress and dependencies
+- Manages task prioritization
+- Ensures smooth workflow integration
+
+---
+
+## 🌟 **Key Features**
+
+### 💬 **Beautiful Chat Interface**
+- Clean, modern UI integrated into VS Code
+- Real-time streaming responses
+- Full markdown support with syntax highlighting
+- Code block copying with one click
+- Auto-resizing input area
+
+### 🎯 **Smart Agent Selection**
+- Quick agent switcher in the chat interface
+- Automatic agent recommendation based on task
+- @ mentions for specific agent requests
+- Team mode for collaborative responses
+
+### 🔌 **MCP Server Support**
+- Full Model Context Protocol integration
+- Configure and manage MCP servers
+- Access external tools and data sources
+- Seamless permission management
+
+### 📁 **Context Management**
+- Drag and drop files into chat
+- Image and screenshot support
+- Smart file referencing
+- Shared context between agents
+
+### ⚙️ **Advanced Configuration**
+- WSL support for Windows users
+- Customizable settings per agent
+- Thinking mode intensity levels
+- YOLO mode for power users
+
+---
+
+## 🚀 **Getting Started**
+
+### Prerequisites
+- **VS Code 1.94+** - Latest version recommended
+- **Claude Desktop** - With API key configured
+- **Node.js** - For MCP server support (optional)
+
+### Installation
+
+1. **Install from VS Code Marketplace**
+   ```
+   ext install CraigYappert.multi-agent-chat
+   ```
+
+2. **Or install from VSIX**
+   - Download the latest `.vsix` file from releases
+   - Install via Command Palette: `Extensions: Install from VSIX...`
+
+3. **Open Multi Agent Chat**
+   - Press `Ctrl+Shift+C` (or `Cmd+Shift+C` on Mac)
+   - Or click the Multi Agent Chat icon in the activity bar
+   - Or use Command Palette: `Multi Agent Chat: Open Chat`
+
+---
+
+## 💡 **Usage Examples**
+
+### 🏗️ **Architecture Design**
+```
+You: @architect Design a scalable microservices architecture for an e-commerce platform
+
+Architect: I'll design a comprehensive microservices architecture for your e-commerce platform...
+[Detailed architecture with diagrams and explanations]
+```
+
+### 💻 **Implementation**
+```
+You: @coder Implement the user authentication service we just designed
+
+Coder: I'll implement the authentication service based on the architecture...
+[Complete implementation with best practices]
+```
+
+### 🔍 **Code Review**
+```
+You: @reviewer Review the authentication implementation for security issues
+
+Reviewer: I'll perform a security-focused review of the authentication service...
+[Detailed security analysis with recommendations]
+```
+
+### 👥 **Team Collaboration**
+```
+You: Help me build a real-time chat feature for my application
+
+Team: I'll coordinate the team to help you build this feature:
+- Architect will design the system
+- Coder will implement the functionality
+- Reviewer will ensure quality
+- Documenter will create the documentation
+[Comprehensive solution from multiple agents]
+```
+
+---
+
+## ⚙️ **Configuration**
+
+### Agent Selection
+- Click the agent selector button (shows current agent name)
+- Choose from Team, Architect, Coder, Executor, Reviewer, Documenter, or Coordinator
+- Your selection persists across sessions
+
+### WSL Integration (Windows)
+For Windows users running Claude in WSL:
+1. Open settings (gear icon)
+2. Enable WSL integration
+3. Configure your WSL distribution name
+4. Set paths to Node.js and Claude
+
+### MCP Servers
+1. Click the MCP button (when available)
+2. Add servers from the popular gallery or custom configurations
+3. Manage permissions and tools
+
+---
+
+## 🛠️ **Troubleshooting**
+
+### Extension Not Loading
+- Ensure VS Code is version 1.94 or higher
+- Check that Claude Desktop is installed and configured
+- Reload VS Code window: `Developer: Reload Window`
+
+### Agent Not Responding
+- Verify Claude API key is configured
+- Check internet connection
+- Try selecting a different agent and switching back
+
+### WSL Issues (Windows)
+- Ensure WSL is installed and running
+- Verify the distribution name in settings
+- Check that Claude is installed in WSL
+
+---
+
+## 📝 **License**
+
+This extension is released under the MIT License. See [LICENSE](LICENSE) file for details.
+
+---
+
+## 🤝 **Contributing**
+
+Contributions are welcome! Please feel free to submit issues and pull requests on our [GitHub repository](https://github.com/craig-yappert/multi-agent-chat-extension).
+
+---
+
+## 📧 **Support**
+
+For issues, feature requests, or questions:
+- Open an issue on [GitHub](https://github.com/craig-yappert/multi-agent-chat-extension/issues)
+- Contact the author: Craig Yappert
+
+---
+
+## 🙏 **Acknowledgments**
+
+This project is a fork and extension of [Claude Code Chat](https://github.com/andrepimenta/claude-code-chat) by **André Pimenta**. We are deeply grateful for the excellent foundation and core functionality provided by the original project.
+
+### Original Project Credits
+- **Author**: André Pimenta
+- **Repository**: [https://github.com/andrepimenta/claude-code-chat](https://github.com/andrepimenta/claude-code-chat)
+- **License**: MIT
+
+### Enhancements in This Fork
+- Multi-agent system with specialized AI roles (Architect, Coder, Reviewer, etc.)
+- Team collaboration mode for complex tasks
+- Enhanced agent routing and context management
+- Specialized agent capabilities for different development tasks
+
+We maintain full compatibility with the original Claude Code Chat features while extending its capabilities to provide a comprehensive AI development team experience.
+
+---
+
+Built with ❤️ by Craig Yappert and the AI agents themselves

@@ -1,5 +1,5 @@
 import getScript from './script';
-import styles from './ui-styles'
+import styles from './uiStyles';
 
 
 const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
@@ -668,7 +668,7 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 	2. Do I need to display a cookie notice to users?
 	No, Umami does not use any cookies in the tracking code.
 	-->
-	${isTelemetryEnabled ? '<script defer src="https://cloud.umami.is/script.js" data-website-id="d050ac9b-2b6d-4c67-b4c6-766432f95644"></script>' : '<!-- Umami analytics disabled due to VS Code telemetry settings -->'}
+	<!-- Telemetry disabled -->
 </body>
 </html>`;
 

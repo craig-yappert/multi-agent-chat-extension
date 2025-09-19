@@ -47,7 +47,7 @@ export class ConversationManager {
         settingsManager: SettingsManager
     ) {
         this.settingsManager = settingsManager;
-        this.initialize();
+        // Initialize is async, must be called explicitly
     }
 
     public static getInstance(
@@ -58,6 +58,13 @@ export class ConversationManager {
             ConversationManager.instance = new ConversationManager(context, settingsManager);
         }
         return ConversationManager.instance;
+    }
+
+    public async ensureInitialized(): Promise<void> {
+        if (this.conversationsPath) {
+            return; // Already initialized
+        }
+        await this.initialize();
     }
 
     private async initialize(): Promise<void> {

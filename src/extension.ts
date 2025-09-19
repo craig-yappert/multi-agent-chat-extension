@@ -150,6 +150,8 @@ class ClaudeChatProvider {
 	private _currentClaudeProcess: cp.ChildProcess | undefined;
 	private _selectedModel: string = 'default'; // Default model (backwards compatibility)
 	private _selectedAgent: string = 'team'; // Default agent
+	private _agentSettings: any = {}; // Agent-specific settings from UI
+	private _yoloMode: boolean = false; // YOLO mode for auto-approving permissions
 	private _isProcessing: boolean | undefined;
 	private _draftMessage: string = '';
 	private _agentManager: AgentManager;
@@ -311,6 +313,12 @@ class ClaudeChatProvider {
 			case 'getConversationList':
 				this._sendConversationList();
 				return;
+			case 'loadSettings':
+				this._sendSettingsToUI();
+				return;
+			case 'saveSettings':
+				this._saveSettings(message.settings);
+				return;
 			case 'getWorkspaceFiles':
 				this._sendWorkspaceFiles(message.searchTerm);
 				return;
@@ -319,6 +327,9 @@ class ClaudeChatProvider {
 				return;
 			case 'loadConversation':
 				this.loadConversation(message.filename);
+				return;
+			case 'deleteConversation':
+				this._deleteConversation(message.filename);
 				return;
 			case 'stopRequest':
 				this._stopClaudeProcess();
@@ -2075,6 +2086,45 @@ class ClaudeChatProvider {
 		await this._loadConversationHistory(filename);
 	}
 
+	private async _deleteConversation(filename: string): Promise<void> {
+		try {
+			// Get the file path
+			const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+			if (!workspaceFolder) {
+				vscode.window.showErrorMessage('No workspace folder found');
+				return;
+			}
+
+			const filePath = path.join(workspaceFolder.uri.fsPath, '.vscode', 'multi-agent-chat-history', filename);
+			const fileUri = vscode.Uri.file(filePath);
+
+			// Try to delete the file, but don't fail if it doesn't exist
+			try {
+				await vscode.workspace.fs.delete(fileUri);
+			} catch (fileError: any) {
+				// If file doesn't exist, that's OK - just continue to remove from index
+				if (fileError.code !== 'FileNotFound' && fileError.code !== 'EntryNotFound') {
+					throw fileError; // Re-throw if it's a different error
+				}
+				console.log(`File not found, removing from index only: ${filename}`);
+			}
+
+			// Remove from conversation index regardless of whether file existed
+			this._conversationIndex = this._conversationIndex.filter(conv => conv.filename !== filename);
+
+			// Save the updated index to workspace state
+			await this._context.workspaceState.update('claude.conversationIndex', this._conversationIndex);
+
+			// Send updated list to webview
+			this._sendConversationList();
+
+			vscode.window.showInformationMessage('Conversation deleted successfully');
+		} catch (error) {
+			console.error('Error deleting conversation:', error);
+			vscode.window.showErrorMessage(`Failed to delete conversation: ${error}`);
+		}
+	}
+
 	private _sendConversationList(): void {
 		this._postMessage({
 			type: 'conversationList',
@@ -2233,7 +2283,43 @@ class ClaudeChatProvider {
 			});
 		}
 
-		// Execute file operations
+		// Request permission for file operations if any found
+		if (fileOperations.length > 0) {
+			const fileList = fileOperations.map(op => op.filename).join(', ');
+
+			// Generate a unique permission ID
+			const permissionId = `executor-file-${Date.now()}`;
+
+			// Send permission request to UI
+			this._sendAndSaveMessage({
+				type: 'permissionRequest',
+				data: {
+					id: permissionId,
+					tool: 'Executor File Write',
+					input: {
+						files: fileList,
+						operation: 'write'
+					},
+					pattern: `Write files: ${fileList}`
+				}
+			});
+
+			// Wait for permission response
+			const approved = await new Promise<boolean>((resolve) => {
+				if (!this._pendingPermissionResolvers) {
+					this._pendingPermissionResolvers = new Map();
+				}
+				this._pendingPermissionResolvers.set(permissionId, resolve);
+			});
+
+			if (!approved) {
+				console.log('File operations denied by user');
+				vscode.window.showWarningMessage('File operations were denied');
+				return;
+			}
+		}
+
+		// Execute file operations if approved
 		for (const op of fileOperations) {
 			try {
 				const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -2760,6 +2846,90 @@ class ClaudeChatProvider {
 			console.error('Error creating image file:', error);
 			vscode.window.showErrorMessage('Failed to create image file');
 		}
+	}
+
+	private async _sendSettingsToUI(): Promise<void> {
+		try {
+			console.log('Loading settings panel...');
+			// Import SettingsPanel dynamically
+			const { SettingsPanel } = await import('./ui/SettingsPanel.js');
+
+			// Create a new instance of SettingsPanel
+			const settingsPanel = new SettingsPanel(this._context, (settings: any) => {
+				// Handle settings change
+				this._applySettings(settings);
+			});
+
+			// Get the HTML and send it to the webview
+			const html = settingsPanel.getHtml();
+			const script = settingsPanel.getScript();
+
+			console.log('Sending settings to UI...');
+			this._postMessage({
+				type: 'settingsLoaded',
+				data: {
+					html: html,
+					script: script,
+					settings: settingsPanel.loadSettings()
+				}
+			});
+		} catch (error) {
+			console.error('Error loading settings panel:', error);
+			this._postMessage({
+				type: 'settingsLoaded',
+				data: {
+					html: '<div style="padding: 20px; text-align: center; color: var(--vscode-errorForeground);">Error loading settings: ' + error + '</div>',
+					script: '',
+					settings: {}
+				}
+			});
+		}
+	}
+
+	private async _saveSettings(settings: any): Promise<void> {
+		try {
+			// Save to global state
+			await this._context.globalState.update('settings', settings);
+
+			// Update VS Code configuration for API key
+			const config = vscode.workspace.getConfiguration('claudeCodeChat');
+			if (settings.apiKeys?.claude) {
+				await config.update('apiKey', settings.apiKeys.claude, vscode.ConfigurationTarget.Global);
+			}
+
+			// Apply settings immediately
+			this._applySettings(settings);
+
+			// Notify success
+			this._postMessage({
+				type: 'settingsSaved',
+				data: { success: true }
+			});
+
+			vscode.window.showInformationMessage('Settings saved successfully');
+		} catch (error) {
+			console.error('Error saving settings:', error);
+			this._postMessage({
+				type: 'settingsSaved',
+				data: { success: false, error: error }
+			});
+			vscode.window.showErrorMessage('Failed to save settings');
+		}
+	}
+
+	private _applySettings(settings: any): void {
+		// Apply YOLO mode
+		if (settings.global?.yoloMode !== undefined) {
+			this._yoloMode = settings.global.yoloMode;
+		}
+
+		// Apply agent-specific settings
+		if (settings.agents) {
+			// Store agent settings for use when sending messages
+			this._agentSettings = settings.agents;
+		}
+
+		console.log('Settings applied:', settings);
 	}
 
 	public dispose() {

@@ -1,12 +1,12 @@
 # Session Context - Multi Agent Chat Extension
 
-## Current Version: 1.8.0+ (Latest Development)
+## Current Version: 1.9.3 (Latest Development)
 
-## Previous Session Summary (2025-09-17)
+## Previous Session Summary (2025-01-17)
 
 Successfully restored functionality after system reset, unified all agents under Claude Sonnet backend, and implemented inter-agent communication framework with performance optimizations.
 
-## Current Session Accomplishments (2025-09-18)
+## Previous Session Accomplishments (2025-01-17)
 
 ### Critical Bug Fixes & Features
 
@@ -188,23 +188,51 @@ npx vsce package
 Press F5 to launch Extension Development Host
 ```
 
+## Current Session Accomplishments (2025-01-18)
+
+### Features Implemented
+1. **Delete Conversation Feature** ✅
+   - Custom confirmation dialog (browser confirm() doesn't work in webviews)
+   - Handles missing files gracefully
+   - Updates conversation list after deletion
+
+2. **Settings UI Infrastructure** ⚠️
+   - Created SettingsPanel.ts with full architecture
+   - API key management with show/hide toggles
+   - Agent configuration section (not rendering)
+   - Global options section (not rendering)
+   - Issue: Only API Keys section displays in UI
+
+3. **Code Cleanup**
+   - Removed old "Coming Soon" settings modal
+   - Cleaned up duplicate toggleSettings functions
+   - Created SETTINGS_CLEANUP_PLAN.md for roadmap
+
+### Current Issues
+- **Settings Panel**: Only API Keys section renders, other sections missing
+- **Executor Permissions**: File write permissions not triggering UI requests
+
 ## Next Session Focus
 
-1. **Thorough Testing Phase**
-   - Test all new features with multiple scenarios
-   - Verify agent memory across complex workflows
-   - Stress test file operations
-   - Validate conversation persistence
+### PRIORITY: Per-Project Settings Architecture
 
-2. **Inter-Agent Communication**
-   - Test existing framework in agentCommunication.ts
-   - Add visual indicators for agent collaboration
-   - Implement message routing between agents
+Need to implement project-specific settings and conversations:
 
-3. **Performance Monitoring**
-   - Check memory usage with large conversations
-   - Monitor response times with context included
-   - Optimize if needed
+1. **Create .machat folder structure** in project root
+2. **Settings hierarchy**: Global → Project → Workspace
+3. **Move conversations** to project-local storage
+4. **Version control friendly** configuration
+
+### Immediate Tasks
+1. Fix settings panel rendering issue
+2. Implement per-project settings architecture
+3. Complete Phase 2 of SETTINGS_CLEANUP_PLAN.md
+4. Test executor permissions with new architecture
+
+### Performance & Cleanup
+- Bundle extension (currently 755 files)
+- Remove unused dependencies
+- Implement webpack bundling
 
 ## Recovery Information
 

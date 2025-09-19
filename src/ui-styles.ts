@@ -2565,12 +2565,349 @@ const styles = `
         margin: 4px 0;
         border: 1px solid var(--vscode-widget-border);
         border-radius: 6px;
-        cursor: pointer;
         background-color: var(--vscode-list-inactiveSelectionBackground);
     }
 
     .conversation-item:hover {
         background-color: var(--vscode-list-hoverBackground);
+    }
+
+    .delete-conversation-btn {
+        background: transparent;
+        border: 1px solid transparent;
+        cursor: pointer;
+        font-size: 18px;
+        padding: 4px 8px;
+        opacity: 0.7;
+        transition: all 0.2s;
+        margin-left: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 32px;
+        height: 32px;
+    }
+
+    .delete-conversation-btn:hover {
+        opacity: 1;
+        background-color: var(--vscode-button-background);
+        border-radius: 4px;
+        border-color: var(--vscode-button-border);
+    }
+
+    .confirm-dialog-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    }
+
+    .confirm-dialog {
+        background-color: var(--vscode-editorWidget-background);
+        border: 1px solid var(--vscode-editorWidget-border);
+        border-radius: 6px;
+        padding: 20px;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .confirm-message {
+        font-size: 14px;
+        margin-bottom: 20px;
+        color: var(--vscode-foreground);
+    }
+
+    .confirm-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .confirm-btn {
+        padding: 6px 14px;
+        font-size: 13px;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .confirm-yes {
+        background-color: var(--vscode-button-background);
+        color: var(--vscode-button-foreground);
+    }
+
+    .confirm-yes:hover {
+        background-color: var(--vscode-button-hoverBackground);
+    }
+
+    .confirm-cancel {
+        background-color: var(--vscode-button-secondaryBackground);
+        color: var(--vscode-button-secondaryForeground);
+    }
+
+    .confirm-cancel:hover {
+        background-color: var(--vscode-button-secondaryHoverBackground);
+    }
+
+    /* Settings Panel Styles */
+    .settings-panel {
+        position: fixed;
+        top: 60px;
+        right: 0;
+        bottom: 0;
+        width: 60%;
+        min-width: 400px;
+        background-color: var(--vscode-sideBar-background);
+        border-left: 1px solid var(--vscode-panel-border);
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        animation: slideIn 0.2s ease-out;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+        }
+        to {
+            transform: translateX(0);
+        }
+    }
+
+    .settings-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--vscode-panel-border);
+        background-color: var(--vscode-editor-background);
+    }
+
+    .settings-header h3 {
+        margin: 0;
+        font-size: 18px;
+        color: var(--vscode-foreground);
+    }
+
+    .settings-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+    }
+
+    .settings-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .settings-container h2 {
+        margin-bottom: 20px;
+        color: var(--vscode-foreground);
+        border-bottom: 1px solid var(--vscode-panel-border);
+        padding-bottom: 10px;
+    }
+
+    .settings-section {
+        background-color: var(--vscode-editor-background);
+        border: 1px solid var(--vscode-panel-border);
+        border-radius: 6px;
+        padding: 16px;
+        margin-bottom: 20px;
+    }
+
+    .settings-section h3 {
+        margin-bottom: 16px;
+        color: var(--vscode-foreground);
+        font-size: 16px;
+    }
+
+    .settings-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .setting-item {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .setting-item label {
+        font-weight: 500;
+        color: var(--vscode-foreground);
+    }
+
+    .api-key-input {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .api-key-input input {
+        flex: 1;
+        padding: 6px 10px;
+        background-color: var(--vscode-input-background);
+        border: 1px solid var(--vscode-input-border);
+        color: var(--vscode-input-foreground);
+        border-radius: 4px;
+        font-family: monospace;
+    }
+
+    .toggle-visibility {
+        padding: 6px 10px;
+        background-color: var(--vscode-button-secondaryBackground);
+        color: var(--vscode-button-secondaryForeground);
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .toggle-visibility:hover {
+        background-color: var(--vscode-button-secondaryHoverBackground);
+    }
+
+    .agents-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 16px;
+    }
+
+    .agent-config {
+        background-color: var(--vscode-editorWidget-background);
+        border: 1px solid var(--vscode-editorWidget-border);
+        border-radius: 6px;
+        padding: 12px;
+    }
+
+    .agent-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        font-weight: 600;
+        color: var(--vscode-foreground);
+    }
+
+    .agent-icon {
+        font-size: 20px;
+    }
+
+    .agent-settings {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .setting-row {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .setting-row label {
+        font-size: 12px;
+        color: var(--vscode-descriptionForeground);
+    }
+
+    .setting-row select {
+        padding: 4px 8px;
+        background-color: var(--vscode-dropdown-background);
+        border: 1px solid var(--vscode-dropdown-border);
+        color: var(--vscode-dropdown-foreground);
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .permissions {
+        display: flex;
+        gap: 12px;
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        font-size: 13px;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+        cursor: pointer;
+    }
+
+    .yolo-mode {
+        padding: 8px;
+        background-color: var(--vscode-editorWarning-background);
+        border: 1px solid var(--vscode-editorWarning-border);
+        border-radius: 4px;
+    }
+
+    .setting-description {
+        font-size: 11px;
+        color: var(--vscode-descriptionForeground);
+        margin-left: 8px;
+    }
+
+    .settings-footer {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        margin-top: 24px;
+        padding-top: 16px;
+        border-top: 1px solid var(--vscode-panel-border);
+    }
+
+    .save-btn, .cancel-btn {
+        padding: 8px 16px;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.2s;
+    }
+
+    .save-btn {
+        background-color: var(--vscode-button-background);
+        color: var(--vscode-button-foreground);
+    }
+
+    .save-btn:hover {
+        background-color: var(--vscode-button-hoverBackground);
+    }
+
+    .cancel-btn {
+        background-color: var(--vscode-button-secondaryBackground);
+        color: var(--vscode-button-secondaryForeground);
+    }
+
+    .cancel-btn:hover {
+        background-color: var(--vscode-button-secondaryHoverBackground);
+    }
+
+    .settings-toggle {
+        background: transparent;
+        border: none;
+        color: var(--vscode-foreground);
+        cursor: pointer;
+        font-size: 20px;
+        padding: 4px 8px;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+    }
+
+    .settings-toggle:hover {
+        opacity: 1;
+        background-color: var(--vscode-toolbar-hoverBackground);
+        border-radius: 4px;
     }
 
     .conversation-title {
@@ -2885,7 +3222,7 @@ const styles = `
         position: sticky;
         bottom: 0;
         background: var(--vscode-editor-background);
-        border-top: 1px solid var(--vscode-widget-border, #2d2d2d);
+        border-top: 1px solid var(--vscode-widget-border, #5f5f5fff);
         padding: 8px 20px;
         z-index: 10;
         animation: slideUp 0.3s ease-out;

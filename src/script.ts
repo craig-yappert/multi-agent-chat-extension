@@ -2190,6 +2190,12 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				case 'conversationList':
 					displayConversationList(message.data);
 					break;
+				case 'settingsLoaded':
+					displaySettings(message.data);
+					break;
+				case 'settingsSaved':
+					handleSettingsSaved(message.data);
+					break;
 				case 'clipboardText':
 					handleClipboardText(message.data);
 					break;
@@ -2581,17 +2587,73 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			return html;
 		}
 
+		// Settings functions
+		window.toggleSettings = function() {
+			const settingsDiv = document.getElementById('settingsPanel');
+			const chatContainer = document.getElementById('chatContainer');
+			const historyDiv = document.getElementById('conversationHistory');
+
+			if (settingsDiv.style.display === 'none') {
+				sendStats('Settings opened');
+				// Load current settings
+				loadSettingsPanel();
+				// Show settings
+				settingsDiv.style.display = 'block';
+				chatContainer.style.display = 'none';
+				historyDiv.style.display = 'none';
+			} else {
+				// Hide settings
+				settingsDiv.style.display = 'none';
+				chatContainer.style.display = 'flex';
+			}
+		}
+
+		function loadSettingsPanel() {
+			vscode.postMessage({ type: 'loadSettings' });
+		}
+
+		function displaySettings(data) {
+			console.log('Displaying settings:', data);
+			const settingsContent = document.getElementById('settingsContent');
+			if (settingsContent) {
+				if (data && data.html) {
+					settingsContent.innerHTML = data.html;
+
+					// Add the script to handle settings interactions
+					if (data.script) {
+						const scriptElement = document.createElement('script');
+						scriptElement.textContent = data.script;
+						document.body.appendChild(scriptElement);
+					}
+				} else {
+					console.error('No settings HTML received');
+					settingsContent.innerHTML = '<div style="padding: 20px; text-align: center;">Error loading settings. Please try again.</div>';
+				}
+			} else {
+				console.error('Settings content element not found');
+			}
+		}
+
+		function handleSettingsSaved(data) {
+			if (data.success) {
+				// Close settings panel
+				toggleSettings();
+			}
+		}
+
 		// Conversation history functions
 		window.toggleConversationHistory = function() {
 			const historyDiv = document.getElementById('conversationHistory');
 			const chatContainer = document.getElementById('chatContainer');
-			
+			const settingsDiv = document.getElementById('settingsPanel');
+
 			if (historyDiv.style.display === 'none') {
 				sendStats('History opened');
 				// Show conversation history
 				requestConversationList();
 				historyDiv.style.display = 'block';
 				chatContainer.style.display = 'none';
+				settingsDiv.style.display = 'none';
 			} else {
 				// Hide conversation history
 				historyDiv.style.display = 'none';
@@ -2605,14 +2667,52 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			});
 		}
 
-		function loadConversation(filename) {
+		window.loadConversation = function(filename) {
 			vscode.postMessage({
 				type: 'loadConversation',
 				filename: filename
 			});
-			
+
 			// Hide conversation history and show chat
 			toggleConversationHistory();
+		}
+
+		window.deleteConversation = function(filename) {
+			// Create a custom confirmation dialog since confirm() doesn't work in sandboxed webviews
+			const confirmDialog = document.createElement('div');
+			confirmDialog.className = 'confirm-dialog-overlay';
+			confirmDialog.innerHTML = \`
+				<div class="confirm-dialog">
+					<div class="confirm-message">Are you sure you want to delete this conversation?</div>
+					<div class="confirm-buttons">
+						<button class="confirm-btn confirm-yes" onclick="confirmDelete('\${filename}')">Delete</button>
+						<button class="confirm-btn confirm-cancel" onclick="cancelDelete()">Cancel</button>
+					</div>
+				</div>
+			\`;
+			document.body.appendChild(confirmDialog);
+		}
+
+		window.confirmDelete = function(filename) {
+			// Remove the dialog
+			const dialog = document.querySelector('.confirm-dialog-overlay');
+			if (dialog) {
+				dialog.remove();
+			}
+
+			// Send the delete message
+			vscode.postMessage({
+				type: 'deleteConversation',
+				filename: filename
+			});
+		}
+
+		window.cancelDelete = function() {
+			// Just remove the dialog
+			const dialog = document.querySelector('.confirm-dialog-overlay');
+			if (dialog) {
+				dialog.remove();
+			}
 		}
 
 		// File picker functions
@@ -2810,15 +2910,21 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			conversations.forEach(conv => {
 				const item = document.createElement('div');
 				item.className = 'conversation-item';
-				item.onclick = () => loadConversation(conv.filename);
 
 				const date = new Date(conv.startTime).toLocaleDateString();
 				const time = new Date(conv.startTime).toLocaleTimeString();
 
 				item.innerHTML = \`
-					<div class="conversation-title">\${conv.firstUserMessage.substring(0, 60)}\${conv.firstUserMessage.length > 60 ? '...' : ''}</div>
-					<div class="conversation-meta">\${date} at \${time} • \${conv.messageCount} messages • $\${conv.totalCost.toFixed(3)}</div>
-					<div class="conversation-preview">Last: \${conv.lastUserMessage.substring(0, 80)}\${conv.lastUserMessage.length > 80 ? '...' : ''}</div>
+					<div style="display: flex; justify-content: space-between; align-items: start;">
+						<div style="flex: 1; cursor: pointer;" onclick="loadConversation('\${conv.filename}')">
+							<div class="conversation-title">\${conv.firstUserMessage.substring(0, 60)}\${conv.firstUserMessage.length > 60 ? '...' : ''}</div>
+							<div class="conversation-meta">\${date} at \${time} • \${conv.messageCount} messages • $\${conv.totalCost.toFixed(3)}</div>
+							<div class="conversation-preview">Last: \${conv.lastUserMessage.substring(0, 80)}\${conv.lastUserMessage.length > 80 ? '...' : ''}</div>
+						</div>
+						<button class="delete-conversation-btn" onclick="event.stopPropagation(); deleteConversation('\${conv.filename}')" title="Delete conversation">
+							🗑️
+						</button>
+					</div>
 				\`;
 
 				listDiv.appendChild(item);
@@ -2844,28 +2950,8 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			messageInput.dispatchEvent(new Event('input', { bubbles: true }));
 		}
 
-		// Settings functions
+		// Old settings functions removed - using new settings panel
 
-		window.toggleSettings = function() {
-			const settingsModal = document.getElementById('settingsModal');
-			if (settingsModal.style.display === 'none') {
-				// Request current settings from VS Code
-				vscode.postMessage({
-					type: 'getSettings'
-				});
-				// Request current permissions
-				vscode.postMessage({
-					type: 'getPermissions'
-				});
-				settingsModal.style.display = 'flex';
-			} else {
-				hideSettingsModal();
-			}
-		}
-
-		function hideSettingsModal() {
-			document.getElementById('settingsModal').style.display = 'none';
-		}
 
 		function updateSettings() {
 			// Note: thinking intensity is now handled separately in the thinking intensity modal
@@ -3020,15 +3106,6 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			}, 500);
 		}
 
-		// Close settings modal when clicking outside
-		const settingsModal = document.getElementById('settingsModal');
-		if (settingsModal) {
-			settingsModal.addEventListener('click', (e) => {
-				if (e.target === settingsModal) {
-					hideSettingsModal();
-				}
-			});
-		}
 
 		// Close thinking intensity modal when clicking outside
 		const thinkingIntensityModal = document.getElementById('thinkingIntensityModal');

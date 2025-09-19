@@ -28,7 +28,7 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 			<button class="btn primary" id="newSessionBtn" onclick="newSession()">New Chat</button>
 		</div>
 	</div>
-	
+
 	<div id="conversationHistory" class="conversation-history" style="display: none;">
 		<div class="conversation-header">
 			<h3>Conversation History</h3>
@@ -36,6 +36,18 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 		</div>
 		<div id="conversationList" class="conversation-list">
 			<!-- Conversations will be loaded here -->
+		</div>
+	</div>
+
+	<div id="settingsPanel" class="settings-panel" style="display: none;">
+		<div class="settings-header">
+			<h3>⚙️ Settings</h3>
+			<button class="btn" onclick="toggleSettings()">✕ Close</button>
+		</div>
+		<div id="settingsContent" class="settings-content">
+			<div class="settings-loading" style="text-align: center; padding: 40px; color: var(--vscode-descriptionForeground);">
+				Loading settings...
+			</div>
 		</div>
 	</div>
 
@@ -264,26 +276,6 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 	</div>
 	</div>
 
-	<!-- Settings modal -->
-	<div id="settingsModal" class="tools-modal" style="display: none;">
-		<div class="tools-modal-content">
-			<div class="tools-modal-header">
-				<span>Multi Agent Chat Settings</span>
-				<button class="tools-close-btn" onclick="hideSettingsModal()">✕</button>
-			</div>
-			<div class="tools-list">
-				<div style="text-align: center; padding: 40px 20px;">
-					<div style="font-size: 48px; margin-bottom: 16px;">⚙️</div>
-					<h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600;">Settings Coming Soon</h3>
-					<p style="font-size: 12px; color: var(--vscode-descriptionForeground); margin: 0; line-height: 1.4;">
-						Multi-agent configuration, provider settings, and advanced options will be available in future updates.
-					</p>
-				</div>
-
-				
-			</div>
-		</div>
-	</div>
 
 	<!-- Agent selector modal -->
 	<!-- Agent selector modal removed - use @agent mentions instead -->

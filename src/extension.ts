@@ -6,29 +6,42 @@ import getHtml from './ui';
 import { AgentManager } from './agents';
 import { ProviderManager } from './providers';
 import { AgentCommunicationHub } from './agentCommunication';
-import { MCPServerManager } from './mcp-server/serverManager';
+import { SettingsManager } from './settings/SettingsManager';
+import { ConversationManager, ConversationIndex } from './conversations/ConversationManager';
+import { ProjectContextManager } from './context/ProjectContextManager';
+import { MigrationCommands } from './commands/MigrationCommands';
 
 const exec = util.promisify(cp.exec);
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
 	console.log('Multi Agent Chat extension is being activated!');
 
-	// Initialize MCP Server Manager for fast agent responses
-	const mcpServerManager = new MCPServerManager(context);
-	context.subscriptions.push(mcpServerManager);
+	// Initialize Settings Manager
+	const settingsManager = SettingsManager.getInstance(context);
+	await settingsManager.initialize();
 
-	const provider = new ClaudeChatProvider(context.extensionUri, context);
+	// Initialize Conversation Manager
+	const conversationManager = ConversationManager.getInstance(context, settingsManager);
 
-	const disposable = vscode.commands.registerCommand('claude-code-chat.openChat', (column?: vscode.ViewColumn) => {
+	// Initialize Project Context Manager
+	const contextManager = ProjectContextManager.getInstance(context, settingsManager);
+
+	// Initialize Migration Commands
+	const migrationCommands = new MigrationCommands(context, settingsManager, conversationManager, contextManager);
+	migrationCommands.registerCommands();
+
+	const provider = new ClaudeChatProvider(context.extensionUri, context, settingsManager, conversationManager, contextManager);
+
+	const disposable = vscode.commands.registerCommand('multiAgentChat.openChat', (column?: vscode.ViewColumn) => {
 		console.log('Multi Agent Chat command executed!');
 		provider.show(column);
 	});
 
-	const loadConversationDisposable = vscode.commands.registerCommand('claude-code-chat.loadConversation', (filename: string) => {
+	const loadConversationDisposable = vscode.commands.registerCommand('multiAgentChat.loadConversation', (filename: string) => {
 		provider.loadConversation(filename);
 	});
 
-	const clearConversationsDisposable = vscode.commands.registerCommand('claude-code-chat.clearAllConversations', async () => {
+	const clearConversationsDisposable = vscode.commands.registerCommand('multiAgentChat.clearAllConversations', async () => {
 		const answer = await vscode.window.showWarningMessage(
 			'Are you sure you want to delete all conversation history? This cannot be undone.',
 			'Yes, Clear All',
@@ -42,24 +55,16 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Register webview view provider for sidebar chat (using shared provider instance)
 	const webviewProvider = new ClaudeChatWebviewProvider(context.extensionUri, context, provider);
-	vscode.window.registerWebviewViewProvider('claude-code-chat.chat', webviewProvider);
-
-	// Listen for configuration changes
-	const configChangeDisposable = vscode.workspace.onDidChangeConfiguration(event => {
-		if (event.affectsConfiguration('claudeCodeChat.wsl')) {
-			console.log('WSL configuration changed, starting new session');
-			provider.newSessionOnConfigChange();
-		}
-	});
+	vscode.window.registerWebviewViewProvider('multiAgentChat.chat', webviewProvider);
 
 	// Create status bar item
 	const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
 	statusBarItem.text = "Claude";
 	statusBarItem.tooltip = "Open Multi Agent Chat (Ctrl+Shift+C)";
-	statusBarItem.command = 'claude-code-chat.openChat';
+	statusBarItem.command = 'multiAgentChat.openChat';
 	statusBarItem.show();
 
-	context.subscriptions.push(disposable, loadConversationDisposable, clearConversationsDisposable, configChangeDisposable, statusBarItem);
+	context.subscriptions.push(disposable, loadConversationDisposable, clearConversationsDisposable, statusBarItem);
 	console.log('Multi Agent Chat extension activation completed successfully!');
 }
 
@@ -137,16 +142,7 @@ class ClaudeChatProvider {
 	private _currentConversation: Array<{ timestamp: string, messageType: string, data: any, agent?: any }> = [];
 	private _agentConversationContext?: Map<string, any[]>;
 	private _conversationStartTime: string | undefined;
-	private _conversationIndex: Array<{
-		filename: string,
-		sessionId: string,
-		startTime: string,
-		endTime: string,
-		messageCount: number,
-		totalCost: number,
-		firstUserMessage: string,
-		lastUserMessage: string
-	}> = [];
+	private _conversationIndex: ConversationIndex[] = [];
 	private _currentClaudeProcess: cp.ChildProcess | undefined;
 	private _selectedModel: string = 'default'; // Default model (backwards compatibility)
 	private _selectedAgent: string = 'team'; // Default agent
@@ -161,7 +157,10 @@ class ClaudeChatProvider {
 
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
-		private readonly _context: vscode.ExtensionContext
+		private readonly _context: vscode.ExtensionContext,
+		private readonly _settingsManager: SettingsManager,
+		private readonly _conversationManager: ConversationManager,
+		private readonly _contextManager: ProjectContextManager
 	) {
 		this._agentManager = new AgentManager();
 		this._outputChannel = vscode.window.createOutputChannel('Multi-Agent Communication');
@@ -169,7 +168,7 @@ class ClaudeChatProvider {
 		// Create streaming callback if needed
 		const streamCallback = (chunk: string, agentId: string) => {
 			// Send streaming chunks to UI if enabled
-			const config = vscode.workspace.getConfiguration('claudeCodeChat');
+			const config = vscode.workspace.getConfiguration('multiAgentChat');
 			if (config.get<boolean>('performance.enableStreaming', true)) {
 				this._postMessage({
 					type: 'streamChunk',
@@ -355,9 +354,6 @@ class ClaudeChatProvider {
 			case 'executeSlashCommand':
 				this._executeSlashCommand(message.command);
 				return;
-			case 'dismissWSLAlert':
-				this._dismissWSLAlert();
-				return;
 			case 'openFile':
 				this._openFileInEditor(message.filePath);
 				return;
@@ -541,7 +537,7 @@ class ClaudeChatProvider {
 			const provider = this._providerManager.getProvider(agentConfig);
 
 			// Check if inter-agent communication is enabled
-			const config = vscode.workspace.getConfiguration('claudeCodeChat');
+			const config = vscode.workspace.getConfiguration('multiAgentChat');
 			const interAgentCommEnabled = config.get<boolean>('interAgentComm.enabled', false);
 
 			// Get conversation history for this agent
@@ -602,7 +598,7 @@ class ClaudeChatProvider {
 		const cwd = workspaceFolder ? workspaceFolder.uri.fsPath : process.cwd();
 
 		// Get thinking intensity setting
-		const configThink = vscode.workspace.getConfiguration('claudeCodeChat');
+		const configThink = vscode.workspace.getConfiguration('multiAgentChat');
 		const thinkingIntensity = configThink.get<string>('thinking.intensity', 'think');
 
 		// Prepend mode instructions if enabled
@@ -670,7 +666,7 @@ class ClaudeChatProvider {
 		];
 
 		// Get configuration
-		const config = vscode.workspace.getConfiguration('claudeCodeChat');
+		const config = vscode.workspace.getConfiguration('multiAgentChat');
 		const yoloMode = config.get<boolean>('permissions.yoloMode', false);
 
 		if (yoloMode) {
@@ -680,9 +676,9 @@ class ClaudeChatProvider {
 			// Add MCP configuration for permissions
 			const mcpConfigPath = this.getMCPConfigPath();
 			if (mcpConfigPath) {
-				args.push('--mcp-config', this.convertToWSLPath(mcpConfigPath));
-				args.push('--allowedTools', 'mcp__claude-code-chat-permissions__approval_prompt');
-				args.push('--permission-prompt-tool', 'mcp__claude-code-chat-permissions__approval_prompt');
+				args.push('--mcp-config', mcpConfigPath);
+				args.push('--allowedTools', 'mcp__multiAgentChat-permissions__approval_prompt');
+				args.push('--permission-prompt-tool', 'mcp__multiAgentChat-permissions__approval_prompt');
 			}
 		}
 
@@ -700,41 +696,20 @@ class ClaudeChatProvider {
 		}
 
 		console.log('Claude command args:', args);
-		const wslEnabled = config.get<boolean>('wsl.enabled', false);
-		const wslDistro = config.get<string>('wsl.distro', 'Ubuntu');
-		const nodePath = config.get<string>('wsl.nodePath', '/usr/bin/node');
-		const claudePath = config.get<string>('wsl.claudePath', '/usr/local/bin/claude');
+		// Use native claude command
+		console.log('Using native Claude command');
 
 		let claudeProcess: cp.ChildProcess;
-
-		if (wslEnabled) {
-			// Use WSL with bash -ic for proper environment loading
-			console.log('Using WSL configuration:', { wslDistro, nodePath, claudePath });
-			const wslCommand = `"${nodePath}" --no-warnings --enable-source-maps "${claudePath}" ${args.join(' ')}`;
-
-			claudeProcess = cp.spawn('wsl', ['-d', wslDistro, 'bash', '-ic', wslCommand], {
-				cwd: cwd,
-				stdio: ['pipe', 'pipe', 'pipe'],
-				env: {
-					...process.env,
-					FORCE_COLOR: '0',
-					NO_COLOR: '1'
-				}
-			});
-		} else {
-			// Use native claude command
-			console.log('Using native Claude command');
-			claudeProcess = cp.spawn('claude', args, {
-				shell: process.platform === 'win32',
-				cwd: cwd,
-				stdio: ['pipe', 'pipe', 'pipe'],
-				env: {
-					...process.env,
-					FORCE_COLOR: '0',
-					NO_COLOR: '1'
-				}
-			});
-		}
+		claudeProcess = cp.spawn('claude', args, {
+			shell: process.platform === 'win32',
+			cwd: cwd,
+			stdio: ['pipe', 'pipe', 'pipe'],
+			env: {
+				...process.env,
+				FORCE_COLOR: '0',
+				NO_COLOR: '1'
+			}
+		});
 
 		// Store process reference for potential termination
 		this._currentClaudeProcess = claudeProcess;
@@ -1137,20 +1112,10 @@ class ClaudeChatProvider {
 			type: 'loginRequired'
 		});
 
-		// Get configuration to check if WSL is enabled
-		const config = vscode.workspace.getConfiguration('claudeCodeChat');
-		const wslEnabled = config.get<boolean>('wsl.enabled', false);
-		const wslDistro = config.get<string>('wsl.distro', 'Ubuntu');
-		const nodePath = config.get<string>('wsl.nodePath', '/usr/bin/node');
-		const claudePath = config.get<string>('wsl.claudePath', '/usr/local/bin/claude');
-
-		// Open terminal and run claude login
+		// Create terminal for Claude login
 		const terminal = vscode.window.createTerminal('Claude Login');
-		if (wslEnabled) {
-			terminal.sendText(`wsl -d ${wslDistro} ${nodePath} --no-warnings --enable-source-maps ${claudePath}`);
-		} else {
-			terminal.sendText('claude');
-		}
+		// Use native claude command
+		terminal.sendText('claude');
 		terminal.show();
 
 		// Show info message
@@ -1310,23 +1275,30 @@ class ClaudeChatProvider {
 
 	private async _initializeConversations(): Promise<void> {
 		try {
-			const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-			if (!workspaceFolder) { return; }
+			// Get conversation path from conversation manager
+			this._conversationsPath = await this._conversationManager.getConversationPath();
 
-			const storagePath = this._context.storageUri?.fsPath;
-			if (!storagePath) { return; }
+			// Check if project has .machat structure, offer to initialize if not
+			const projectRoot = this._settingsManager.getProjectRoot();
+			const machatPath = this._settingsManager.getMachatPath();
 
-			this._conversationsPath = path.join(storagePath, 'conversations');
+			if (projectRoot && !machatPath) {
+				// Project exists but no .machat folder - offer to initialize
+				const choice = await vscode.window.showInformationMessage(
+					'Initialize Multi Agent Chat for this project?',
+					'Yes', 'Later'
+				);
 
-			// Create conversations directory if it doesn't exist
-			try {
-				await vscode.workspace.fs.stat(vscode.Uri.file(this._conversationsPath));
-			} catch {
-				await vscode.workspace.fs.createDirectory(vscode.Uri.file(this._conversationsPath));
-				console.log(`Created conversations directory at: ${this._conversationsPath}`);
+				if (choice === 'Yes') {
+					await this._settingsManager.ensureMachatStructure();
+					await this._contextManager.createProjectContextFile();
+					vscode.window.showInformationMessage('Multi Agent Chat initialized for this project');
+				}
 			}
+
+			console.log(`Using conversations directory: ${this._conversationsPath}`);
 		} catch (error: any) {
-			console.error('Failed to initialize conversations directory:', error.message);
+			console.error('Failed to initialize conversations:', error.message);
 		}
 	}
 
@@ -1346,8 +1318,8 @@ class ClaudeChatProvider {
 
 			// Create or update mcp-servers.json with permissions server, preserving existing servers
 			const mcpConfigPath = path.join(mcpConfigDir, 'mcp-servers.json');
-			const mcpPermissionsPath = this.convertToWSLPath(path.join(this._extensionUri.fsPath, 'mcp-permissions.js'));
-			const permissionRequestsPath = this.convertToWSLPath(path.join(storagePath, 'permission-requests'));
+			const mcpPermissionsPath = path.join(this._extensionUri.fsPath, 'mcp-permissions.js');
+			const permissionRequestsPath = path.join(storagePath, 'permission-requests');
 
 			// Load existing config or create new one
 			let mcpConfig: any = { mcpServers: {} };
@@ -1367,7 +1339,7 @@ class ClaudeChatProvider {
 			}
 
 			// Add or update the permissions server entry
-			mcpConfig.mcpServers['claude-code-chat-permissions'] = {
+			mcpConfig.mcpServers['multiAgentChat-permissions'] = {
 				command: 'node',
 				args: [mcpPermissionsPath],
 				env: {
@@ -1821,7 +1793,7 @@ class ClaudeChatProvider {
 
 			// Filter out internal servers before sending to UI
 			const filteredServers = Object.fromEntries(
-				Object.entries(mcpConfig.mcpServers || {}).filter(([name]) => name !== 'claude-code-chat-permissions')
+				Object.entries(mcpConfig.mcpServers || {}).filter(([name]) => name !== 'multiAgentChat-permissions')
 			);
 			this._postMessage({ type: 'mcpServers', data: filteredServers });
 		} catch (error) {
@@ -1984,17 +1956,7 @@ class ClaudeChatProvider {
 		}
 	}
 
-	private convertToWSLPath(windowsPath: string): string {
-		const config = vscode.workspace.getConfiguration('claudeCodeChat');
-		const wslEnabled = config.get<boolean>('wsl.enabled', false);
-
-		if (wslEnabled && windowsPath.match(/^[a-zA-Z]:/)) {
-			// Convert C:\Users\... to /mnt/c/Users/...
-			return windowsPath.replace(/^([a-zA-Z]):/, '/mnt/$1').toLowerCase().replace(/\\/g, '/');
-		}
-
-		return windowsPath;
-	}
+	// WSL support removed - no longer needed
 
 	public getMCPConfigPath(): string | undefined {
 		const storagePath = this._context.storageUri?.fsPath;
@@ -2032,7 +1994,7 @@ class ClaudeChatProvider {
 	}
 
 	private async _saveCurrentConversation(): Promise<void> {
-		if (!this._conversationsPath || this._currentConversation.length === 0) { return; }
+		if (this._currentConversation.length === 0) { return; }
 		if (!this._currentSessionId) { return; }
 
 		try {
@@ -2067,14 +2029,16 @@ class ClaudeChatProvider {
 				agentContext: this._agentConversationContext ? Object.fromEntries(this._agentConversationContext) : undefined
 			};
 
-			const filePath = path.join(this._conversationsPath, filename);
-			const content = new TextEncoder().encode(JSON.stringify(conversationData, null, 2));
-			await vscode.workspace.fs.writeFile(vscode.Uri.file(filePath), content);
+			// Save using conversation manager
+			await this._conversationManager.saveConversation(conversationData);
 
-			// Update conversation index
-			this._updateConversationIndex(filename, conversationData);
+			// Save project context
+			await this._contextManager.saveProjectContext();
 
-			console.log(`Saved conversation: ${filename}`, this._conversationsPath);
+			// Update conversation index (now handled by conversation manager)
+			this._conversationIndex = this._conversationManager.getConversationIndex();
+
+			console.log(`Saved conversation: ${filename}`);
 		} catch (error: any) {
 			console.error('Failed to save conversation:', error.message);
 		}
@@ -2343,34 +2307,15 @@ class ClaudeChatProvider {
 
 	public async _clearAllConversations(): Promise<void> {
 		try {
-			// Clear conversation index from workspace state
-			this._conversationIndex = [];
-			await this._context.workspaceState.update('claude.conversationIndex', []);
-			console.log('Cleared conversation index from workspace state');
-
-			// Clear conversations directory if it exists
-			if (this._conversationsPath) {
-				try {
-					const conversationsUri = vscode.Uri.file(this._conversationsPath);
-					const files = await vscode.workspace.fs.readDirectory(conversationsUri);
-
-					// Delete all JSON files in conversations directory
-					for (const [filename, fileType] of files) {
-						if (filename.endsWith('.json')) {
-							const fileUri = vscode.Uri.file(path.join(this._conversationsPath, filename));
-							await vscode.workspace.fs.delete(fileUri);
-							console.log(`Deleted conversation file: ${filename}`);
-						}
-					}
-					console.log('All conversation files deleted');
-				} catch (error) {
-					console.log('Conversations directory may not exist or is already empty');
-				}
-			}
+			// Clear conversations using conversation manager
+			await this._conversationManager.clearAllConversations();
+			this._conversationIndex = this._conversationManager.getConversationIndex();
+			console.log('Cleared all conversations');
 
 			// Clear current session
 			this._currentConversation = [];
-			this._agentConversationContext = new Map();
+			this._agentConversationContext = this._contextManager.getAgentConversationContext();
+			this._agentConversationContext.clear();
 			this._conversationStartTime = undefined;
 			this._currentSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
@@ -2432,38 +2377,8 @@ class ClaudeChatProvider {
 		}
 	}
 
-	private _updateConversationIndex(filename: string, conversationData: ConversationData): void {
-		// Extract first and last user messages
-		const userMessages = conversationData.messages.filter((m: any) => m.messageType === 'userInput');
-		const firstUserMessage = userMessages.length > 0 ? userMessages[0].data : 'No user message';
-		const lastUserMessage = userMessages.length > 0 ? userMessages[userMessages.length - 1].data : firstUserMessage;
-
-		// Create or update index entry
-		const indexEntry = {
-			filename: filename,
-			sessionId: conversationData.sessionId,
-			startTime: conversationData.startTime || '',
-			endTime: conversationData.endTime,
-			messageCount: conversationData.messageCount,
-			totalCost: conversationData.totalCost,
-			firstUserMessage: firstUserMessage.substring(0, 100), // Truncate for storage
-			lastUserMessage: lastUserMessage.substring(0, 100)
-		};
-
-		// Remove any existing entry for this session (in case of updates)
-		this._conversationIndex = this._conversationIndex.filter(entry => entry.filename !== conversationData.filename);
-
-		// Add new entry at the beginning (most recent first)
-		this._conversationIndex.unshift(indexEntry);
-
-		// Keep only last 50 conversations to avoid workspace state bloat
-		if (this._conversationIndex.length > 50) {
-			this._conversationIndex = this._conversationIndex.slice(0, 50);
-		}
-
-		// Save to workspace state
-		this._context.workspaceState.update('claude.conversationIndex', this._conversationIndex);
-	}
+	// Note: _updateConversationIndex is now handled by ConversationManager internally
+	// The old method is no longer needed as the ConversationManager maintains the index
 
 	private _getLatestConversation(): any | undefined {
 		return this._conversationIndex.length > 0 ? this._conversationIndex[0] : undefined;
@@ -2471,18 +2386,12 @@ class ClaudeChatProvider {
 
 	private async _loadConversationHistory(filename: string): Promise<void> {
 		console.log("_loadConversationHistory");
-		if (!this._conversationsPath) { return; }
 
 		try {
-			const filePath = path.join(this._conversationsPath, filename);
-			console.log("filePath", filePath);
-
-			let conversationData: ConversationData;
-			try {
-				const fileUri = vscode.Uri.file(filePath);
-				const content = await vscode.workspace.fs.readFile(fileUri);
-				conversationData = JSON.parse(new TextDecoder().decode(content));
-			} catch {
+			// Load conversation using conversation manager
+			const conversationData = await this._conversationManager.loadConversation(filename);
+			if (!conversationData) {
+				console.error(`Conversation not found: ${filename}`);
 				return;
 			}
 
@@ -2493,9 +2402,11 @@ class ClaudeChatProvider {
 			this._totalTokensInput = conversationData.totalTokens?.input || 0;
 			this._totalTokensOutput = conversationData.totalTokens?.output || 0;
 
-			// Restore agent conversation context if present
+			// Restore agent conversation context
 			if ((conversationData as any).agentContext) {
-				this._agentConversationContext = new Map(Object.entries((conversationData as any).agentContext));
+				// Rebuild context from loaded conversation
+				await this._contextManager.rebuildAgentContextFromHistory(conversationData.messages || []);
+				this._agentConversationContext = this._contextManager.getAgentConversationContext();
 			} else {
 				// Rebuild context from message history for backward compatibility
 				this._rebuildAgentContextFromHistory();
@@ -2578,7 +2489,7 @@ class ClaudeChatProvider {
 	}
 
 	private _sendCurrentSettings(): void {
-		const config = vscode.workspace.getConfiguration('claudeCodeChat');
+		const config = vscode.workspace.getConfiguration('multiAgentChat');
 		const settings = {
 			'thinking.intensity': config.get<string>('thinking.intensity', 'think'),
 			'wsl.enabled': config.get<boolean>('wsl.enabled', false),
@@ -2597,7 +2508,7 @@ class ClaudeChatProvider {
 	private async _enableYoloMode(): Promise<void> {
 		try {
 			// Update VS Code configuration to enable YOLO mode
-			const config = vscode.workspace.getConfiguration('claudeCodeChat');
+			const config = vscode.workspace.getConfiguration('multiAgentChat');
 
 			// Clear any global setting and set workspace setting
 			await config.update('permissions.yoloMode', true, vscode.ConfigurationTarget.Workspace);
@@ -2617,7 +2528,7 @@ class ClaudeChatProvider {
 	}
 
 	private async _updateSettings(settings: { [key: string]: any }): Promise<void> {
-		const config = vscode.workspace.getConfiguration('claudeCodeChat');
+		const config = vscode.workspace.getConfiguration('multiAgentChat');
 
 		try {
 			for (const [key, value] of Object.entries(settings)) {
@@ -2693,27 +2604,10 @@ class ClaudeChatProvider {
 	}
 
 	private _openModelTerminal(): void {
-		const config = vscode.workspace.getConfiguration('claudeCodeChat');
-		const wslEnabled = config.get<boolean>('wsl.enabled', false);
-		const wslDistro = config.get<string>('wsl.distro', 'Ubuntu');
-		const nodePath = config.get<string>('wsl.nodePath', '/usr/bin/node');
-		const claudePath = config.get<string>('wsl.claudePath', '/usr/local/bin/claude');
-
-		// Build command arguments
-		const args = ['/model'];
-
-		// Add session resume if we have a current session
-		if (this._currentSessionId) {
-			args.push('--resume', this._currentSessionId);
-		}
-
-		// Create terminal with the claude /model command
-		const terminal = vscode.window.createTerminal('Claude Model Selection');
-		if (wslEnabled) {
-			terminal.sendText(`wsl -d ${wslDistro} ${nodePath} --no-warnings --enable-source-maps ${claudePath} ${args.join(' ')}`);
-		} else {
-			terminal.sendText(`claude ${args.join(' ')}`);
-		}
+		const terminal = vscode.window.createTerminal('Claude Model Settings');
+		const args = ['--model'];
+		// Use native claude command
+		terminal.sendText(`claude ${args.join(' ')}`);
 		terminal.show();
 
 		// Show info message
@@ -2730,27 +2624,10 @@ class ClaudeChatProvider {
 	}
 
 	private _executeSlashCommand(command: string): void {
-		const config = vscode.workspace.getConfiguration('claudeCodeChat');
-		const wslEnabled = config.get<boolean>('wsl.enabled', false);
-		const wslDistro = config.get<string>('wsl.distro', 'Ubuntu');
-		const nodePath = config.get<string>('wsl.nodePath', '/usr/bin/node');
-		const claudePath = config.get<string>('wsl.claudePath', '/usr/local/bin/claude');
-
-		// Build command arguments
-		const args = [`/${command}`];
-
-		// Add session resume if we have a current session
-		if (this._currentSessionId) {
-			args.push('--resume', this._currentSessionId);
-		}
-
-		// Create terminal with the claude command
-		const terminal = vscode.window.createTerminal(`Claude /${command}`);
-		if (wslEnabled) {
-			terminal.sendText(`wsl -d ${wslDistro} ${nodePath} --no-warnings --enable-source-maps ${claudePath} ${args.join(' ')}`);
-		} else {
-			terminal.sendText(`claude ${args.join(' ')}`);
-		}
+		const terminal = vscode.window.createTerminal('Claude Command');
+		const args = [command];
+		// Use native claude command
+		terminal.sendText(`claude ${args.join(' ')}`);
 		terminal.show();
 
 		// Show info message
@@ -2771,7 +2648,7 @@ class ClaudeChatProvider {
 		const dismissed = this._context.globalState.get<boolean>('wslAlertDismissed', false);
 
 		// Get WSL configuration
-		const config = vscode.workspace.getConfiguration('claudeCodeChat');
+		const config = vscode.workspace.getConfiguration('multiAgentChat');
 		const wslEnabled = config.get<boolean>('wsl.enabled', false);
 
 		this._postMessage({
@@ -2785,9 +2662,6 @@ class ClaudeChatProvider {
 		});
 	}
 
-	private _dismissWSLAlert() {
-		this._context.globalState.update('wslAlertDismissed', true);
-	}
 
 	private async _openFileInEditor(filePath: string) {
 		try {
@@ -2817,7 +2691,7 @@ class ClaudeChatProvider {
 			const imageFileName = `image_${timestamp}.${extension}`;
 
 			// Create images folder in workspace .claude directory
-			const imagesDir = vscode.Uri.joinPath(workspaceFolder.uri, '.claude', 'claude-code-chat-images');
+			const imagesDir = vscode.Uri.joinPath(workspaceFolder.uri, '.claude', 'multiAgentChat-images');
 			await vscode.workspace.fs.createDirectory(imagesDir);
 
 			// Create .gitignore to ignore all images
@@ -2892,7 +2766,7 @@ class ClaudeChatProvider {
 			await this._context.globalState.update('settings', settings);
 
 			// Update VS Code configuration for API key
-			const config = vscode.workspace.getConfiguration('claudeCodeChat');
+			const config = vscode.workspace.getConfiguration('multiAgentChat');
 			if (settings.apiKeys?.claude) {
 				await config.update('apiKey', settings.apiKeys.claude, vscode.ConfigurationTarget.Global);
 			}

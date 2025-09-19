@@ -2,7 +2,7 @@
   "name": "multi-agent-chat",
   "displayName": "Multi Agent Chat",
   "description": "Collaborative Multi-Agent AI Chat Interface for VS Code",
-  "version": "1.9.3",
+  "version": "1.10.0",
   "publisher": "CraigYappert",
   "author": "Craig Yappert",
   "repository": {
@@ -53,55 +53,35 @@
   "contributes": {
     "commands": [
       {
-        "command": "claude-code-chat.openChat",
+        "command": "multiAgentChat.openChat",
         "title": "Open Multi Agent Chat",
         "category": "Multi Agent Chat",
         "icon": "icon.png"
       },
       {
-        "command": "multi-agent-chat.startMCPServer",
-        "title": "Start MCP Server",
-        "category": "Multi Agent Chat"
-      },
-      {
-        "command": "multi-agent-chat.stopMCPServer",
-        "title": "Stop MCP Server",
-        "category": "Multi Agent Chat"
-      },
-      {
-        "command": "multi-agent-chat.restartMCPServer",
-        "title": "Restart MCP Server",
-        "category": "Multi Agent Chat"
-      },
-      {
-        "command": "multi-agent-chat.toggleMCPServer",
-        "title": "Toggle MCP Server",
-        "category": "Multi Agent Chat"
-      },
-      {
-        "command": "claude-code-chat.clearAllConversations",
+        "command": "multiAgentChat.clearAllConversations",
         "title": "Clear All Conversation History",
         "category": "Multi Agent Chat"
       },
       {
-        "command": "multi-agent-chat.showMCPServerLogs",
-        "title": "Show MCP Server Logs",
+        "command": "multi-agent-chat.initializeProject",
+        "title": "Initialize Multi Agent Chat Project",
         "category": "Multi Agent Chat"
       },
       {
-        "command": "multi-agent-chat.validateMCPServer",
-        "title": "Validate MCP Server",
+        "command": "multi-agent-chat.migrateConversations",
+        "title": "Migrate Conversations to Project",
         "category": "Multi Agent Chat"
       },
       {
-        "command": "multi-agent-chat.mcpServerStatus",
-        "title": "MCP Server Quick Status",
+        "command": "multi-agent-chat.showMigrationStatus",
+        "title": "Show Migration Status",
         "category": "Multi Agent Chat"
       }
     ],
     "keybindings": [
       {
-        "command": "claude-code-chat.openChat",
+        "command": "multiAgentChat.openChat",
         "key": "ctrl+shift+c",
         "mac": "cmd+shift+c"
       }
@@ -109,67 +89,67 @@
     "menus": {
       "commandPalette": [
         {
-          "command": "claude-code-chat.openChat"
+          "command": "multiAgentChat.openChat"
         }
       ],
       "editor/context": [
         {
-          "command": "claude-code-chat.openChat",
+          "command": "multiAgentChat.openChat",
           "group": "claude@1",
           "when": "editorTextFocus"
         }
       ],
       "editor/title": [
         {
-          "command": "claude-code-chat.openChat",
+          "command": "multiAgentChat.openChat",
           "group": "navigation@1",
           "when": "true"
         }
       ],
       "editor/title/context": [
         {
-          "command": "claude-code-chat.openChat",
+          "command": "multiAgentChat.openChat",
           "group": "claude@1"
         }
       ],
       "explorer/context": [
         {
-          "command": "claude-code-chat.openChat",
+          "command": "multiAgentChat.openChat",
           "group": "claude@1"
         }
       ],
       "scm/title": [
         {
-          "command": "claude-code-chat.openChat",
+          "command": "multiAgentChat.openChat",
           "group": "navigation@1",
           "when": "true"
         }
       ],
       "view/title": [
         {
-          "command": "claude-code-chat.openChat",
+          "command": "multiAgentChat.openChat",
           "group": "navigation@1",
           "when": "view == workbench.explorer.fileView"
         }
       ],
       "touchBar": [
         {
-          "command": "claude-code-chat.openChat",
+          "command": "multiAgentChat.openChat",
           "group": "editing",
           "when": "true"
         }
       ],
       "menuBar/file": [
         {
-          "command": "claude-code-chat.openChat",
+          "command": "multiAgentChat.openChat",
           "group": "1_new@1"
         }
       ]
     },
     "views": {
-      "claude-code-chat": [
+      "multiAgentChat": [
         {
-          "id": "claude-code-chat.chat",
+          "id": "multiAgentChat.chat",
           "type": "webview",
           "name": "Multi Agent Chat",
           "when": "true",
@@ -181,210 +161,172 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "claude-code-chat",
+          "id": "multiAgentChat",
           "title": "Multi Agent Chat",
           "icon": "icon.png"
         }
       ]
     },
-    "configuration": {
-      "title": "Multi Agent Chat",
-      "properties": {
-        "claudeCodeChat.wsl.enabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable WSL integration for running Claude"
-        },
-        "claudeCodeChat.wsl.distro": {
-          "type": "string",
-          "default": "Ubuntu",
-          "description": "WSL distribution name (e.g., Ubuntu, Debian)"
-        },
-        "claudeCodeChat.wsl.nodePath": {
-          "type": "string",
-          "default": "/usr/bin/node",
-          "description": "Path to Node.js in the WSL distribution"
-        },
-        "claudeCodeChat.wsl.claudePath": {
-          "type": "string",
-          "default": "/usr/local/bin/claude",
-          "description": "Path to Claude executable in the WSL distribution"
-        },
-        "claudeCodeChat.thinking.intensity": {
-          "type": "string",
-          "enum": [
-            "think",
-            "think-hard",
-            "think-harder",
-            "ultrathink"
-          ],
-          "default": "think",
-          "description": "Thinking mode intensity level. Higher levels provide more detailed reasoning but consume more tokens."
-        },
-        "claudeCodeChat.permissions.yoloMode": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable Yolo Mode to skip all permission checks. Use with caution as Claude can execute any command without asking."
-        },
-        "claudeCodeChat.interAgentComm.enabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable inter-agent communication for enhanced collaboration between agents"
-        },
-        "claudeCodeChat.interAgentComm.showInUI": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show inter-agent communication messages in the UI"
-        },
-        "claudeCodeChat.interAgentComm.maxConcurrent": {
-          "type": "number",
-          "default": 3,
-          "minimum": 1,
-          "maximum": 6,
-          "description": "Maximum number of agents that can communicate concurrently"
-        },
-        "claudeCodeChat.performance.enableStreaming": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable response streaming for faster feedback"
-        },
-        "claudeCodeChat.performance.enableCache": {
-          "type": "boolean",
-          "default": true,
-          "description": "Cache responses for repeated queries (5 minute TTL)"
-        },
-        "claudeCodeChat.performance.quickTeamMode": {
-          "type": "boolean",
-          "default": false,
-          "description": "Quick team mode: Only query 3 most relevant agents instead of all 6"
-        },
-        "claudeCodeChat.performance.localSynthesis": {
-          "type": "boolean",
-          "default": true,
-          "description": "Use local synthesis for team responses to avoid extra API call"
-        },
-        "claudeCodeChat.performance.minimalContext": {
-          "type": "boolean",
-          "default": false,
-          "description": "Use minimal role context to reduce token usage and improve speed"
-        },
-        "claudeCodeChat.performance.agentTimeout": {
-          "type": "number",
-          "default": 12000,
-          "minimum": 3000,
-          "maximum": 30000,
-          "description": "Timeout per agent in milliseconds (default: 12 seconds)"
-        },
-        "claudeCodeChat.performance.minAgentsRequired": {
-          "type": "number",
-          "default": 2,
-          "minimum": 1,
-          "maximum": 6,
-          "description": "Minimum number of agents required for team response"
-        },
-        "claudeCodeChat.performance.maxTeamWaitTime": {
-          "type": "number",
-          "default": 15000,
-          "minimum": 5000,
-          "maximum": 60000,
-          "description": "Maximum time to wait for team responses in milliseconds"
-        },
-        "claudeCodeChat.performance.useFirstResponders": {
-          "type": "boolean",
-          "default": true,
-          "description": "Use first responders strategy (faster) vs batched strategy (more thorough)"
-        },
-        "claudeCodeChat.performance.ultraFastMode": {
-          "type": "boolean",
-          "default": false,
-          "description": "Ultra-fast mode: Only wait for 2 agents, 8 second timeout, minimal context"
-        },
-        "claudeCodeChat.performance.maxConcurrentAgents": {
-          "type": "number",
-          "default": 3,
-          "minimum": 1,
-          "maximum": 6,
-          "description": "Maximum number of agents to query concurrently for team responses"
-        },
-        "claudeCodeChat.performance.smartAgentSelection": {
-          "type": "boolean",
-          "default": true,
-          "description": "Use AI to select only the most relevant agents for each query"
-        },
-        "claudeCodeChat.performance.requestTimeout": {
-          "type": "number",
-          "default": 15000,
-          "minimum": 5000,
-          "maximum": 60000,
-          "description": "Timeout per agent request in milliseconds"
-        },
-        "claudeCodeChat.mcp.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable MCP WebSocket server for fast agent responses"
-        },
-        "claudeCodeChat.mcp.autoStart": {
-          "type": "boolean",
-          "default": true,
-          "description": "Automatically start MCP server when extension loads"
-        },
-        "claudeCodeChat.mcp.serverUrl": {
-          "type": "string",
-          "default": "ws://localhost:3030",
-          "description": "MCP WebSocket server URL"
-        },
-        "claudeCodeChat.mcp.wsPort": {
-          "type": "number",
-          "default": 3030,
-          "description": "MCP WebSocket server port"
-        },
-        "claudeCodeChat.mcp.httpPort": {
-          "type": "number",
-          "default": 3031,
-          "description": "MCP HTTP API server port"
-        },
-        "claudeCodeChat.mcp.useRealClaude": {
-          "type": "boolean",
-          "default": true,
-          "description": "Use real Claude CLI for MCP server responses (slower but real)"
-        },
-        "claudeCodeChat.api.url": {
-          "type": "string",
-          "default": "http://localhost:3031/api",
-          "description": "HTTP API URL for fallback"
-        },
-        "claudeCodeChat.api.key": {
-          "type": "string",
-          "default": "",
-          "description": "API key for HTTP API (if required)"
-        },
-        "claudeCodeChat.routing.preferWebSocket": {
-          "type": "boolean",
-          "default": true,
-          "description": "Prefer WebSocket over HTTP API"
-        },
-        "claudeCodeChat.routing.fallbackToHttp": {
-          "type": "boolean",
-          "default": true,
-          "description": "Fallback to HTTP API if WebSocket fails"
-        },
-        "claudeCodeChat.routing.fallbackToCLI": {
-          "type": "boolean",
-          "default": true,
-          "description": "Fallback to CLI if both WebSocket and HTTP fail (slower but always works)"
-        },
-        "claudeCodeChat.routing.adaptive": {
-          "type": "boolean",
-          "default": true,
-          "description": "Adaptively route based on performance metrics"
-        },
-        "claudeCodeChat.routing.logVerbose": {
-          "type": "boolean",
-          "default": true,
-          "description": "Log detailed routing information"
+    "configuration": [
+      {
+        "title": "API Keys",
+        "properties": {
+          "multiAgentChat.apiKeys.claude": {
+            "type": "string",
+            "default": "",
+            "description": "Claude API key for agent interactions",
+            "markdownDescription": "Your Anthropic Claude API key. Get one at [console.anthropic.com](https://console.anthropic.com/)",
+            "order": 1
+          },
+          "multiAgentChat.apiKeys.openai": {
+            "type": "string",
+            "default": "",
+            "description": "OpenAI API key (optional, for GPT models)",
+            "markdownDescription": "Your OpenAI API key. Get one at [platform.openai.com](https://platform.openai.com/)",
+            "order": 2
+          }
+        }
+      },
+      {
+        "title": "Global Settings",
+        "properties": {
+          "multiAgentChat.defaultModel": {
+            "type": "string",
+            "enum": [
+              "claude-3-opus",
+              "claude-3-sonnet",
+              "claude-3-haiku",
+              "gpt-4",
+              "gpt-3.5-turbo"
+            ],
+            "default": "claude-3-sonnet",
+            "description": "Default AI model for all agents",
+            "order": 3
+          },
+          "multiAgentChat.defaultProvider": {
+            "type": "string",
+            "enum": [
+              "claude",
+              "openai",
+              "local"
+            ],
+            "default": "claude",
+            "description": "Default provider for all agents",
+            "order": 4
+          },
+          "multiAgentChat.permissions.yoloMode": {
+            "type": "boolean",
+            "default": false,
+            "description": "⚠️ YOLO Mode: Auto-approve all agent actions (use with caution!)",
+            "markdownDescription": "**⚠️ Warning:** Enables automatic approval of all file operations and commands. Agents can execute any action without confirmation.",
+            "order": 5
+          },
+          "multiAgentChat.permissions.defaultPolicy": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "allow",
+              "deny"
+            ],
+            "default": "ask",
+            "enumDescriptions": [
+              "Always ask for permission",
+              "Allow all operations (similar to YOLO mode)",
+              "Deny all operations by default"
+            ],
+            "description": "Default permission policy for agent actions",
+            "order": 6
+          }
+        }
+      },
+      {
+        "title": "Agent Configuration",
+        "properties": {
+          "multiAgentChat.agents.defaultAgent": {
+            "type": "string",
+            "enum": [
+              "team",
+              "architect",
+              "coder",
+              "executor",
+              "reviewer",
+              "documenter",
+              "coordinator"
+            ],
+            "default": "team",
+            "description": "Default agent to use when starting a conversation",
+            "order": 7
+          },
+          "multiAgentChat.agents.enableInterCommunication": {
+            "type": "boolean",
+            "default": true,
+            "description": "Allow agents to communicate with each other",
+            "order": 8
+          },
+          "multiAgentChat.agents.showInterCommunication": {
+            "type": "boolean",
+            "default": true,
+            "description": "Display inter-agent communication in the chat UI",
+            "order": 9
+          }
+        }
+      },
+      {
+        "title": "Project Settings",
+        "properties": {
+          "multiAgentChat.project.useLocalStorage": {
+            "type": "boolean",
+            "default": true,
+            "description": "Store conversations in project's .machat folder",
+            "markdownDescription": "When enabled, conversations are saved to `.machat/conversations/` in your project instead of global storage",
+            "order": 10
+          },
+          "multiAgentChat.project.autoInitialize": {
+            "type": "boolean",
+            "default": false,
+            "description": "Automatically create .machat folder for new projects",
+            "order": 11
+          },
+          "multiAgentChat.project.shareSettings": {
+            "type": "boolean",
+            "default": true,
+            "description": "Use .machat/config.json for project-specific settings",
+            "order": 12
+          }
+        }
+      },
+      {
+        "title": "Performance",
+        "properties": {
+          "multiAgentChat.performance.enableStreaming": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable response streaming for real-time feedback",
+            "order": 13
+          },
+          "multiAgentChat.performance.enableCache": {
+            "type": "boolean",
+            "default": true,
+            "description": "Cache responses for repeated queries (5 minute TTL)",
+            "order": 14
+          },
+          "multiAgentChat.performance.quickTeamMode": {
+            "type": "boolean",
+            "default": false,
+            "description": "Quick team mode: Query only 3 most relevant agents",
+            "order": 15
+          },
+          "multiAgentChat.performance.agentTimeout": {
+            "type": "number",
+            "default": 12000,
+            "minimum": 3000,
+            "maximum": 30000,
+            "description": "Timeout per agent in milliseconds (default: 12 seconds)",
+            "order": 16
+          }
         }
       }
-    }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

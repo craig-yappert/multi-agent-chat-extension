@@ -284,7 +284,7 @@ export class SettingsPanel {
     }
 
     public loadSettings(): SettingsData {
-        const config = vscode.workspace.getConfiguration('claudeCodeChat');
+        const config = vscode.workspace.getConfiguration('multiAgentChat');
 
         // Load saved settings or return defaults
         const savedSettings = this._context.globalState.get<SettingsData>('settings');
@@ -321,7 +321,7 @@ export class SettingsPanel {
         await this._context.globalState.update('settings', settings);
 
         // Update VS Code configuration for API key
-        const config = vscode.workspace.getConfiguration('claudeCodeChat');
+        const config = vscode.workspace.getConfiguration('multiAgentChat');
         if (settings.apiKeys.claude) {
             await config.update('apiKey', settings.apiKeys.claude, vscode.ConfigurationTarget.Global);
         }

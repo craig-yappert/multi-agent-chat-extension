@@ -1,0 +1,28 @@
+[
+  {
+    "filename": "2025-09-18_19-20_team-checking-performance-and-response.json",
+    "sessionId": "session_1758223208147_vz9i5bogx",
+    "startTime": "2025-09-18T19:20:30.332Z",
+    "endTime": "2025-09-18T22:15:46.291Z",
+    "messageCount": 31,
+    "totalCost": 0,
+    "firstUserMessage": "@team checking performance and response",
+    "lastUserMessage": "@coordinator can you see this"
+  },
+  {
+    "filename": "2025-09-18_22-16_architect-can-you-see-this-testing-basic-fucntiona.json",
+    "timestamp": "2025-09-19T17:15:20.855Z",
+    "messageCount": 22,
+    "totalCost": 0,
+    "sessionId": "session_1758233746305_wmr41xh41",
+    "projectPath": "c:\\Users\\cyapp\\multi-agent-chat-extension"
+  },
+  {
+    "filename": "2025-09-19_17-15_documenter-testing-the-new-per-project-features-an.json",
+    "timestamp": "2025-09-19T17:17:23.326Z",
+    "messageCount": 2,
+    "totalCost": 0,
+    "sessionId": "session_1758302120872_ce0qreor4",
+    "projectPath": "c:\\Users\\cyapp\\multi-agent-chat-extension"
+  }
+]

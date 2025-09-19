@@ -55,7 +55,7 @@ export class AgentCommunicationHub {
 		private outputChannel?: vscode.OutputChannel
 	) {
 		// Load max concurrent agents from configuration
-		const config = vscode.workspace.getConfiguration('claudeCodeChat');
+		const config = vscode.workspace.getConfiguration('multiAgentChat');
 		this.maxConcurrentAgents = config.get<number>('interAgentComm.maxConcurrent', 3);
 	}
 

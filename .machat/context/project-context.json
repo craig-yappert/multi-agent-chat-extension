@@ -1,0 +1,52 @@
+{
+  "projectName": "multi-agent-chat-extension",
+  "lastUpdated": "2025-09-19T17:17:23.340Z",
+  "agentMemory": {
+    "Architect": {
+      "agentName": "Architect",
+      "lastUpdated": "2025-09-19T17:17:23.340Z",
+      "conversations": []
+    },
+    "Executor": {
+      "agentName": "Executor",
+      "lastUpdated": "2025-09-19T17:17:23.340Z",
+      "conversations": []
+    },
+    "Team": {
+      "agentName": "Team",
+      "lastUpdated": "2025-09-19T17:17:23.340Z",
+      "conversations": []
+    },
+    "team": {
+      "agentName": "team",
+      "lastUpdated": "2025-09-19T17:17:23.340Z",
+      "conversations": [
+        {
+          "role": "user",
+          "content": "@documentor can you see this?"
+        },
+        {
+          "role": "assistant",
+          "content": "👥 **Team Response**\n\nI can see your message, but I should clarify - I'm Claude Code, Anthropic's official CLI assistant. I don't have access to other agents or the ability to communicate with specific roles like \"@documentor\". \n\nIf you're looking to document something or need help with documentation tasks, I can assist you directly. What specific documentation do you need help with?\n\n---\n*1/1 agents responded in 7.2s*"
+        }
+      ]
+    },
+    "documenter": {
+      "agentName": "documenter",
+      "lastUpdated": "2025-09-19T17:17:23.340Z",
+      "conversations": [
+        {
+          "role": "user",
+          "content": "@documenter can you see this?"
+        },
+        {
+          "role": "assistant",
+          "content": "Yes, I can see your message! I'm Claude Code, and I have access to documentation and communication capabilities. How can I help you with documentation, explanations, or other tasks?"
+        }
+      ]
+    }
+  },
+  "projectDocs": [],
+  "knowledgeBase": {},
+  "customPrompts": {}
+}

@@ -3,10 +3,7 @@ import * as cp from 'child_process';
 import { AgentConfig } from './agents';
 import { AgentCommunicationHub } from './agentCommunication';
 import { StreamingClaudeProvider, OptimizedMultiProvider, ResponseCache } from './performanceOptimizer';
-import { FastTeamProvider } from './fastTeamProvider';
-import { FastTeamProviderV2 } from './fastTeamProviderV2';
-import { SimpleWebSocketProvider } from './simpleWebSocketProvider';
-import { IntelligentProvider } from './providers/intelligentProvider';
+// Legacy providers removed - using direct Claude CLI integration
 
 export interface AIProvider {
 	sendMessage(message: string, agentConfig: AgentConfig, context?: any): Promise<string>;
@@ -17,14 +14,14 @@ export class ClaudeProvider implements AIProvider {
 	private cache: ResponseCache = new ResponseCache();
 
 	constructor(private context: vscode.ExtensionContext, onStreamCallback?: (chunk: string, agentId: string) => void) {
-		const config = vscode.workspace.getConfiguration('claudeCodeChat');
+		const config = vscode.workspace.getConfiguration('multiAgentChat');
 		if (config.get<boolean>('performance.enableStreaming', true)) {
 			this.streamingProvider = new StreamingClaudeProvider(context, onStreamCallback);
 		}
 	}
 
 	async sendMessage(message: string, agentConfig: AgentConfig, context?: any): Promise<string> {
-		const config = vscode.workspace.getConfiguration('claudeCodeChat');
+		const config = vscode.workspace.getConfiguration('multiAgentChat');
 
 		// Use streaming provider if available and enabled
 		if (this.streamingProvider && config.get<boolean>('performance.enableStreaming', true)) {
@@ -195,9 +192,6 @@ export class MCPProvider implements AIProvider {
 
 export class MultiProvider implements AIProvider {
 	private optimizedProvider?: OptimizedMultiProvider;
-	private fastTeamProvider?: FastTeamProvider;
-	private fastTeamProviderV2?: FastTeamProviderV2;
-	private simpleWsProvider?: SimpleWebSocketProvider;
 
 	constructor(
 		private claudeProvider: ClaudeProvider,
@@ -210,14 +204,11 @@ export class MultiProvider implements AIProvider {
 	) {
 		if (context) {
 			this.optimizedProvider = new OptimizedMultiProvider(context, agentManager, onStreamCallback);
-			this.fastTeamProvider = new FastTeamProvider(context, onStreamCallback);
-			this.fastTeamProviderV2 = new FastTeamProviderV2(context, onStreamCallback);
-			this.simpleWsProvider = new SimpleWebSocketProvider(context);
 		}
 	}
 
 	async sendMessage(message: string, agentConfig: AgentConfig, context?: any): Promise<string> {
-		const config = vscode.workspace.getConfiguration('claudeCodeChat');
+		const config = vscode.workspace.getConfiguration('multiAgentChat');
 
 		// Use simple WebSocket provider first (fastest, most reliable)
 		if (this.simpleWsProvider && this.simpleWsProvider.isConnected()) {

@@ -118,7 +118,7 @@ export class StreamingClaudeProvider {
 		const cwd = workspaceFolder ? workspaceFolder.uri.fsPath : process.cwd();
 
 		// Get configuration
-		const config = vscode.workspace.getConfiguration('claudeCodeChat');
+		const config = vscode.workspace.getConfiguration('multiAgentChat');
 
 		// Build minimal role context to reduce tokens
 		const roleContext = this.buildOptimizedRoleContext(message, agentConfig, context);
@@ -256,7 +256,7 @@ export class OptimizedMultiProvider {
 		agentConfig: AgentConfig,
 		context?: any
 	): Promise<string> {
-		const config = vscode.workspace.getConfiguration('claudeCodeChat');
+		const config = vscode.workspace.getConfiguration('multiAgentChat');
 		const quickMode = config.get<boolean>('performance.quickTeamMode', false);
 
 		if (quickMode) {

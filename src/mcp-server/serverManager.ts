@@ -22,7 +22,7 @@ export class MCPServerManager {
 			vscode.StatusBarAlignment.Right,
 			99
 		);
-		this.statusBarItem.command = 'multi-agent-chat.toggleMCPServer';
+		this.statusBarItem.command = 'multiAgentChat.toggleMCPServer';
 		this.updateStatusBar();
 		this.statusBarItem.show();
 

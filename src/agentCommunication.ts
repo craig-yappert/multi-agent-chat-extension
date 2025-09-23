@@ -49,14 +49,27 @@ export class AgentCommunicationHub {
 	private maxConcurrentAgents: number = 3;
 	private activeAgents: Set<string> = new Set();
 
+	// Message loop prevention
+	private maxMessagesPerConversation: number = 10;
+	private maxConversationDepth: number = 5;
+	private conversationMessageCount: Map<string, number> = new Map();
+	private messageChainDepth: Map<string, number> = new Map();
+
+	// Status update callback
+	private statusCallback?: (status: string, fromAgent?: string, toAgent?: string) => void;
+
 	constructor(
 		private agentManager: AgentManager,
 		private providerManager: ProviderManager,
-		private outputChannel?: vscode.OutputChannel
+		private outputChannel?: vscode.OutputChannel,
+		statusCallback?: (status: string, fromAgent?: string, toAgent?: string) => void
 	) {
-		// Load max concurrent agents from configuration
+		this.statusCallback = statusCallback;
+		// Load configuration
 		const config = vscode.workspace.getConfiguration('multiAgentChat');
 		this.maxConcurrentAgents = config.get<number>('interAgentComm.maxConcurrent', 3);
+		this.maxMessagesPerConversation = config.get<number>('interAgentComm.maxMessagesPerConversation', 10);
+		this.maxConversationDepth = config.get<number>('interAgentComm.maxConversationDepth', 5);
 	}
 
 	async sendMessageBetweenAgents(
@@ -66,18 +79,57 @@ export class AgentCommunicationHub {
 		context?: any,
 		type: 'request' | 'response' | 'broadcast' | 'coordination' = 'request'
 	): Promise<string> {
+		// Check conversation limits
+		const conversationId = context?.conversationId || this.generateConversationId();
+
+		// Check message count limit
+		const messageCount = this.conversationMessageCount.get(conversationId) || 0;
+		if (messageCount >= this.maxMessagesPerConversation) {
+			this.log(`Conversation ${conversationId} reached max message limit (${this.maxMessagesPerConversation})`);
+			return `[System: Maximum message limit reached for this conversation (${this.maxMessagesPerConversation} messages)]`;
+		}
+
+		// Check conversation depth
+		const depth = this.messageChainDepth.get(conversationId) || 0;
+		if (depth >= this.maxConversationDepth) {
+			this.log(`Conversation ${conversationId} reached max depth (${this.maxConversationDepth})`);
+			return `[System: Maximum conversation depth reached (${this.maxConversationDepth} levels)]`;
+		}
+
+		// Update counters
+		this.conversationMessageCount.set(conversationId, messageCount + 1);
+		if (type === 'response') {
+			this.messageChainDepth.set(conversationId, depth + 1);
+		}
+
 		const agentMessage: AgentMessage = {
 			id: this.generateMessageId(),
 			from: fromAgent,
 			to: toAgent,
 			content: message,
 			timestamp: new Date(),
-			context,
+			context: { ...context, conversationId },
 			type
 		};
 
 		this.messageQueue.push(agentMessage);
-		this.log(`Message queued from ${fromAgent} to ${toAgent}`);
+		this.log(`Message queued from ${fromAgent} to ${toAgent} (Conv: ${conversationId}, Count: ${messageCount + 1})`);
+
+		// Send status update if callback is available
+		if (this.statusCallback) {
+			const fromAgentConfig = this.agentManager.getAgent(fromAgent);
+			const toAgentConfig = this.agentManager.getAgent(toAgent);
+			const fromName = fromAgentConfig ? fromAgentConfig.name : fromAgent;
+			const toName = toAgentConfig ? toAgentConfig.name : toAgent;
+			const fromIcon = fromAgentConfig ? fromAgentConfig.icon : '🤖';
+			const toIcon = toAgentConfig ? toAgentConfig.icon : '🤖';
+
+			this.statusCallback(
+				`${fromName} sending message to ${toName}...`,
+				fromAgent,
+				toAgent
+			);
+		}
 
 		if (!this.isProcessing) {
 			this.processMessageQueue();
@@ -265,10 +317,27 @@ Please coordinate their efforts and provide a cohesive solution.
 	}
 
 	private async processMessage(message: AgentMessage): Promise<void> {
+		console.log(`[AgentCommunicationHub] Processing message from ${message.from} to ${message.to}`);
 		try {
 			const toAgent = this.agentManager.getAgent(message.to);
 			if (!toAgent) {
+				console.error(`[AgentCommunicationHub] Agent ${message.to} not found!`);
 				throw new Error(`Agent ${message.to} not found`);
+			}
+
+			console.log(`[AgentCommunicationHub] Found target agent ${toAgent.name}`);
+
+			// Send status update that agent is processing
+			if (this.statusCallback) {
+				const fromAgentConfig = this.agentManager.getAgent(message.from);
+				const fromName = fromAgentConfig ? fromAgentConfig.name : message.from;
+				const fromIcon = fromAgentConfig ? fromAgentConfig.icon : '🤖';
+
+				this.statusCallback(
+					`${toAgent.name} is processing message from ${fromName}...`,
+					message.from,
+					message.to
+				);
 			}
 
 			const provider = this.providerManager.getProvider(toAgent);
@@ -376,5 +445,18 @@ Please provide your response based on your role and capabilities.
 				this.workflows.delete(id);
 			}
 		}
+	}
+
+	resetConversationLimits(conversationId: string): void {
+		this.conversationMessageCount.delete(conversationId);
+		this.messageChainDepth.delete(conversationId);
+		this.log(`Reset conversation limits for ${conversationId}`);
+	}
+
+	getConversationStats(conversationId: string): { messageCount: number; depth: number } {
+		return {
+			messageCount: this.conversationMessageCount.get(conversationId) || 0,
+			depth: this.messageChainDepth.get(conversationId) || 0
+		};
 	}
 }

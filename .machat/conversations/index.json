@@ -1,24 +1,24 @@
 [
   {
+    "filename": "2025-09-18_22-16_architect-can-you-see-this-testing-basic-fucntiona.json",
+    "timestamp": "2025-09-23T17:37:30.326Z",
+    "messageCount": 27,
+    "totalCost": 0,
+    "sessionId": "session_1758233746305_wmr41xh41",
+    "projectPath": "c:\\Users\\cyapp\\multi-agent-chat-extension"
+  },
+  {
     "filename": "2025-09-19_18-50_architect-can-you-see-this-message.json",
-    "timestamp": "2025-09-19T18:50:24.234Z",
-    "messageCount": 2,
+    "timestamp": "2025-09-23T17:42:40.544Z",
+    "messageCount": 10,
     "totalCost": 0,
     "sessionId": "session_1758307739557_wp9a40ytp",
     "projectPath": "c:\\Users\\cyapp\\multi-agent-chat-extension"
   },
   {
     "filename": "2025-09-19_19-43_coder-i-continue-to-test.json",
-    "timestamp": "2025-09-19T19:43:40.996Z",
-    "messageCount": 2,
-    "totalCost": 0,
-    "sessionId": "session_1758310999295_kbswoukrk",
-    "projectPath": "c:\\Users\\cyapp\\multi-agent-chat-extension"
-  },
-  {
-    "filename": "2025-09-18_22-16_architect-can-you-see-this-testing-basic-fucntiona.json",
-    "timestamp": "2025-09-19T20:10:19.914Z",
-    "messageCount": 22,
+    "timestamp": "2025-09-23T21:00:38.956Z",
+    "messageCount": 42,
     "totalCost": 0,
     "sessionId": "session_1758233746305_wmr41xh41",
     "projectPath": "c:\\Users\\cyapp\\multi-agent-chat-extension"

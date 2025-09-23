@@ -761,8 +761,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			console.log('sendMessage called');
 			const text = messageInput.value.trim();
 			if (text) {
-				// Show status bar immediately when sending
-				showAgentStatus('Sending message to agents...');
+				// Don't show initial status here - let the extension handle it
 
 				vscode.postMessage({
 					type: 'sendMessage',
@@ -3222,25 +3221,16 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 
 		// Agent Status Bar functions
 		window.showAgentStatus = function(message, agents = []) {
+			// Only show status as a message in the chat, not in the status bar
+			if (message && (message.includes('sending') || message.includes('processing') || message.includes('sent to'))) {
+				// Use a single blue circular arrow icon
+				addMessage('🔄 ' + message, 'system');
+			}
+
+			// Hide the status bar entirely - we're using chat messages instead
 			const statusBar = document.getElementById('agentStatusBar');
-			const statusText = document.getElementById('agentStatusText');
-			const agentList = document.getElementById('agentStatusList');
-
-			if (statusBar && statusText) {
-				statusBar.style.display = 'block';
-				statusText.textContent = message;
-
-				// Update agent list if provided
-				if (agentList && agents.length > 0) {
-					agentList.innerHTML = agents.map(agent =>
-						'<div class="agent-status-item ' + agent.status + '">' +
-						'<span class="agent-status-icon">' + agent.icon + '</span>' +
-						'<span>' + agent.name + '</span>' +
-						'</div>'
-					).join('');
-				} else if (agentList) {
-					agentList.innerHTML = '';
-				}
+			if (statusBar) {
+				statusBar.style.display = 'none';
 			}
 		}
 
@@ -3254,11 +3244,11 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		}
 
 		window.hideAgentStatus = function() {
+			// Status bar is not used anymore - status shows in chat
+			// Just ensure it's hidden
 			const statusBar = document.getElementById('agentStatusBar');
 			if (statusBar) {
-				setTimeout(() => {
-					statusBar.style.display = 'none';
-				}, 500); // Small delay before hiding
+				statusBar.style.display = 'none';
 			}
 		}
 

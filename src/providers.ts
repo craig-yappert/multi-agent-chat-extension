@@ -4,6 +4,7 @@ import { AgentConfig } from './agents';
 import { AgentCommunicationHub } from './agentCommunication';
 import { StreamingClaudeProvider, OptimizedMultiProvider, ResponseCache } from './performanceOptimizer';
 import { MCPWebSocketProvider } from './providers/mcpWebSocketProvider';
+import { AgentMessageParser } from './agentMessageParser';
 
 export interface AIProvider {
 	sendMessage(message: string, agentConfig: AgentConfig, context?: any): Promise<string>;
@@ -13,12 +14,28 @@ export class ClaudeProvider implements AIProvider {
 	private streamingProvider?: StreamingClaudeProvider;
 	private mcpWebSocketProvider?: MCPWebSocketProvider;
 	private cache: ResponseCache = new ResponseCache();
+	private messageParser?: AgentMessageParser;
+	private communicationHub?: AgentCommunicationHub;
+	private agentManager?: any;
 
 	constructor(
 		private context: vscode.ExtensionContext,
 		onStreamCallback?: (chunk: string, agentId: string) => void,
-		mcpServerManager?: any
+		mcpServerManager?: any,
+		agentManager?: any,
+		communicationHub?: AgentCommunicationHub
 	) {
+		this.agentManager = agentManager;
+		this.communicationHub = communicationHub;
+		if (agentManager && communicationHub) {
+			this.messageParser = new AgentMessageParser(agentManager, communicationHub);
+			console.log('[ClaudeProvider] AgentMessageParser created successfully');
+		} else {
+			console.log('[ClaudeProvider] AgentMessageParser NOT created - missing dependencies:', {
+				agentManager: !!agentManager,
+				communicationHub: !!communicationHub
+			});
+		}
 		const config = vscode.workspace.getConfiguration('multiAgentChat');
 		if (config.get<boolean>('performance.enableStreaming', true)) {
 			this.streamingProvider = new StreamingClaudeProvider(context, onStreamCallback);
@@ -39,8 +56,11 @@ export class ClaudeProvider implements AIProvider {
 	async sendMessage(message: string, agentConfig: AgentConfig, context?: any): Promise<string> {
 		const config = vscode.workspace.getConfiguration('multiAgentChat');
 
-		// Try MCP WebSocket provider first if available and connected
-		if (this.mcpWebSocketProvider && config.get<boolean>('mcp.preferWebSocket', true)) {
+		// Check if we need inter-agent communication features
+		const needsInterAgent = config.get<boolean>('agents.enableInterCommunication', true) && this.messageParser;
+
+		// Try MCP WebSocket provider first if available and connected (but not for inter-agent communication)
+		if (!needsInterAgent && this.mcpWebSocketProvider && config.get<boolean>('mcp.preferWebSocket', false)) {
 			try {
 				if (this.mcpWebSocketProvider.isConnected) {
 					console.log(`[ClaudeProvider] Using MCP WebSocket for ${agentConfig.id}`);
@@ -49,6 +69,11 @@ export class ClaudeProvider implements AIProvider {
 			} catch (error) {
 				console.warn('[ClaudeProvider] MCP WebSocket failed, falling back:', error);
 			}
+		}
+
+		// Log if we're skipping MCP for inter-agent communication
+		if (needsInterAgent) {
+			console.log(`[ClaudeProvider] Using direct Claude CLI for ${agentConfig.id} (inter-agent communication enabled)`);
 		}
 
 		// Use streaming provider if available and enabled
@@ -72,6 +97,22 @@ export class ClaudeProvider implements AIProvider {
 
 		// Build context with conversation history
 		let roleContext = `You are ${agentConfig.name}, a ${agentConfig.role}. ${agentConfig.description}\n\nYour capabilities: ${agentConfig.capabilities.join(', ')}\nYour specializations: ${agentConfig.specializations.join(', ')}\n\n`;
+
+		// Add inter-agent communication instructions if enabled
+		if (config.get<boolean>('agents.enableInterCommunication', true)) {
+			roleContext += `INTER-AGENT COMMUNICATION:\n`;
+			roleContext += `You can communicate with other specialist agents. USE EXACTLY THESE FORMATS:\n\n`;
+			roleContext += `FORMAT 1 (Preferred): @agentname: your message\n`;
+			roleContext += `Example: @coder: Can you implement this function?\n`;
+			roleContext += `Example: @architect: What's the best design for this?\n\n`;
+			roleContext += `FORMAT 2: [[agentname: your message]]\n`;
+			roleContext += `Example: [[reviewer: Please review this code]]\n\n`;
+			roleContext += `BROADCAST: @all: your message\n`;
+			roleContext += `Example: @all: Team meeting needed on this issue\n\n`;
+			roleContext += `IMPORTANT: The agent name MUST be lowercase and MUST be one of: architect, coder, executor, reviewer, documenter, coordinator\n`;
+			roleContext += `DO NOT use titles or emojis, just the exact agent name followed by a colon.\n`;
+			roleContext += `Messages are limited to ${config.get<number>('interAgentComm.maxMessagesPerConversation', 10)} per conversation.\n\n`;
+		}
 
 		// Add conversation history if available
 		if (context?.conversationHistory && context.conversationHistory.length > 0) {
@@ -156,9 +197,46 @@ export class ClaudeProvider implements AIProvider {
 				});
 			}
 
-			claudeProcess.on('close', (code) => {
+			claudeProcess.on('close', async (code) => {
 				if (code === 0) {
-					const result = output.trim();
+					let result = output.trim();
+
+					// Process inter-agent commands if message parser is available
+					const interCommEnabled = config.get<boolean>('agents.enableInterCommunication', true);
+					console.log(`[ClaudeProvider] Inter-agent communication enabled: ${interCommEnabled}, Parser available: ${!!this.messageParser}`);
+
+					if (this.messageParser && interCommEnabled) {
+						console.log(`[ClaudeProvider] Processing message for inter-agent commands from ${agentConfig.id}`);
+						// Parse for inter-agent commands
+						const commands = this.messageParser.parseMessage(agentConfig.id, result);
+
+						if (commands.length > 0) {
+							console.log(`[ClaudeProvider] Executing ${commands.length} inter-agent commands`);
+							// Execute the commands
+							const responses = await this.messageParser.executeCommands(
+								agentConfig.id,
+								commands,
+								context
+							);
+
+							// Clean the original message of commands
+							result = this.messageParser.cleanMessage(result);
+
+							// Add inter-agent responses if configured to show them
+							if (config.get<boolean>('agents.showInterCommunication', false)) {
+								console.log('[ClaudeProvider] Showing inter-agent communication in UI');
+								const formatted = this.messageParser.formatResponses(responses);
+								if (formatted) {
+									result += formatted;
+								}
+							}
+						} else {
+							console.log('[ClaudeProvider] No inter-agent commands found in message');
+						}
+					} else {
+						console.log('[ClaudeProvider] Skipping inter-agent processing');
+					}
+
 					// Cache the response if caching is enabled
 					if (config.get<boolean>('performance.enableCache', true)) {
 						this.cache.set(message, agentConfig.id, result);
@@ -348,7 +426,8 @@ export class ProviderManager {
 		onStreamCallback?: (chunk: string, agentId: string) => void,
 		mcpServerManager?: any
 	) {
-		this.claudeProvider = new ClaudeProvider(context, onStreamCallback, mcpServerManager);
+		// Pass agentManager and communicationHub to ClaudeProvider for inter-agent messaging
+		this.claudeProvider = new ClaudeProvider(context, onStreamCallback, mcpServerManager, agentManager, communicationHub);
 		this.openaiProvider = new OpenAIProvider(this.claudeProvider);
 		this.mcpProvider = new MCPProvider(this.claudeProvider, context);
 		this.communicationHub = communicationHub;

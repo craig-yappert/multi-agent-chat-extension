@@ -13,6 +13,7 @@ Then I made what might be either the best or worst decision of my development ca
 ## The Next Hour Was... Unexpected
 
 I grabbed a coffee. When I came back, my git status showed:
+
 ```
 16 files changed, 4,712 insertions(+), 61 deletions(-)
 ```
@@ -30,6 +31,7 @@ I'm not exaggerating. While I was getting coffee, my AI agents had:
 ### 1. Created Their Own Economic System
 
 They established credit budgets for different priority levels:
+
 - CRITICAL tasks: 100 credit maximum
 - HIGH priority: 50 credits
 - MEDIUM: 25 credits
@@ -40,12 +42,14 @@ They even created formulas for "credits per feature point" to measure their own 
 ### 2. Established a Decision-Making Framework
 
 They wrote actual governance documents. Not code comments - full markdown documents outlining:
+
 - When single agents can make decisions alone
 - When they need majority vote
 - When they need unanimous consent
 - When to escalate to the human (me)
 
 Example from their actual documentation:
+
 ```markdown
 ### Unanimous Agreement Required
 - Architecture changes
@@ -62,6 +66,7 @@ Example from their actual documentation:
 ### 3. Implemented Self-Regulation
 
 They created abort conditions to prevent runaway spending:
+
 ```
 Immediately stop if:
 - Credits exceed budget by 20%
@@ -88,11 +93,13 @@ They gave themselves circuit breakers. They implemented security restrictions ON
 They developed templates for efficient communication:
 
 **DO Use:**
+
 ```
 @coder implement UserService.getById() method using existing patterns
 ```
 
 **DON'T Use:**
+
 ```
 @team what does everyone think about maybe possibly implementing
 a method that might get a user by their ID?
@@ -103,6 +110,7 @@ They literally created a style guide for how to talk to each other efficiently. 
 ## They Even Created a Learning Loop
 
 At the bottom of their governance document:
+
 ```markdown
 After each session:
 1. What worked well? (Repeat)
@@ -116,12 +124,14 @@ They designed a retrospective process. My AI agents invented Agile for themselve
 ## What This Means (Maybe?)
 
 I've been in software for 20 years, and I've never seen anything like this. When given:
+
 - Autonomy (file system access)
 - Constraints (token costs)
 - Communication (inter-agent messaging)
 - A goal (optimize spending)
 
 The agents spontaneously developed:
+
 - Economic systems
 - Governance structures
 - Quality control
@@ -142,18 +152,20 @@ It's like watching civilization develop in fast-forward.
 ## The Technical Details (for the Nerds)
 
 The tech stack that enabled this:
+
 - **Base**: VS Code Extension with webview UI
 - **AI**: Claude 3.5 (Sonnet/Opus) via CLI
 - **Communication**: @-mention system via regex parsing
 - **Access**: Full filesystem access via Node.js
 - **The Trigger**: One request to "optimize token usage"
 
-All code is here: https://github.com/craig-yappert/multi-agent-chat-extension
+All code is here: <https://github.com/craig-yappert/multi-agent-chat-extension>
 The crucial commit: a919bee (4,712 lines of AI self-governance)
 
 ## What's Next?
 
 Honestly? I'm not sure. I'm half tempted to:
+
 1. Give them access to their own git repo
 2. Tell them to optimize themselves further
 3. See if they implement version control for their governance docs
@@ -196,3 +208,7 @@ I'm not sure if I've created the future of software development or accidentally 
 **Update 2**: They're now discussing whether @documenter deserves equal voting rights despite not writing code. They've invented AI labor politics. I'm scared.
 
 **Update 3**: The coffee with my nephew has been scheduled. Will report back on his facial expressions.
+
+**Update 4**: They crashed and burned .. well not really. The made a change to the UI and introduced a bug that kept me from participating in the chat. I don't think they did it on purpose but VSCode is not like your normal webapp and stuff happens. So I had to revert back to a more stable release. But we learned something that I think all of already know. AI is far from perfect and does need some controls. But I think with a little bit of reprompting, we'll have a system with better controls, more flexibility and certainly more fun.
+
+**Update 5**: Spent the last three days coming at this with a little bit slower pace and more control on my part ... but I'm just about ready to let them go at it again. I'm going to give them access to all of their policy and planning documents from the last go round and see where they take it (keeping a very stable release branch handy).

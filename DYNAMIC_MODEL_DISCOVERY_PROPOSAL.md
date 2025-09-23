@@ -1,17 +1,20 @@
 # Dynamic Model Discovery Architecture Proposal
 
 ## Executive Summary
+
 Transform the Multi Agent Chat extension from using a static, hardcoded list of AI models to a dynamic system that automatically discovers and updates available models from multiple providers through their APIs.
 
 ## Current State Analysis
 
 ### Current Implementation
+
 - **Static Model List**: Models are hardcoded as strings (`'sonnet'`, `'opus'`, etc.)
 - **Provider Configuration**: Fixed provider types (`'claude'`, `'openai'`, `'local'`, `'mcp'`, `'multi'`)
 - **No Model Discovery**: No mechanism to detect newly released models
 - **Manual Updates Required**: Extension must be updated and republished for new models
 
 ### Limitations
+
 1. Cannot automatically detect new model releases
 2. Users cannot use custom/local models without code modification
 3. No visibility into model capabilities, pricing, or availability
@@ -22,6 +25,7 @@ Transform the Multi Agent Chat extension from using a static, hardcoded list of 
 ### Core Components
 
 #### 1. Model Registry Service
+
 ```typescript
 interface ModelInfo {
   id: string;                    // Unique identifier
@@ -49,6 +53,7 @@ class ModelRegistry {
 ```
 
 #### 2. Provider Adapters
+
 Each provider implements a common interface for model discovery:
 
 ```typescript
@@ -73,6 +78,7 @@ interface ModelProvider {
 #### Provider-Specific Implementations
 
 ##### 1. Hugging Face Provider
+
 ```typescript
 class HuggingFaceProvider implements ModelProvider {
   private api = new HfApi();
@@ -90,11 +96,13 @@ class HuggingFaceProvider implements ModelProvider {
 ```
 
 **API Endpoint**: `https://huggingface.co/api/models`
+
 - Supports filtering by task, library, author
 - Returns comprehensive metadata
 - Free API access, no authentication required for public models
 
 ##### 2. Ollama Provider
+
 ```typescript
 class OllamaProvider implements ModelProvider {
   async listModels(): Promise<ModelInfo[]> {
@@ -115,11 +123,13 @@ class OllamaProvider implements ModelProvider {
 ```
 
 **API Endpoint**: `http://localhost:11434/api/tags`
+
 - Lists locally available models
 - Includes size, format, and modification time
 - Real-time availability status
 
 ##### 3. OpenRouter Provider
+
 ```typescript
 class OpenRouterProvider implements ModelProvider {
   async listModels(): Promise<ModelInfo[]> {
@@ -134,11 +144,13 @@ class OpenRouterProvider implements ModelProvider {
 ```
 
 **API Endpoint**: `https://openrouter.ai/api/v1/models`
+
 - Returns 400+ models from multiple providers
 - Includes pricing, context length, supported parameters
 - Cached at edge for performance
 
 ##### 4. OpenAI Provider
+
 ```typescript
 class OpenAIProvider implements ModelProvider {
   async listModels(): Promise<ModelInfo[]> {
@@ -155,11 +167,13 @@ class OpenAIProvider implements ModelProvider {
 ```
 
 **API Endpoint**: `https://api.openai.com/v1/models`
+
 - Lists all available models
 - Requires filtering for relevant models
 - Includes ownership and permission data
 
 ##### 5. Anthropic/Claude Provider
+
 ```typescript
 class AnthropicProvider implements ModelProvider {
   // Note: Anthropic doesn't provide a list endpoint
@@ -178,6 +192,7 @@ class AnthropicProvider implements ModelProvider {
 ```
 
 **Note**: Anthropic doesn't provide a public model listing API. Options:
+
 1. Maintain a curated list with periodic manual updates
 2. Scrape documentation pages (fragile)
 3. Use community-maintained registries
@@ -221,6 +236,7 @@ class ModelCache {
 ### User Interface Updates
 
 #### 1. Model Selection UI
+
 ```typescript
 interface ModelSelectorOptions {
   providers?: string[];           // Filter by providers
@@ -250,6 +266,7 @@ class ModelSelector {
 ```
 
 #### 2. Settings Integration
+
 ```json
 {
   "multiAgentChat.modelDiscovery.enabled": true,
@@ -286,24 +303,28 @@ class ModelSelector {
 ### Migration Strategy
 
 #### Phase 1: Foundation (Week 1)
+
 1. Implement ModelRegistry core
 2. Create provider interface
 3. Add caching layer
 4. Implement Ollama provider (simplest)
 
 #### Phase 2: Provider Integration (Week 2)
+
 1. Implement HuggingFace provider
 2. Implement OpenRouter provider
 3. Implement OpenAI provider
 4. Add Anthropic manual registry
 
 #### Phase 3: UI Integration (Week 3)
+
 1. Update agent configuration UI
 2. Add model selector component
 3. Integrate with settings
 4. Add model refresh command
 
 #### Phase 4: Polish & Testing (Week 4)
+
 1. Error handling and fallbacks
 2. Performance optimization
 3. Documentation
@@ -362,16 +383,19 @@ const agent = {
 ## Implementation Priority
 
 ### High Priority
+
 1. **Ollama Integration** - Local models, simple API
 2. **OpenRouter Integration** - Access to 400+ models
 3. **Model Registry Core** - Foundation for all providers
 
 ### Medium Priority
+
 1. **HuggingFace Integration** - Large model ecosystem
 2. **OpenAI Integration** - Popular models
 3. **UI Components** - Enhanced user experience
 
 ### Low Priority
+
 1. **Anthropic Scraping** - Complex, fragile
 2. **Real-time Updates** - Nice-to-have
 3. **Advanced Filtering** - Can be added later
@@ -387,16 +411,19 @@ const agent = {
 ## Alternative Approaches Considered
 
 ### 1. Static Registry with Auto-Updates
+
 - Maintain a central registry file that's periodically updated
 - Pros: Simple, no API dependencies
 - Cons: Still requires manual updates, delayed model availability
 
 ### 2. Community-Maintained Registry
+
 - Use a shared GitHub repo or API for model listings
 - Pros: Community-driven, comprehensive
 - Cons: External dependency, trust issues
 
 ### 3. Plugin System for Providers
+
 - Allow third-party provider plugins
 - Pros: Maximum extensibility
 - Cons: Complex, security concerns

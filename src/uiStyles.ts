@@ -3385,6 +3385,9 @@ const styles = `
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        flex: 1;
+        min-width: 200px;
+        margin-right: 10px;
     }
 
     .status-agents {

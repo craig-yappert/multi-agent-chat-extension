@@ -1,6 +1,7 @@
 # Multi-Agent Chat Extension - Architecture Document
 
 ## Executive Summary
+
 This document outlines the comprehensive architecture for the Multi-Agent Chat Extension, providing a collaborative AI-powered development environment within VS Code.
 
 ## System Architecture Overview
@@ -8,6 +9,7 @@ This document outlines the comprehensive architecture for the Multi-Agent Chat E
 ### Core Components
 
 #### 1. Extension Layer (src/extension.ts)
+
 - **Responsibility**: VS Code integration and lifecycle management
 - **Key Features**:
   - WebView panel management
@@ -16,6 +18,7 @@ This document outlines the comprehensive architecture for the Multi-Agent Chat E
   - Status bar integration
 
 #### 2. Agent System (src/agents.ts)
+
 - **Responsibility**: Multi-agent orchestration and management
 - **Key Features**:
   - Agent registry with 7 specialized agents
@@ -24,6 +27,7 @@ This document outlines the comprehensive architecture for the Multi-Agent Chat E
   - Quantum agent selection for optimal task routing
 
 #### 3. Provider System (src/providers.ts)
+
 - **Responsibility**: AI provider abstraction layer
 - **Supported Providers**:
   - Claude API (Anthropic)
@@ -33,6 +37,7 @@ This document outlines the comprehensive architecture for the Multi-Agent Chat E
   - Multi-provider orchestration
 
 #### 4. UI Layer (src/ui.ts, src/script.ts)
+
 - **Responsibility**: Rich web-based chat interface
 - **Features**:
   - Real-time streaming responses
@@ -44,6 +49,7 @@ This document outlines the comprehensive architecture for the Multi-Agent Chat E
 ### Advanced Subsystems
 
 #### Event-Driven Architecture (src/agent-event-system.ts)
+
 - **Event Bus**: Central message broker for agent communication
 - **Circuit Breaker**: Fault tolerance and resilience
 - **Event Types**:
@@ -53,11 +59,13 @@ This document outlines the comprehensive architecture for the Multi-Agent Chat E
   - System notifications
 
 #### Performance Optimization (src/performance-optimizer.ts)
+
 - **Resource Management**: Memory and CPU monitoring
 - **Caching Strategy**: Response and context caching
 - **Load Distribution**: Intelligent task scheduling
 
 #### Security Hardening (src/security-hardening.ts)
+
 - **Sandbox Environments**: Agent isolation
 - **Permission Management**: Granular access controls
 - **Audit Logging**: Security event tracking
@@ -65,6 +73,7 @@ This document outlines the comprehensive architecture for the Multi-Agent Chat E
 ## Architectural Patterns
 
 ### 1. Message-Driven Architecture
+
 ```
 User Input → Extension → Agent Manager → Event Bus → Agent → Provider → Response
                               ↑                ↓
@@ -72,11 +81,13 @@ User Input → Extension → Agent Manager → Event Bus → Agent → Provider 
 ```
 
 ### 2. Provider Adapter Pattern
+
 - Uniform interface for different AI providers
 - Hot-swappable provider implementations
 - Fallback chain for high availability
 
 ### 3. Agent Specialization Model
+
 | Agent | Role | Provider | Specialization |
 |-------|------|----------|----------------|
 | Architect | System Design | Claude Opus | Architecture, APIs, Database Design |
@@ -92,8 +103,10 @@ User Input → Extension → Agent Manager → Event Bus → Agent → Provider 
 ### Phase 1: Core Infrastructure (Immediate)
 
 #### 1.1 Message Queue System
+
 **Purpose**: Handle high-throughput agent communications
 **Implementation**:
+
 ```typescript
 // src/message-queue.ts
 export class MessageQueue {
@@ -107,8 +120,10 @@ export class MessageQueue {
 ```
 
 #### 1.2 State Persistence Layer
+
 **Purpose**: Maintain agent context across sessions
 **Implementation**:
+
 ```typescript
 // src/state-persistence.ts
 export class StatePersistence {
@@ -122,8 +137,10 @@ export class StatePersistence {
 ```
 
 #### 1.3 Connection Pooling
+
 **Purpose**: Optimize resource usage for external connections
 **Implementation**:
+
 ```typescript
 // src/connection-pool.ts
 export class ConnectionPool {
@@ -138,8 +155,10 @@ export class ConnectionPool {
 ### Phase 2: Observability & Monitoring (Week 2-3)
 
 #### 2.1 Distributed Tracing
+
 **Purpose**: Debug complex multi-agent workflows
 **Implementation**:
+
 ```typescript
 // src/tracing.ts
 export class DistributedTracing {
@@ -152,8 +171,10 @@ export class DistributedTracing {
 ```
 
 #### 2.2 Metrics Collection
+
 **Purpose**: Monitor system performance and agent efficiency
 **Key Metrics**:
+
 - Response latency per agent
 - Token usage and cost tracking
 - Task completion rates
@@ -162,24 +183,30 @@ export class DistributedTracing {
 ### Phase 3: Advanced Features (Month 2)
 
 #### 3.1 Agent Learning & Adaptation
+
 **Purpose**: Improve agent performance over time
 **Features**:
+
 - Task outcome tracking
 - Performance feedback loops
 - Dynamic capability adjustment
 - User preference learning
 
 #### 3.2 Workflow Engine
+
 **Purpose**: Define and execute complex multi-step workflows
 **Features**:
+
 - Visual workflow designer
 - Conditional branching
 - Parallel execution
 - Checkpoint/resume capability
 
 #### 3.3 Plugin Architecture
+
 **Purpose**: Extend agent capabilities through plugins
 **Features**:
+
 - Plugin registry
 - Hot-reload support
 - Sandboxed execution
@@ -188,12 +215,14 @@ export class DistributedTracing {
 ## Performance Considerations
 
 ### Scalability Targets
+
 - Support 50+ concurrent agent conversations
 - Sub-second response initiation
 - Handle 10MB+ context windows
 - Support 100+ file references per conversation
 
 ### Optimization Strategies
+
 1. **Lazy Loading**: Load agents on-demand
 2. **Response Streaming**: Progressive UI updates
 3. **Context Pruning**: Smart context window management
@@ -203,6 +232,7 @@ export class DistributedTracing {
 ## Security Architecture
 
 ### Defense in Depth
+
 1. **Input Validation**: Sanitize all user inputs
 2. **Agent Sandboxing**: Isolated execution environments
 3. **API Rate Limiting**: Prevent abuse
@@ -210,6 +240,7 @@ export class DistributedTracing {
 5. **Audit Logging**: Comprehensive activity tracking
 
 ### Permission Model
+
 ```typescript
 enum Permission {
   FILE_READ = 'file:read',
@@ -230,12 +261,14 @@ interface AgentPermissions {
 ## Deployment Architecture
 
 ### Development Environment
+
 - VS Code Extension Development Host
 - Local MCP server instances
 - Mock provider endpoints
 - Test data fixtures
 
 ### Production Environment
+
 - VS Code Marketplace distribution
 - Secure API key management
 - Telemetry and crash reporting
@@ -244,6 +277,7 @@ interface AgentPermissions {
 ## Migration Path
 
 ### From Current to Target Architecture
+
 1. **Week 1**: Implement message queue and state persistence
 2. **Week 2**: Add connection pooling and basic tracing
 3. **Week 3**: Deploy metrics collection
@@ -256,6 +290,7 @@ This architecture provides a robust, scalable foundation for the Multi-Agent Cha
 ## Appendix
 
 ### A. Technology Stack
+
 - **Runtime**: Node.js 18+
 - **Language**: TypeScript 5.x
 - **Framework**: VS Code Extension API
@@ -264,6 +299,7 @@ This architecture provides a robust, scalable foundation for the Multi-Agent Cha
 - **Build**: Webpack, esbuild
 
 ### B. File Structure
+
 ```
 src/
 ├── core/
@@ -288,6 +324,7 @@ src/
 ```
 
 ### C. Configuration Schema
+
 ```json
 {
   "claudeCodeChat": {

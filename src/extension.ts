@@ -60,6 +60,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
+	// MCP Server commands are registered internally by MCPServerManager
+	// No need to register them here as it would cause duplicate registration
+
 	// Register webview view provider for sidebar chat (using shared provider instance)
 	const webviewProvider = new ClaudeChatWebviewProvider(context.extensionUri, context, provider);
 	vscode.window.registerWebviewViewProvider('multiAgentChat.chat', webviewProvider);
@@ -71,7 +74,12 @@ export async function activate(context: vscode.ExtensionContext) {
 	statusBarItem.command = 'multiAgentChat.openChat';
 	statusBarItem.show();
 
-	context.subscriptions.push(disposable, loadConversationDisposable, clearConversationsDisposable, statusBarItem);
+	context.subscriptions.push(
+		disposable,
+		loadConversationDisposable,
+		clearConversationsDisposable,
+		statusBarItem
+	);
 	console.log('Multi Agent Chat extension activation completed successfully!');
 }
 
@@ -188,12 +196,30 @@ class ClaudeChatProvider {
 			}
 		};
 
-		// Initialize provider manager with streaming support
-		this._providerManager = new ProviderManager(_context, this._agentManager, undefined, streamCallback, this._mcpServerManager);
-		// Create communication hub
-		this._communicationHub = new AgentCommunicationHub(this._agentManager, this._providerManager, this._outputChannel);
-		// Update provider manager with communication hub
+		// Create communication hub first with status callback
+		this._communicationHub = new AgentCommunicationHub(
+			this._agentManager,
+			null as any,  // We'll set the provider manager after creation
+			this._outputChannel,
+			(status: string, fromAgent?: string, toAgent?: string) => {
+				// Send status update to webview
+				if (this._webview) {
+					this._postMessage({
+						type: 'agentStatus',
+						data: {
+							message: status,
+							agents: this._buildAgentStatusList(fromAgent, toAgent)
+						}
+					});
+				}
+			}
+		);
+
+		// Now create provider manager with the communication hub already available
 		this._providerManager = new ProviderManager(_context, this._agentManager, this._communicationHub, streamCallback, this._mcpServerManager);
+
+		// Update the communication hub with the provider manager reference
+		(this._communicationHub as any).providerManager = this._providerManager;
 
 		// Initialize backup repository and conversations
 		this._initializeBackupRepo();
@@ -516,6 +542,20 @@ class ClaudeChatProvider {
 		const agentMentions = this._parseAgentMentions(message);
 		const targetAgent = agentMentions.length > 0 ? agentMentions[0] : this._selectedAgent;
 
+		// Get agent configuration for display
+		const agentConfig = this._agentManager.getAgent(targetAgent);
+		const agentName = agentConfig ? agentConfig.name : targetAgent;
+		const agentIcon = agentConfig ? agentConfig.icon : '🤖';
+
+		// Send initial status message
+		this._postMessage({
+			type: 'agentStatus',
+			data: {
+				message: `User message sent to ${agentName}. ${agentIcon} ${agentName} is processing...`,
+				agents: []  // Don't show agent pills, just the message
+			}
+		});
+
 		// Set processing state
 		this._postMessage({
 			type: 'setProcessing',
@@ -550,6 +590,38 @@ class ClaudeChatProvider {
 			mentions.push(match[1].toLowerCase());
 		}
 		return mentions;
+	}
+
+	private _buildAgentStatusList(fromAgent?: string, toAgent?: string): any[] {
+		const agents: any[] = [];
+
+		// Add from agent if provided
+		if (fromAgent) {
+			const fromConfig = this._agentManager.getAgent(fromAgent);
+			if (fromConfig) {
+				agents.push({
+					id: fromAgent,
+					name: fromConfig.name,
+					icon: fromConfig.icon,
+					status: 'sending'
+				});
+			}
+		}
+
+		// Add to agent if provided
+		if (toAgent) {
+			const toConfig = this._agentManager.getAgent(toAgent);
+			if (toConfig) {
+				agents.push({
+					id: toAgent,
+					name: toConfig.name,
+					icon: toConfig.icon,
+					status: 'processing'
+				});
+			}
+		}
+
+		return agents;
 	}
 
 	private async _handleAgentMessage(agent: string, message: string, planMode?: boolean, thinkingMode?: boolean) {

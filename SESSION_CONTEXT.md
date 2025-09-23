@@ -1,20 +1,46 @@
 # Session Context - Multi Agent Chat Extension
 
-## Current Version: 1.11.0 (Major Cleanup Release)
+## Current Version: 1.13.0 (Agent Configuration UI)
 
 ## Latest Session Summary (2025-09-19)
 
-Successfully implemented per-project settings architecture, removed all legacy code (MCP server, WSL support), unified branding from Claude Code Chat to Multi Agent Chat, and created a clean, maintainable codebase.
+Built complete agent configuration UI with per-project settings. Fixed all UI scrolling issues, implemented agent definition cards with model/provider selection, and added centralized model configuration. The settings panel now allows full customization of each agent's behavior on a per-project basis.
 
-## Major Accomplishments (v1.11.0)
+## Today's Accomplishments (v1.13.0)
+
+### 1. Agent Configuration UI ✅
+
+- Built complete settings panel with agent definition cards
+- Fixed scrolling issues with proper CSS flexbox layout
+- Added provider/model selection dropdowns
+- Implemented advanced settings (temperature, max tokens) with toggle
+- Created centralized model configuration in `src/config/models.ts`
+
+### 2. UI Fixes ✅
+
+- Resolved duplicate Settings headers
+- Fixed button text for Advanced toggle
+- Made Save/Cancel buttons sticky
+- Improved overflow handling for scrollable content
+
+### 3. Documentation Updates ✅
+
+- Added Dynamic Model Discovery Proposal
+- Moved completed proposals to archive
+- Updated TODO with next priorities
+- Cleaned up session context
+
+## Previous Accomplishments (v1.11.0)
 
 ### 1. Per-Project Settings Architecture ✅
+
 - **SettingsManager**: Hierarchical settings loading (VS Code → Global → Project → Workspace)
 - **ConversationManager**: Project-local conversation storage in `.machat/conversations/`
 - **ProjectContextManager**: Agent memory isolation per project
 - **MigrationCommands**: Utilities for migrating existing conversations
 
 ### 2. Legacy Code Removal ✅
+
 - Removed entire MCP server infrastructure (~30KB of code)
 - Removed WSL support and configuration
 - Deleted 8 unused provider files
@@ -22,12 +48,14 @@ Successfully implemented per-project settings architecture, removed all legacy c
 - Removed unused performance providers
 
 ### 3. Branding Unification ✅
+
 - Fixed all references: "claudeCodeChat" → "multiAgentChat"
 - Updated all command IDs consistently
 - Unified configuration namespaces
 - Consistent naming throughout extension
 
 ### 4. File Structure Cleanup ✅
+
 ```
 Extension Structure (Clean):
 ├── src/
@@ -52,6 +80,7 @@ Extension Structure (Clean):
 ## Technical Architecture
 
 ### Settings Hierarchy
+
 ```typescript
 // Priority order (highest to lowest):
 1. Workspace settings (VS Code workspace)
@@ -61,12 +90,14 @@ Extension Structure (Clean):
 ```
 
 ### Conversation Storage
+
 - **Global**: `~/.vscode/extensions/multi-agent-chat/conversations/`
 - **Project**: `{projectRoot}/.machat/conversations/`
 - Auto-detection based on workspace presence
 - Migration utilities for existing conversations
 
 ### Agent System (7 Agents)
+
 1. **Architect** (🏗️) - System design & architecture
 2. **Coder** (💻) - Implementation & development
 3. **Executor** (⚡) - File operations & commands
@@ -78,10 +109,12 @@ Extension Structure (Clean):
 ## Files Removed in Cleanup
 
 ### Deleted Directories
+
 - `src/mcp-server/` (entire directory)
 - Multiple unused provider files
 
 ### Deleted Files
+
 ```
 - src/providers/FastTeamProvider.ts
 - src/providers/FastTeamProviderV2.ts
@@ -96,6 +129,7 @@ Extension Structure (Clean):
 ## Configuration Changes
 
 ### Package.json Updates
+
 - Version: 1.9.3 → 1.11.0
 - Removed 7 MCP-related commands
 - Reorganized settings into logical sections:
@@ -106,7 +140,9 @@ Extension Structure (Clean):
   - Performance
 
 ### Command ID Updates
+
 All commands renamed from `claude-code-chat.*` to `multiAgentChat.*`:
+
 - `multiAgentChat.openChat`
 - `multiAgentChat.clearAllConversations`
 - `multi-agent-chat.initializeProject`
@@ -116,6 +152,7 @@ All commands renamed from `claude-code-chat.*` to `multiAgentChat.*`:
 ## Build Information
 
 ### v1.11.0 VSIX Package
+
 - **Size**: 1.3 MB (reduced from 1.5MB)
 - **Files**: 161 total
 - **Compilation**: Clean, no errors
@@ -124,6 +161,7 @@ All commands renamed from `claude-code-chat.*` to `multiAgentChat.*`:
 ## Testing Checklist
 
 ### Critical Tests
+
 - [ ] Per-project settings isolation
 - [ ] Conversation migration from global to local
 - [ ] Agent memory persistence
@@ -132,6 +170,7 @@ All commands renamed from `claude-code-chat.*` to `multiAgentChat.*`:
 - [ ] Settings hierarchy merging
 
 ### Regression Tests
+
 - [ ] All agents respond correctly
 - [ ] Conversation history saves/loads
 - [ ] Agent context maintained
@@ -141,10 +180,12 @@ All commands renamed from `claude-code-chat.*` to `multiAgentChat.*`:
 ## Known Issues
 
 ### Current
+
 - Settings UI only displays API Keys section (other sections not rendering)
 - Some performance settings not fully wired up
 
 ### Resolved
+
 - ✅ MCP server references removed
 - ✅ WSL configuration cleaned up
 - ✅ Branding inconsistencies fixed
@@ -170,17 +211,20 @@ Ctrl+Shift+P → "Clear All Conversation History"
 ## Next Steps
 
 ### Immediate
+
 1. Fix Settings UI rendering (non-API sections)
 2. Wire up remaining performance settings
 3. Test per-project isolation thoroughly
 
 ### Near Future
+
 1. Implement Settings UI with VS Code native + custom panels
 2. Create agent configuration UI
 3. Add agent templates
 4. Performance optimization
 
 ### Long Term
+
 1. Multi-workspace support
 2. Agent marketplace
 3. Cloud sync capabilities
@@ -188,6 +232,7 @@ Ctrl+Shift+P → "Clear All Conversation History"
 ## Migration Path
 
 For users upgrading from pre-1.11.0:
+
 1. Conversations remain in global storage by default
 2. Run "Initialize Multi Agent Chat Project" to create `.machat`
 3. Run "Migrate Conversations to Project" to move existing chats
@@ -204,17 +249,20 @@ For users upgrading from pre-1.11.0:
 ## Important Notes
 
 ### Project Settings
+
 - Settings in `.machat/config.json` override global
 - Sensitive settings (API keys) should stay in user settings
 - Project settings ideal for team collaboration
 
 ### Performance Impact
+
 - Removed ~30KB of unused code
 - Simplified provider architecture
 - Reduced extension size by 200KB
 - Faster activation time
 
 ### Backward Compatibility
+
 - Old conversations auto-migrate on first load
 - Settings cascade ensures no breaking changes
 - Agent context rebuilds from history if needed

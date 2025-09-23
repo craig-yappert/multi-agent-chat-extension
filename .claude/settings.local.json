@@ -21,7 +21,8 @@
       "Bash(tree:*)",
       "Bash(git checkout:*)",
       "Bash(npm run lint)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(code:*)"
     ],
     "deny": []
   },

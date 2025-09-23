@@ -72,7 +72,7 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 		<!-- Agent Status Indicator -->
 		<div id="agentStatusBar" class="agent-status-bar" style="display: none;">
 			<div class="status-indicator">
-				<div class="status-spinner"></div>
+				<div class="status-spinner" id="statusSpinner" style="display: none;"></div>
 				<div class="status-text" id="agentStatusText">Message sent, awaiting response...</div>
 			</div>
 			<div class="status-agents" id="agentStatusList"></div>

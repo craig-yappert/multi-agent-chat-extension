@@ -14,7 +14,7 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 <body>
 	<div class="header">
 		<div style="display: flex; align-items: center;">
-			<h2>Multi Agent Chat</h2>
+			<h2 id="chatTitle">Multi Agent Chat</h2>
 			<!-- <div id="sessionInfo" class="session-badge" style="display: none;">
 				<span class="session-icon">💬</span>
 				<span id="sessionId">-</span>
@@ -26,6 +26,18 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 			<button class="btn outlined" id="settingsBtn" onclick="toggleSettings()" title="Settings">⚙️</button>
 			<button class="btn outlined" id="historyBtn" onclick="toggleConversationHistory()">📚 History</button>
 			<button class="btn primary" id="newSessionBtn" onclick="newSession()">New Chat</button>
+			<button class="btn outlined" id="floatBtn" onclick="floatWindow()" title="Pop Out to Separate Window">🪟</button>
+		</div>
+	</div>
+
+	<div id="newChatTopic" class="new-chat-topic" style="display: none;">
+		<div class="topic-input-container">
+			<h3>New Conversation</h3>
+			<input type="text" id="topicInput" class="topic-input" placeholder="Enter a topic for this conversation (optional)" />
+			<div class="topic-buttons">
+				<button class="btn primary" onclick="startNewChatWithTopic()">Start Chat</button>
+				<button class="btn outlined" onclick="cancelNewChat()">Cancel</button>
+			</div>
 		</div>
 	</div>
 
@@ -95,6 +107,10 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 					<textarea class="input-field" id="messageInput" placeholder="Type your message or @mention an agent..." rows="1"></textarea>
 					<div class="input-controls">
 						<div class="left-controls">
+							<!-- File attach button -->
+							<button class="attach-btn" onclick="selectFiles()" title="Attach files (or paste file paths)">
+								📎
+							</button>
 							<!-- Agent selector removed - use @agent mentions instead -->
 							<!-- MCP configuration hidden for multi-agent setup -->
 							<button class="tools-btn" onclick="showMCPModal()" title="Configure MCP servers" style="display: none;">
@@ -105,22 +121,6 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 							</button>
 						</div>
 						<div class="right-controls">
-							<button class="slash-btn" onclick="showSlashCommandsModal()" title="Slash commands">/</button>
-							<!-- @ button removed - agents have full filesystem access -->
-							<!-- Use @ for agent mentions, drag files from explorer instead -->
-							<button class="image-btn" id="imageBtn" onclick="selectImage()" title="Attach images">
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								viewBox="0 0 16 16"
-								width="14"
-								height="16"
-								>
-								<g fill="currentColor">
-									<path d="M6.002 5.5a1.5 1.5 0 1 1-3 0a1.5 1.5 0 0 1 3 0"></path>
-									<path d="M1.5 2A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2zm13 1a.5.5 0 0 1 .5.5v6l-3.775-1.947a.5.5 0 0 0-.577.093l-3.71 3.71l-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12v.54L1 12.5v-9a.5.5 0 0 1 .5-.5z"></path>
-								</g>
-							</svg>
-							</button>
 							<button class="send-btn" id="sendBtn" onclick="sendMessage()">
 							<div>
 							<span>Send </span>
@@ -384,291 +384,6 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 			</div>
 		</div>
 	</div>
-
-	<!-- Slash commands modal -->
-	<div id="slashCommandsModal" class="tools-modal" style="display: none;">
-		<div class="tools-modal-content">
-			<div class="tools-modal-header">
-				<span>Commands & Prompt Snippets</span>
-				<button class="tools-close-btn" onclick="hideSlashCommandsModal()">✕</button>
-			</div>
-			<div class="tools-modal-body">
-			
-			<!-- Search box -->
-			<div class="slash-commands-search">
-				<div class="search-input-wrapper">
-					<span class="search-prefix">/</span>
-					<input type="text" id="slashCommandsSearch" placeholder="Search commands and snippets..." oninput="filterSlashCommands()">
-				</div>
-			</div>
-			
-			<!-- Custom Commands Section -->
-			<div class="slash-commands-section">
-				<h3>Custom Commands</h3>
-				<div class="slash-commands-info">
-					<p>Custom slash commands for quick prompt access. Click to use directly in chat.</p>
-				</div>
-				<div class="slash-commands-list" id="promptSnippetsList">
-					<!-- Add Custom Snippet Button -->
-					<div class="slash-command-item add-snippet-item" onclick="showAddSnippetForm()">
-						<div class="slash-command-icon">➕</div>
-						<div class="slash-command-content">
-							<div class="slash-command-title">Add Custom Command</div>
-							<div class="slash-command-description">Create your own slash command</div>
-						</div>
-					</div>
-					
-					<!-- Add Custom Command Form (initially hidden) -->
-					<div class="add-snippet-form" id="addSnippetForm" style="display: none;">
-						<div class="form-group">
-							<label for="snippetName">Command name:</label>
-							<div class="command-input-wrapper">
-								<span class="command-prefix">/</span>
-								<input type="text" id="snippetName" placeholder="e.g., fix-bug" maxlength="50">
-							</div>
-						</div>
-						<div class="form-group">
-							<label for="snippetPrompt">Prompt Text:</label>
-							<textarea id="snippetPrompt" placeholder="e.g., Help me fix this bug in my code..." rows="3"></textarea>
-						</div>
-						<div class="form-buttons">
-							<button class="btn" onclick="saveCustomSnippet()">Save Command</button>
-							<button class="btn outlined" onclick="hideAddSnippetForm()">Cancel</button>
-						</div>
-					</div>
-					
-					<!-- Built-in Snippets -->
-					<div class="slash-command-item prompt-snippet-item" onclick="usePromptSnippet('performance-analysis')">
-						<div class="slash-command-icon">⚡</div>
-						<div class="slash-command-content">
-							<div class="slash-command-title">/performance-analysis</div>
-							<div class="slash-command-description">Analyze this code for performance issues and suggest optimizations</div>
-						</div>
-					</div>
-					<div class="slash-command-item prompt-snippet-item" onclick="usePromptSnippet('security-review')">
-						<div class="slash-command-icon">🔒</div>
-						<div class="slash-command-content">
-							<div class="slash-command-title">/security-review</div>
-							<div class="slash-command-description">Review this code for security vulnerabilities</div>
-						</div>
-					</div>
-					<div class="slash-command-item prompt-snippet-item" onclick="usePromptSnippet('implementation-review')">
-						<div class="slash-command-icon">🔍</div>
-						<div class="slash-command-content">
-							<div class="slash-command-title">/implementation-review</div>
-							<div class="slash-command-description">Review the implementation in this code</div>
-						</div>
-					</div>
-					<div class="slash-command-item prompt-snippet-item" onclick="usePromptSnippet('code-explanation')">
-						<div class="slash-command-icon">📖</div>
-						<div class="slash-command-content">
-							<div class="slash-command-title">/code-explanation</div>
-							<div class="slash-command-description">Explain how this code works in detail</div>
-						</div>
-					</div>
-					<div class="slash-command-item prompt-snippet-item" onclick="usePromptSnippet('bug-fix')">
-						<div class="slash-command-icon">🐛</div>
-						<div class="slash-command-content">
-							<div class="slash-command-title">/bug-fix</div>
-							<div class="slash-command-description">Help me fix this bug in my code</div>
-						</div>
-					</div>
-					<div class="slash-command-item prompt-snippet-item" onclick="usePromptSnippet('refactor')">
-						<div class="slash-command-icon">🔄</div>
-						<div class="slash-command-content">
-							<div class="slash-command-title">/refactor</div>
-							<div class="slash-command-description">Refactor this code to improve readability and maintainability</div>
-						</div>
-					</div>
-					<div class="slash-command-item prompt-snippet-item" onclick="usePromptSnippet('test-generation')">
-						<div class="slash-command-icon">🧪</div>
-						<div class="slash-command-content">
-							<div class="slash-command-title">/test-generation</div>
-							<div class="slash-command-description">Generate comprehensive tests for this code</div>
-						</div>
-					</div>
-					<div class="slash-command-item prompt-snippet-item" onclick="usePromptSnippet('documentation')">
-						<div class="slash-command-icon">📝</div>
-						<div class="slash-command-content">
-							<div class="slash-command-title">/documentation</div>
-							<div class="slash-command-description">Generate documentation for this code</div>
-						</div>
-					</div>
-				</div>
-			</div>
-			
-			<!-- Built-in Commands Section -->
-			<div class="slash-commands-section">
-				<h3>Built-in Commands</h3>
-				<div class="slash-commands-info">
-					<p>These commands require the Claude CLI and will open in VS Code terminal. Return here after completion.</p>
-				</div>
-				<div class="slash-commands-list" id="nativeCommandsList">
-				<div class="slash-command-item" onclick="executeSlashCommand('bug')">
-					<div class="slash-command-icon">🐛</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">/bug</div>
-						<div class="slash-command-description">Report bugs (sends conversation to Anthropic)</div>
-					</div>
-				</div>
-				<div class="slash-command-item" onclick="executeSlashCommand('clear')">
-					<div class="slash-command-icon">🗑️</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">/clear</div>
-						<div class="slash-command-description">Clear conversation history</div>
-					</div>
-				</div>
-				<div class="slash-command-item" onclick="executeSlashCommand('compact')">
-					<div class="slash-command-icon">📦</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">/compact</div>
-						<div class="slash-command-description">Compact conversation with optional focus instructions</div>
-					</div>
-				</div>
-				<div class="slash-command-item" onclick="executeSlashCommand('config')">
-					<div class="slash-command-icon">⚙️</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">/config</div>
-						<div class="slash-command-description">View/modify configuration</div>
-					</div>
-				</div>
-				<div class="slash-command-item" onclick="executeSlashCommand('cost')">
-					<div class="slash-command-icon">💰</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">/cost</div>
-						<div class="slash-command-description">Show token usage statistics</div>
-					</div>
-				</div>
-				<div class="slash-command-item" onclick="executeSlashCommand('doctor')">
-					<div class="slash-command-icon">🩺</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">/doctor</div>
-						<div class="slash-command-description">Checks the health of your Claude Code installation</div>
-					</div>
-				</div>
-				<div class="slash-command-item" onclick="executeSlashCommand('help')">
-					<div class="slash-command-icon">❓</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">/help</div>
-						<div class="slash-command-description">Get usage help</div>
-					</div>
-				</div>
-				<div class="slash-command-item" onclick="executeSlashCommand('init')">
-					<div class="slash-command-icon">🚀</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">/init</div>
-						<div class="slash-command-description">Initialize project with CLAUDE.md guide</div>
-					</div>
-				</div>
-				<div class="slash-command-item" onclick="executeSlashCommand('login')">
-					<div class="slash-command-icon">🔑</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">/login</div>
-						<div class="slash-command-description">Switch Anthropic accounts</div>
-					</div>
-				</div>
-				<div class="slash-command-item" onclick="executeSlashCommand('logout')">
-					<div class="slash-command-icon">🚪</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">/logout</div>
-						<div class="slash-command-description">Sign out from your Anthropic account</div>
-					</div>
-				</div>
-				<div class="slash-command-item" onclick="executeSlashCommand('mcp')">
-					<div class="slash-command-icon">🔌</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">/mcp</div>
-						<div class="slash-command-description">Manage MCP server connections and OAuth authentication</div>
-					</div>
-				</div>
-				<div class="slash-command-item" onclick="executeSlashCommand('memory')">
-					<div class="slash-command-icon">🧠</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">/memory</div>
-						<div class="slash-command-description">Edit CLAUDE.md memory files</div>
-					</div>
-				</div>
-				<div class="slash-command-item" onclick="executeSlashCommand('model')">
-					<div class="slash-command-icon">🤖</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">/model</div>
-						<div class="slash-command-description">Select or change the AI model</div>
-					</div>
-				</div>
-				<div class="slash-command-item" onclick="executeSlashCommand('permissions')">
-					<div class="slash-command-icon">🔒</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">/permissions</div>
-						<div class="slash-command-description">View or update permissions</div>
-					</div>
-				</div>
-				<div class="slash-command-item" onclick="executeSlashCommand('pr_comments')">
-					<div class="slash-command-icon">💬</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">/pr_comments</div>
-						<div class="slash-command-description">View pull request comments</div>
-					</div>
-				</div>
-				<div class="slash-command-item" onclick="executeSlashCommand('review')">
-					<div class="slash-command-icon">👀</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">/review</div>
-						<div class="slash-command-description">Request code review</div>
-					</div>
-				</div>
-				<div class="slash-command-item" onclick="executeSlashCommand('status')">
-					<div class="slash-command-icon">📊</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">/status</div>
-						<div class="slash-command-description">View account and system statuses</div>
-					</div>
-				</div>
-				<div class="slash-command-item" onclick="executeSlashCommand('terminal-setup')">
-					<div class="slash-command-icon">⌨️</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">/terminal-setup</div>
-						<div class="slash-command-description">Install Shift+Enter key binding for newlines</div>
-					</div>
-				</div>
-				<div class="slash-command-item" onclick="executeSlashCommand('vim')">
-					<div class="slash-command-icon">📝</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">/vim</div>
-						<div class="slash-command-description">Enter vim mode for alternating insert and command modes</div>
-					</div>
-				</div>
-				<div class="slash-command-item custom-command-item">
-					<div class="slash-command-icon">⚡</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">Quick Command</div>
-						<div class="slash-command-description">
-							<div class="command-input-wrapper">
-								<span class="command-prefix">/</span>
-								<input type="text" 
-									   class="custom-command-input" 
-									   id="customCommandInput"
-									   placeholder="enter-command" 
-									   onkeydown="handleCustomCommandKeydown(event)"
-									   onclick="event.stopPropagation()">
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-			</div>
-		</div>
-	</div>
-
-	<!--
-	Analytics FAQ:
-	
-	1. Is Umami GDPR compliant?
-	Yes, Umami does not collect any personally identifiable information and anonymizes all data collected. Users cannot be identified and are never tracked across websites.
-	
-	2. Do I need to display a cookie notice to users?
-	No, Umami does not use any cookies in the tracking code.
-	-->
-	<!-- Telemetry disabled -->
 </body>
 </html>`;
 

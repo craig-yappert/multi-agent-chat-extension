@@ -1334,6 +1334,31 @@ const styles = `
         display: flex;
         gap: 10px;
         align-items: flex-end;
+        position: relative;
+        transition: all 0.3s ease;
+    }
+
+    .textarea-container.drag-over {
+        border: 2px dashed var(--vscode-focusBorder);
+        border-radius: 6px;
+        background-color: var(--vscode-list-hoverBackground);
+    }
+
+    .textarea-container.drag-over::before {
+        content: "Drop files here to add them to your message";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: var(--vscode-descriptionForeground);
+        font-size: 14px;
+        font-weight: 500;
+        pointer-events: none;
+        z-index: 10;
+        background: var(--vscode-editor-background);
+        padding: 8px 16px;
+        border-radius: 4px;
+        border: 1px solid var(--vscode-focusBorder);
     }
 
     .textarea-wrapper {
@@ -1408,6 +1433,25 @@ const styles = `
 
     .model-selector:hover {
         background-color: rgba(128, 128, 128, 0.25);
+        opacity: 1;
+    }
+
+    .attach-btn {
+        background-color: transparent;
+        color: var(--vscode-foreground);
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: all 0.2s ease;
+        opacity: 0.7;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .attach-btn:hover {
+        background-color: var(--vscode-list-hoverBackground);
         opacity: 1;
     }
 
@@ -2528,6 +2572,48 @@ const styles = `
         font-size: 10px;
         color: var(--vscode-descriptionForeground);
         opacity: 0.8;
+    }
+
+    .new-chat-topic {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: var(--vscode-editor-background);
+        border: 1px solid var(--vscode-widget-border);
+        border-radius: 8px;
+        padding: 20px;
+        z-index: 1001;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        width: 400px;
+        max-width: 90%;
+    }
+
+    .topic-input-container h3 {
+        margin: 0 0 15px 0;
+        color: var(--vscode-foreground);
+    }
+
+    .topic-input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--vscode-input-border);
+        border-radius: 4px;
+        background-color: var(--vscode-input-background);
+        color: var(--vscode-input-foreground);
+        font-size: 14px;
+        margin-bottom: 15px;
+    }
+
+    .topic-input:focus {
+        outline: none;
+        border-color: var(--vscode-focusBorder);
+    }
+
+    .topic-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
     }
 
     .conversation-history {

@@ -41,7 +41,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	const disposable = vscode.commands.registerCommand('multiAgentChat.openChat', (column?: vscode.ViewColumn) => {
 		console.log('Multi Agent Chat command executed!');
-		provider.show(column);
+		// Use ViewColumn.Beside to open next to the current editor
+		provider.show(column || vscode.ViewColumn.Beside);
 	});
 
 	const loadConversationDisposable = vscode.commands.registerCommand('multiAgentChat.loadConversation', (filename: string) => {
@@ -98,6 +99,7 @@ interface ConversationData {
 	messages: Array<{ timestamp: string, messageType: string, data: any, agent?: any }>;
 	filename: string;
 	agentContext?: Record<string, any[]>;
+	topic?: string;
 }
 
 class ClaudeChatWebviewProvider implements vscode.WebviewViewProvider {
@@ -157,6 +159,7 @@ class ClaudeChatProvider {
 	private _currentConversation: Array<{ timestamp: string, messageType: string, data: any, agent?: any }> = [];
 	private _agentConversationContext?: Map<string, any[]>;
 	private _conversationStartTime: string | undefined;
+	private _conversationTopic: string | undefined;
 	private _conversationIndex: ConversationIndex[] = [];
 	private _currentClaudeProcess: cp.ChildProcess | undefined;
 	private _selectedModel: string = 'default'; // Default model (backwards compatibility)
@@ -241,20 +244,22 @@ class ClaudeChatProvider {
 		this._currentSessionId = latestConversation?.sessionId;
 	}
 
-	public show(column: vscode.ViewColumn | vscode.Uri = vscode.ViewColumn.Two) {
+	public show(column: vscode.ViewColumn | vscode.Uri = vscode.ViewColumn.Beside) {
 		// Handle case where a URI is passed instead of ViewColumn
-		const actualColumn = column instanceof vscode.Uri ? vscode.ViewColumn.Two : column;
+		// Use Beside to open next to current editor
+		const actualColumn = column instanceof vscode.Uri ? vscode.ViewColumn.Beside : column;
 
 		// Close sidebar if it's open
 		this._closeSidebar();
 
 		if (this._panel) {
-			this._panel.reveal(actualColumn);
+			// Force reveal in the editor area, not bottom panel
+			this._panel.reveal(actualColumn, false);
 			return;
 		}
 
 		this._panel = vscode.window.createWebviewPanel(
-			'claudeChat',
+			'multiAgentChat',  // Changed ID to avoid conflicts
 			'Multi Agent Chat',
 			actualColumn,
 			{
@@ -271,6 +276,20 @@ class ClaudeChatProvider {
 		this._panel.webview.html = this._getHtmlForWebview();
 
 		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+
+		// Add view state change handler to detect when panel is restored
+		this._panel.onDidChangeViewState((e) => {
+			console.log('[FLOAT DEBUG] Panel view state changed:', {
+				active: e.webviewPanel.active,
+				visible: e.webviewPanel.visible
+			});
+
+			// When panel becomes visible again (e.g., after floating), reinitialize
+			if (e.webviewPanel.visible && e.webviewPanel.active) {
+				console.log('[FLOAT DEBUG] Panel became active, reinitializing conversation');
+				this._reinitializeAfterFloat();
+			}
+		}, null, this._disposables);
 
 		this._setupWebviewMessageHandler(this._panel.webview);
 		this._initializePermissions();
@@ -312,6 +331,12 @@ class ClaudeChatProvider {
 			});
 		}*/
 
+		// Send current topic to UI
+		this._postMessage({
+			type: 'setTopic',
+			topic: this._conversationTopic
+		});
+
 		this._postMessage({
 			type: 'ready',
 			data: this._isProcessing ? 'Agents are working...' : 'Ready to chat with Multi Agent Chat! Type your message below.'
@@ -344,7 +369,7 @@ class ClaudeChatProvider {
 				this._sendMessageToAgent(message.text, message.planMode, message.thinkingMode);
 				return;
 			case 'newSession':
-				this._newSession();
+				this._newSession(message.topic);
 				return;
 			case 'restoreCommit':
 				this._restoreToCommit(message.commitSha);
@@ -375,6 +400,15 @@ class ClaudeChatProvider {
 			case 'selectImageFile':
 				this._selectImageFile();
 				return;
+			case 'selectFiles':
+				this._selectFiles();
+				return;
+			case 'filesDropped':
+				this._handleDroppedFiles(message.files);
+				return;
+			case 'floatWindow':
+				this._floatWindow();
+				return;
 			case 'loadConversation':
 				this.loadConversation(message.filename);
 				return;
@@ -401,9 +435,6 @@ class ClaudeChatProvider {
 				return;
 			case 'openModelTerminal':
 				this._openModelTerminal();
-				return;
-			case 'executeSlashCommand':
-				this._executeSlashCommand(message.command);
 				return;
 			case 'openFile':
 				this._openFileInEditor(message.filePath);
@@ -494,21 +525,33 @@ class ClaudeChatProvider {
 	}
 
 	private _initializeWebview() {
+		console.log('[FLOAT DEBUG] _initializeWebview called');
+
 		// Reload conversation index in case it wasn't loaded yet
 		this._conversationIndex = this._conversationManager.getConversationIndex();
+		console.log('[FLOAT DEBUG] Conversation index loaded, count:', this._conversationIndex.length);
 
 		// Send conversation list to webview
 		this._sendConversationList();
 
-		// Resume session from latest conversation
+		// Always load the most recent conversation (simpler and consistent)
 		const latestConversation = this._getLatestConversation();
+		console.log('[FLOAT DEBUG] Latest conversation:', latestConversation ? {
+			filename: latestConversation.filename,
+			sessionId: latestConversation.sessionId,
+			messageCount: latestConversation.messageCount
+		} : 'none');
+
 		this._currentSessionId = latestConversation?.sessionId;
 
 		// Load latest conversation history if available
 		if (latestConversation) {
+			console.log('[FLOAT DEBUG] Loading conversation history:', latestConversation.filename);
 			this._loadConversationHistory(latestConversation.filename);
 		} else {
-			// If no conversation to load, send ready immediately
+			console.log('[FLOAT DEBUG] No conversation to load, sending ready message');
+			// If no conversation to load, clear topic and send ready
+			this._conversationTopic = undefined;
 			setTimeout(() => {
 				this._sendReadyMessage();
 			}, 100);
@@ -522,6 +565,37 @@ class ClaudeChatProvider {
 			this._initializeWebview();
 			// Set up message handler for the webview
 			this._setupWebviewMessageHandler(this._webview);
+		}
+	}
+
+	private _reinitializeAfterFloat() {
+		console.log('[FLOAT DEBUG] _reinitializeAfterFloat called');
+
+		if (!this._panel) {
+			console.log('[FLOAT DEBUG] No panel to reinitialize');
+			return;
+		}
+
+		// Send conversation list
+		this._sendConversationList();
+
+		// Get latest conversation
+		const latestConversation = this._getLatestConversation();
+		console.log('[FLOAT DEBUG] Latest conversation after float:', latestConversation ? {
+			filename: latestConversation.filename,
+			sessionId: latestConversation.sessionId,
+			messageCount: latestConversation.messageCount
+		} : 'none');
+
+		// Load the conversation
+		if (latestConversation) {
+			console.log('[FLOAT DEBUG] Loading conversation after float:', latestConversation.filename);
+			this._loadConversationHistory(latestConversation.filename);
+		} else {
+			console.log('[FLOAT DEBUG] No conversation to load after float');
+			// Send ready message if no conversation
+			this._conversationTopic = undefined;
+			this._sendReadyMessage();
 		}
 	}
 
@@ -1136,7 +1210,7 @@ class ClaudeChatProvider {
 	}
 
 
-	private async _newSession() {
+	private async _newSession(topic?: string) {
 
 		this._isProcessing = false
 
@@ -1166,7 +1240,14 @@ class ClaudeChatProvider {
 		this._commits = [];
 		this._currentConversation = [];
 		this._conversationStartTime = new Date().toISOString();
+		this._conversationTopic = topic || undefined;
 		this._agentConversationContext = new Map();
+
+		// Send topic to UI
+		this._postMessage({
+			type: 'setTopic',
+			topic: this._conversationTopic
+		});
 
 		// Reset counters
 		this._totalCost = 0;
@@ -2129,7 +2210,8 @@ class ClaudeChatProvider {
 				},
 				messages: this._currentConversation,
 				filename,
-				agentContext: this._agentConversationContext ? Object.fromEntries(this._agentConversationContext) : undefined
+				agentContext: this._agentConversationContext ? Object.fromEntries(this._agentConversationContext) : undefined,
+				topic: this._conversationTopic
 			};
 
 			// Save using conversation manager
@@ -2254,6 +2336,115 @@ class ClaudeChatProvider {
 
 		} catch (error) {
 			console.error('Error selecting image files:', error);
+		}
+	}
+
+	private async _selectFiles(): Promise<void> {
+		try {
+			// Show VS Code's native file picker for any files
+			const result = await vscode.window.showOpenDialog({
+				canSelectFiles: true,
+				canSelectFolders: false,
+				canSelectMany: true,
+				title: 'Select files to add to message',
+				openLabel: 'Add to Message'
+			});
+
+			if (result && result.length > 0) {
+				// Format file paths with quotes and send back to webview
+				const formattedPaths = result.map(uri => `"${uri.fsPath}"`).join(' ');
+				this._postMessage({
+					type: 'insertText',
+					text: formattedPaths
+				});
+			}
+		} catch (error) {
+			console.error('Error selecting files:', error);
+		}
+	}
+
+	private async _floatWindow(): Promise<void> {
+		console.log('[FLOAT DEBUG] _floatWindow called');
+		console.log('[FLOAT DEBUG] Current panel exists:', !!this._panel);
+		console.log('[FLOAT DEBUG] Current conversation length:', this._currentConversation?.length || 0);
+
+		try {
+			// First ensure the panel is active
+			if (this._panel) {
+				console.log('[FLOAT DEBUG] Revealing panel');
+				this._panel.reveal();
+			} else {
+				console.log('[FLOAT DEBUG] WARNING: No panel to float!');
+			}
+
+			// Small delay to ensure the panel is ready
+			setTimeout(async () => {
+				console.log('[FLOAT DEBUG] Executing moveEditorToNewWindow command');
+				// Execute the command to move editor to new window
+				await vscode.commands.executeCommand('workbench.action.moveEditorToNewWindow');
+				console.log('[FLOAT DEBUG] Move command executed');
+
+				// After moving to new window, force reload conversation
+				setTimeout(() => {
+					console.log('[FLOAT DEBUG] Reloading conversation after float');
+					this._reinitializeAfterFloat();
+				}, 500);
+
+				// Optional: Show a tip to the user (if not hidden)
+				const hideFloatTip = this._context.globalState.get('multiAgentChat.hideFloatTip', false);
+				if (!hideFloatTip) {
+					const selection = await vscode.window.showInformationMessage(
+						'Chat opened in separate window! You can resize and position it anywhere on your screen.',
+						'Got it',
+						'Don\'t show again'
+					);
+
+					if (selection === 'Don\'t show again') {
+						// Store preference to not show tip again
+						this._context.globalState.update('multiAgentChat.hideFloatTip', true);
+					}
+				}
+			}, 200);
+		} catch (error) {
+			console.error('[FLOAT DEBUG] Failed to float window:', error);
+			vscode.window.showErrorMessage('Failed to open chat in separate window');
+		}
+	}
+
+	private async _handleDroppedFiles(files: any[]): Promise<void> {
+		if (!files || files.length === 0) {
+			return;
+		}
+
+		// Process the dropped files and send back formatted file paths
+		const filePaths: string[] = [];
+
+		for (const file of files) {
+			// In VSCode webviews, we typically get file names without full paths
+			// Try to find the file in the workspace
+			if (file.name) {
+				// Search for the file in the workspace
+				const searchPattern = `**/${file.name}`;
+				const foundFiles = await vscode.workspace.findFiles(searchPattern, '**/node_modules/**', 10);
+
+				if (foundFiles.length > 0) {
+					// Use the first match
+					filePaths.push(foundFiles[0].fsPath);
+				} else {
+					// If not found in workspace, just use the name as-is
+					// User might be dragging from outside the workspace
+					filePaths.push(file.name);
+				}
+			}
+		}
+
+		// Send the formatted file paths back to the webview
+		if (filePaths.length > 0) {
+			const formattedPaths = filePaths.map(p => `"${p}"`).join(' ');
+			this._postMessage({
+				type: 'insertText',
+				text: formattedPaths
+			});
 		}
 	}
 
@@ -2464,26 +2655,50 @@ class ClaudeChatProvider {
 	// The old method is no longer needed as the ConversationManager maintains the index
 
 	private _getLatestConversation(): any | undefined {
-		return this._conversationIndex.length > 0 ? this._conversationIndex[0] : undefined;
+		if (this._conversationIndex.length === 0) {
+			return undefined;
+		}
+
+		// Sort by timestamp to get the most recent conversation
+		const sorted = [...this._conversationIndex].sort((a, b) => {
+			return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+		});
+
+		return sorted[0];
 	}
 
 	private async _loadConversationHistory(filename: string): Promise<void> {
-		console.log("_loadConversationHistory");
+		console.log("[FLOAT DEBUG] _loadConversationHistory called with:", filename);
+		console.log("[FLOAT DEBUG] Panel exists:", !!this._panel);
+		console.log("[FLOAT DEBUG] Webview exists:", !!this._panel?.webview);
 
 		try {
 			// Load conversation using conversation manager
 			const conversationData = await this._conversationManager.loadConversation(filename);
 			if (!conversationData) {
-				console.error(`Conversation not found: ${filename}`);
+				console.error(`[FLOAT DEBUG] Conversation not found: ${filename}`);
 				return;
 			}
+			console.log("[FLOAT DEBUG] Conversation loaded, message count:", conversationData.messages?.length || 0);
 
 			// Load conversation into current state
 			this._currentConversation = conversationData.messages || [];
 			this._conversationStartTime = conversationData.startTime;
+			this._conversationTopic = conversationData.topic;
 			this._totalCost = conversationData.totalCost || 0;
 			this._totalTokensInput = conversationData.totalTokens?.input || 0;
 			this._totalTokensOutput = conversationData.totalTokens?.output || 0;
+
+			// Send topic to UI and hide new chat topic input
+			this._postMessage({
+				type: 'setTopic',
+				topic: this._conversationTopic
+			});
+
+			// Hide the new chat topic input if it's visible
+			this._postMessage({
+				type: 'hideNewChatTopic'
+			});
 
 			// Restore agent conversation context
 			if ((conversationData as any).agentContext) {
@@ -2507,6 +2722,7 @@ class ClaudeChatProvider {
 				// Small delay to ensure messages are cleared before loading new ones
 				setTimeout(() => {
 					const messages = this._currentConversation;
+					console.log("[FLOAT DEBUG] Sending", messages.length, "messages to webview");
 					for (let i = 0; i < messages.length; i++) {
 
 						const message = messages[i];
@@ -2706,25 +2922,6 @@ class ClaudeChatProvider {
 		});
 	}
 
-	private _executeSlashCommand(command: string): void {
-		const terminal = vscode.window.createTerminal('Claude Command');
-		const args = [command];
-		// Use native claude command
-		terminal.sendText(`claude ${args.join(' ')}`);
-		terminal.show();
-
-		// Show info message
-		vscode.window.showInformationMessage(
-			`Executing /${command} command in terminal. Check the terminal output and return when ready.`,
-			'OK'
-		);
-
-		// Send message to UI about terminal
-		this._postMessage({
-			type: 'terminalOpened',
-			data: `Executing /${command} command in terminal. Check the terminal output and return when ready.`,
-		});
-	}
 
 	private _sendPlatformInfo() {
 		const platform = process.platform;

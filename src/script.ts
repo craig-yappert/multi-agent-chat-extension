@@ -1021,16 +1021,20 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 					return;
 				}
 				
+				// For now, disable auto-quoting of file paths to avoid syntax errors
+				// Just insert the text as-is
+				const processedText = text;
+
 				// Insert text at cursor position
 				const start = messageInput.selectionStart;
 				const end = messageInput.selectionEnd;
 				const currentValue = messageInput.value;
-				
-				const newValue = currentValue.substring(0, start) + text + currentValue.substring(end);
+
+				const newValue = currentValue.substring(0, start) + processedText + currentValue.substring(end);
 				messageInput.value = newValue;
-				
+
 				// Set cursor position after pasted text
-				const newCursorPos = start + text.length;
+				const newCursorPos = start + processedText.length;
 				messageInput.setSelectionRange(newCursorPos, newCursorPos);
 				
 				// Trigger input event to adjust height
@@ -1045,6 +1049,85 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			// Don't prevent default - allow context menu to show
 			// but ensure paste will work when selected
 		});
+
+		// Handle drag and drop for files
+		const inputContainer = document.getElementById('inputContainer');
+		const textareaContainer = inputContainer?.querySelector('.textarea-container');
+
+		// Prevent default drag behaviors on the whole document
+		['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+			document.body.addEventListener(eventName, (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+			}, false);
+		});
+
+		// Add drag and drop handlers to the message input area
+		if (textareaContainer) {
+			let dragCounter = 0;
+
+			textareaContainer.addEventListener('dragenter', (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				dragCounter++;
+				textareaContainer.classList.add('drag-over');
+			});
+
+			textareaContainer.addEventListener('dragleave', (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				dragCounter--;
+				if (dragCounter === 0) {
+					textareaContainer.classList.remove('drag-over');
+				}
+			});
+
+			textareaContainer.addEventListener('dragover', (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+			});
+
+			textareaContainer.addEventListener('drop', (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				dragCounter = 0;
+				textareaContainer.classList.remove('drag-over');
+
+				// Get the dropped files
+				const files = e.dataTransfer?.files;
+				if (files && files.length > 0) {
+					// VSCode webviews don't have direct file system access
+					// We need to send the file information to the extension
+					const fileList = [];
+					for (let i = 0; i < files.length; i++) {
+						fileList.push({
+							name: files[i].name,
+							path: files[i].path || files[i].name, // path might not be available
+							type: files[i].type,
+							size: files[i].size
+						});
+					}
+
+					// Send to extension to handle file paths
+					vscode.postMessage({
+						type: 'filesDropped',
+						files: fileList
+					});
+				} else if (e.dataTransfer) {
+					// Try to get text data (could be file paths dragged from VS Code explorer)
+					const text = e.dataTransfer.getData('text');
+					if (text) {
+						// Insert the text (likely file paths) at cursor position
+						const cursorPos = messageInput.selectionStart;
+						const currentValue = messageInput.value;
+						const newValue = currentValue.slice(0, cursorPos) + text + currentValue.slice(cursorPos);
+						messageInput.value = newValue;
+						messageInput.setSelectionRange(cursorPos + text.length, cursorPos + text.length);
+						adjustTextareaHeight();
+					}
+				}
+			});
+		}
 
 			// Initialize textarea height
 			adjustTextareaHeight();
@@ -1693,11 +1776,17 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 
 		function loadCustomSnippets(snippetsData = {}) {
 			const snippetsList = document.getElementById('promptSnippetsList');
-			
+
+			// Check if element exists (might not be in DOM yet)
+			if (!snippetsList) {
+				console.warn('promptSnippetsList not found in DOM, skipping custom snippets load');
+				return;
+			}
+
 			// Remove existing custom snippets
 			const existingCustom = snippetsList.querySelectorAll('.custom-snippet-item');
 			existingCustom.forEach(item => item.remove());
-			
+
 			// Add custom snippets after the add button and form
 			const addForm = document.getElementById('addSnippetForm');
 			
@@ -1907,6 +1996,25 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 					addMessage(message.data, 'system');
 					updateStatusWithTotals();
 					hideAgentStatus();
+					break;
+				case 'setTopic':
+					// Update header with topic when conversation is loaded
+					const chatTitle = document.getElementById('chatTitle');
+					if (chatTitle) {
+						chatTitle.textContent = message.topic || 'Multi Agent Chat';
+					}
+					// Also hide the new chat topic dialog if it's open
+					const topicDiv = document.getElementById('newChatTopic');
+					if (topicDiv) {
+						topicDiv.style.display = 'none';
+					}
+					break;
+				case 'hideNewChatTopic':
+					// Explicitly hide the new chat topic dialog
+					const newChatTopicDiv = document.getElementById('newChatTopic');
+					if (newChatTopicDiv) {
+						newChatTopicDiv.style.display = 'none';
+					}
 					break;
 				case 'agentStatus':
 					// Update agent status bar
@@ -2190,6 +2298,16 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				case 'clipboardText':
 					handleClipboardText(message.data);
 					break;
+				case 'insertText':
+					// Insert text at current cursor position
+					const cursorPos = messageInput.selectionStart;
+					const currentValue = messageInput.value;
+					const newValue = currentValue.slice(0, cursorPos) + message.text + currentValue.slice(cursorPos);
+					messageInput.value = newValue;
+					messageInput.setSelectionRange(cursorPos + message.text.length, cursorPos + message.text.length);
+					adjustTextareaHeight();
+					messageInput.focus();
+					break;
 				case 'modelSelected':
 					// Update the UI with the current model
 					currentModel = message.model;
@@ -2349,12 +2467,65 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		});
 
 		// Session management functions
-		window.newSession = function() {
-			sendStats('New chat');
-			
+		window.floatWindow = function() {
+			// Send message to extension to float the window
 			vscode.postMessage({
-				type: 'newSession'
+				type: 'floatWindow'
 			});
+		}
+
+		window.newSession = function() {
+			// Show topic input dialog instead of immediately starting new session
+			const topicDiv = document.getElementById('newChatTopic');
+			const topicInput = document.getElementById('topicInput');
+			if (topicDiv && topicInput) {
+				topicDiv.style.display = 'block';
+				topicInput.value = ''; // Clear any previous value
+				topicInput.focus();
+			}
+		}
+
+		window.startNewChatWithTopic = function() {
+			const topicDiv = document.getElementById('newChatTopic');
+			const topicInput = document.getElementById('topicInput');
+			const chatTitle = document.getElementById('chatTitle');
+
+			if (topicDiv && topicInput) {
+				const topic = topicInput.value.trim();
+				topicDiv.style.display = 'none';
+
+				// Update the header with the topic
+				if (chatTitle && topic) {
+					chatTitle.textContent = topic;
+				} else if (chatTitle) {
+					chatTitle.textContent = 'Multi Agent Chat';
+				}
+
+				sendStats('New chat with topic');
+
+				// Send new session request with topic
+				vscode.postMessage({
+					type: 'newSession',
+					topic: topic || undefined
+				});
+			}
+		}
+
+		// Add Enter key support for topic input
+		document.getElementById('topicInput')?.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') {
+				e.preventDefault();
+				window.startNewChatWithTopic();
+			} else if (e.key === 'Escape') {
+				window.cancelNewChat();
+			}
+		});
+
+		window.cancelNewChat = function() {
+			const topicDiv = document.getElementById('newChatTopic');
+			if (topicDiv) {
+				topicDiv.style.display = 'none';
+			}
 		}
 
 		function restoreToCommit(commitSha) {
@@ -2666,6 +2837,12 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 
 			// Hide conversation history and show chat
 			toggleConversationHistory();
+
+			// Hide new chat topic dialog if it's visible
+			const topicDiv = document.getElementById('newChatTopic');
+			if (topicDiv) {
+				topicDiv.style.display = 'none';
+			}
 		}
 
 		window.deleteConversation = function(filename) {
@@ -2850,7 +3027,14 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			selectedFileIndex = -1;
 		}
 
-		// Image handling functions
+		// File and Image handling functions
+		window.selectFiles = function() {
+			// Use VS Code's native file picker for any files
+			vscode.postMessage({
+				type: 'selectFiles'
+			});
+		}
+
 		window.selectImage = function() {
 			// Use VS Code's native file picker instead of browser file picker
 			vscode.postMessage({
@@ -2903,7 +3087,12 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				return;
 			}
 
-			conversations.forEach(conv => {
+			// Sort conversations by timestamp, newest first
+			const sortedConversations = [...conversations].sort((a, b) => {
+				return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+			});
+
+			sortedConversations.forEach(conv => {
 				const item = document.createElement('div');
 				item.className = 'conversation-item';
 
@@ -2911,15 +3100,21 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				const date = new Date(conv.timestamp).toLocaleDateString();
 				const time = new Date(conv.timestamp).toLocaleTimeString();
 
-				// Extract title from filename (e.g., "2025-09-19_18-34_coder-do-you-see-this-message.json")
-				const filenameParts = conv.filename.replace('.json', '').split('_');
-				const agent = filenameParts[2] ? filenameParts[2].split('-')[0] : 'unknown';
-				const titleText = filenameParts.slice(2).join(' ').replace(/-/g, ' ') || 'Conversation';
+				// Use topic if available, otherwise extract from filename
+				let titleText = '';
+				if (conv.topic) {
+					titleText = conv.topic;
+				} else {
+					// Fallback: Extract title from filename (e.g., "2025-09-19_18-34_coder-do-you-see-this-message.json")
+					const filenameParts = conv.filename.replace('.json', '').split('_');
+					const agent = filenameParts[2] ? filenameParts[2].split('-')[0] : 'unknown';
+					titleText = filenameParts.slice(2).join(' ').replace(/-/g, ' ') || 'Conversation';
+				}
 
 				item.innerHTML = \`
 					<div style="display: flex; justify-content: space-between; align-items: start;">
 						<div style="flex: 1; cursor: pointer;" onclick="loadConversation('\${conv.filename}')">
-							<div class="conversation-title">\${agent.charAt(0).toUpperCase() + agent.slice(1)}: \${titleText.substring(0, 60)}\${titleText.length > 60 ? '...' : ''}</div>
+							<div class="conversation-title">\${titleText.substring(0, 80)}\${titleText.length > 80 ? '...' : ''}</div>
 							<div class="conversation-meta">\${date} at \${time} • \${conv.messageCount} messages • $\${conv.totalCost.toFixed(3)}</div>
 							<div class="conversation-preview">Session: \${conv.sessionId.substring(0, 20)}...</div>
 						</div>
@@ -3153,8 +3348,8 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			if (message.type === 'customSnippetsData') {
 				// Update global custom snippets data
 				customSnippetsData = message.data || {};
-				// Refresh the snippets display
-				loadCustomSnippets(customSnippetsData);
+				// Skip loading snippets since we removed slash commands
+				// loadCustomSnippets(customSnippetsData);
 			} else if (message.type === 'customSnippetSaved') {
 				// Refresh snippets after saving
 				vscode.postMessage({

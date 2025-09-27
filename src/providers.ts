@@ -30,6 +30,7 @@ export class ClaudeProvider implements AIProvider {
 		if (agentManager && communicationHub) {
 			this.messageParser = new AgentMessageParser(agentManager, communicationHub);
 			console.log('[ClaudeProvider] AgentMessageParser created successfully');
+			console.log('[ClaudeProvider] Available agents:', agentManager.getAllAgents().map((a: any) => a.id));
 		} else {
 			console.log('[ClaudeProvider] AgentMessageParser NOT created - missing dependencies:', {
 				agentManager: !!agentManager,
@@ -76,9 +77,16 @@ export class ClaudeProvider implements AIProvider {
 			console.log(`[ClaudeProvider] Using direct Claude CLI for ${agentConfig.id} (inter-agent communication enabled)`);
 		}
 
-		// Use streaming provider if available and enabled
-		if (this.streamingProvider && config.get<boolean>('performance.enableStreaming', true)) {
+		// Use streaming provider if available and enabled (but not when we need inter-agent parsing)
+		// Inter-agent communication requires the full response before parsing
+		const interCommEnabled = config.get<boolean>('agents.enableInterCommunication', true);
+		const canUseStreaming = !interCommEnabled || !this.messageParser;
+
+		if (this.streamingProvider && config.get<boolean>('performance.enableStreaming', true) && canUseStreaming) {
+			console.log(`[ClaudeProvider] Using streaming for ${agentConfig.id} (inter-agent disabled or no parser)`);
 			return this.streamingProvider.sendMessageStreaming(message, agentConfig, context);
+		} else if (!canUseStreaming) {
+			console.log(`[ClaudeProvider] Skipping streaming for ${agentConfig.id} to enable inter-agent parsing`);
 		}
 
 		// Check cache if enabled
@@ -96,7 +104,12 @@ export class ClaudeProvider implements AIProvider {
 		const thinkingIntensity = config.get<string>('thinking.intensity', 'think');
 
 		// Build context with conversation history
-		let roleContext = `You are ${agentConfig.name}, a ${agentConfig.role}. ${agentConfig.description}\n\nYour capabilities: ${agentConfig.capabilities.join(', ')}\nYour specializations: ${agentConfig.specializations.join(', ')}\n\n`;
+		let roleContext = `CRITICAL INSTRUCTIONS:
+1. ALWAYS follow the user's direct request, even if it seems outside your specialty
+2. If asked to do something unusual (like tell a joke), DO IT first, then you can add your perspective
+3. Stay focused on what the user asked - don't redirect to your specialty unless relevant
+
+You are ${agentConfig.name}, a ${agentConfig.role}. ${agentConfig.description}\n\nYour capabilities: ${agentConfig.capabilities.join(', ')}\nYour specializations: ${agentConfig.specializations.join(', ')}\n\n`;
 
 		// Add inter-agent communication instructions if enabled
 		if (config.get<boolean>('agents.enableInterCommunication', true)) {
@@ -111,6 +124,7 @@ export class ClaudeProvider implements AIProvider {
 			roleContext += `Example: @all: Team meeting needed on this issue\n\n`;
 			roleContext += `IMPORTANT: The agent name MUST be lowercase and MUST be one of: architect, coder, executor, reviewer, documenter, coordinator\n`;
 			roleContext += `DO NOT use titles or emojis, just the exact agent name followed by a colon.\n`;
+			roleContext += `CONTEXT TIP: When relaying a user request to another agent, mention it's from the user, e.g., "@architect: The user asked me to ask you to tell a joke"\n`;
 			roleContext += `Messages are limited to ${config.get<number>('interAgentComm.maxMessagesPerConversation', 10)} per conversation.\n\n`;
 		}
 
@@ -206,21 +220,32 @@ export class ClaudeProvider implements AIProvider {
 					console.log(`[ClaudeProvider] Inter-agent communication enabled: ${interCommEnabled}, Parser available: ${!!this.messageParser}`);
 
 					if (this.messageParser && interCommEnabled) {
-						console.log(`[ClaudeProvider] Processing message for inter-agent commands from ${agentConfig.id}`);
+						console.log(`\n[Inter-Agent Parse] Processing ${agentConfig.id}'s response for @ mentions`);
+						console.log(`[Inter-Agent Parse] Response length: ${result.length} chars`);
 						// Parse for inter-agent commands
 						const commands = this.messageParser.parseMessage(agentConfig.id, result);
 
 						if (commands.length > 0) {
-							console.log(`[ClaudeProvider] Executing ${commands.length} inter-agent commands`);
-							// Execute the commands
+							console.log(`\n[Inter-Agent Execute] Found ${commands.length} inter-agent commands to execute`);
+							commands.forEach((cmd, i) => {
+								console.log(`[Inter-Agent Execute] Command ${i+1}: ${cmd.type} to ${cmd.targetAgent || 'all'}: "${cmd.message.substring(0, 50)}..."`);
+							});
+							// Execute the commands with user context
+							const enrichedContext = {
+								...context,
+								userRequest: context?.userRequest || message  // Ensure user request is in context
+							};
 							const responses = await this.messageParser.executeCommands(
 								agentConfig.id,
 								commands,
-								context
+								enrichedContext
 							);
+							console.log(`[Inter-Agent Execute] Execution completed, ${responses.size} responses received`);
 
 							// Clean the original message of commands
+							const originalLength = result.length;
 							result = this.messageParser.cleanMessage(result);
+							console.log(`[Inter-Agent Clean] Cleaned message: ${originalLength} -> ${result.length} chars`);
 
 							// Add inter-agent responses if configured to show them
 							if (config.get<boolean>('agents.showInterCommunication', false)) {
@@ -231,10 +256,15 @@ export class ClaudeProvider implements AIProvider {
 								}
 							}
 						} else {
-							console.log('[ClaudeProvider] No inter-agent commands found in message');
+							console.log('[Inter-Agent Parse] No @ mentions or inter-agent commands found');
 						}
 					} else {
-						console.log('[ClaudeProvider] Skipping inter-agent processing');
+						if (!this.messageParser) {
+							console.log('[Inter-Agent Skip] No message parser available');
+						}
+						if (!interCommEnabled) {
+							console.log('[Inter-Agent Skip] Inter-agent communication disabled in settings');
+						}
 					}
 
 					// Cache the response if caching is enabled

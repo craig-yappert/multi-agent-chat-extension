@@ -1,141 +1,198 @@
-# Multi Agent Chat Extension - Next Session Todos
+# TODO Next Session - Multi Agent Chat Extension
 
-## Recently Completed (v1.13.0) ✅
+## Monday 2025-09-30: Control & Transparency Implementation
 
-### Major Architecture Changes
+### 🎯 Primary Goal
+Transform from "hidden bureaucracy" to "transparent orchestra with user as conductor"
 
-1. **Per-Project Settings System**
-   - Implemented hierarchical settings (VS Code → Global → Project → Workspace)
-   - Created SettingsManager for unified settings handling
-   - Project settings stored in `.machat/config.json`
-   - Settings auto-merge with proper precedence
+### 📋 Implementation Plan
+**Full details in**: `docs/proposals/IMPLEMENTATION_PLAN_2025_09_30_ENHANCED.md`
 
-2. **Project-Local Conversations**
-   - ConversationManager handles local/global storage
-   - Conversations stored in `.machat/conversations/`
-   - Migration utilities for existing conversations
-   - Automatic .gitignore for project folders
+## Monday Morning Tasks (Quick Wins)
 
-3. **Project Context Management**
-   - ProjectContextManager for agent memory isolation
-   - Project-specific prompts and documentation
-   - Agent context scoped to projects
+### 1. Toolbar Cleanup (30 mins)
+- [ ] Convert all buttons to icons only
+- [ ] Add tooltips to all buttons
+- [ ] Consistent styling
+- [ ] Add STOP button icon to toolbar
 
-4. **Legacy Code Removal**
-   - Removed entire MCP server infrastructure (~30KB)
-   - Removed WSL support and configuration
-   - Removed 8 unused provider files
-   - Cleaned up WebSocket implementations
+### 2. STOP Button Implementation (2 hours)
+- [ ] Add emergency stop functionality
+- [ ] Clear message queues
+- [ ] Reset agent states
+- [ ] Visual feedback
+- [ ] Keyboard shortcut: `Ctrl+Shift+S`
 
-5. **Branding Unification**
-   - Fixed all references from "claudeCodeChat" to "multiAgentChat"
-   - Updated all command IDs and configurations
-   - Consistent naming throughout extension
+### 3. Workflow Mode Selector (1.5 hours)
+- [ ] Add dropdown to toolbar
+- [ ] Implement modes: DIRECT, REVIEW, BRAINSTORM, AUTO
+- [ ] Visual indicator of current mode
+- [ ] Hook up to message routing
 
-## Priority Tasks for Next Session
+## Monday Afternoon Tasks (Core Features)
 
-### 1. Dynamic Model Discovery System 🆕
+### 4. Graduated Controls (2 hours)
+- [ ] Implement control levels: STOP, PAUSE, SIMPLIFY, REDIRECT
+- [ ] Add UI buttons with distinct colors
+- [ ] Keyboard shortcuts for each level
+- [ ] State management
 
-**Goal:** Replace static model lists with dynamic discovery from provider APIs
+### 5. Visible Inter-Agent Messages (2 hours)
+- [ ] Route agent messages to main chat
+- [ ] Distinct visual styling (indented, lighter)
+- [ ] Arrow notation: `📝 → 🏗️`
+- [ ] No redundant context
 
-- [ ] Implement ModelRegistry core service
-- [ ] Create provider adapters (Ollama, OpenRouter, HuggingFace, OpenAI)
-- [ ] Add caching layer with provider-specific TTLs
-- [ ] Update UI to use discovered models
-- [ ] Support for local models via Ollama
+### 6. Timestamps & Collapsible Messages (1.5 hours)
+- [ ] Add timestamps to all messages
+- [ ] Relative time display
+- [ ] Implement expand/collapse for >500 chars
+- [ ] Smart truncation
 
-**Benefits:**
-- Automatic detection of new models
-- Support for 400+ models via OpenRouter
-- Local model support through Ollama
-- Real-time pricing and availability info
+## Tuesday Tasks (Advanced Features)
 
-### 2. Settings UI Enhancement ✅ PARTIAL
+### 7. Serial-Parallel-Serial Workflow
+- [ ] Implement SPS pattern
+- [ ] Visual progress indicator
+- [ ] Phase transitions
 
-- [x] Agent configuration cards implemented
-- [x] Per-project settings working
-- [ ] Visual refinement for compact layout
-- [ ] Responsive design for different screen sizes
-- [ ] Agent persona/prompt customization
+### 8. Two-Phase Response System
+- [ ] Phase 1: Immediate acknowledgment
+- [ ] Phase 2: Full response with metrics
+- [ ] Cost/token display
 
-### 3. Performance Optimization
+### 9. Begin Capability Refactor
+- [ ] Start moving from personas to capabilities
+- [ ] Test with simple tasks first
 
-- [ ] Implement smart agent selection based on query analysis
-- [ ] Add response caching with TTL
-- [ ] Optimize streaming for multiple agents
-- [ ] Implement agent response timeout controls
+## Testing Before Starting
 
-### 4. Testing & Validation
+### Pre-Session Checklist
+- [ ] Install latest VSIX (2.89 MB from 2025-09-29)
+- [ ] Set `multiAgentChat.interAgentComm.maxMessagesPerConversation` to 50
+- [ ] Open developer console for debug logs
+- [ ] Test basic @mention between agents
+- [ ] Verify file operations work for all agents
 
-- [ ] Test per-project settings isolation
-- [ ] Verify conversation migration
-- [ ] Validate agent memory boundaries
-- [ ] Test with multiple workspaces
+### What Should Be Working Now
+- ✅ Inter-agent communication via @mentions
+- ✅ Debug logging with clear message flow
+- ✅ Context preservation through message chain
+- ✅ File operations for all agents
 
-### 5. Documentation Update
+### Known Issues to Address
+- ⚠️ Runaway conversations (hence STOP button)
+- ⚠️ Hidden inter-agent messages (hence visibility)
+- ⚠️ Agent personas override user intent (hence capabilities)
+- ⚠️ No user control during execution (hence graduated controls)
 
-- [ ] Update README with new features
-- [ ] Create user guide for project settings
-- [ ] Document agent customization
-- [ ] Add troubleshooting guide
+## Key Files to Modify
 
-## Current State (v1.11.0)
+### Priority Files (Monday)
+1. `src/ui.ts` - Toolbar buttons
+2. `src/uiStyles.ts` - New CSS styles
+3. `src/script.ts` - Client-side logic
+4. `src/extension.ts` - Stop button handler
+5. `src/agentCommunication.ts` - Message broadcasting
 
-### What's Working
+### Secondary Files (Tuesday)
+6. `src/providers.ts` - Workflow modes
+7. `src/agents.ts` - Capability refactor
+8. `src/types/` - New type definitions
 
-- ✅ All agents functional with Claude backend
-- ✅ Per-project settings architecture complete
-- ✅ Project-local conversation storage
-- ✅ Agent memory and context persistence
-- ✅ File operations through Executor agent
-- ✅ Team coordination with all 6 agents
-- ✅ Clean, unified codebase without legacy code
+## Success Metrics
 
-### Known Issues
+### End of Day 1 (Monday)
+- [ ] User can STOP runaway conversations
+- [ ] User can see inter-agent messages
+- [ ] User can choose workflow mode
+- [ ] Messages have timestamps
+- [ ] Long messages are collapsible
 
-- ✅ ~~Settings UI only shows API Keys section~~ Fixed in v1.13.0
-- Model lists are static and require manual updates
-- Some performance settings not yet wired up
-- Agent response synthesis could be improved
+### End of Day 2 (Tuesday)
+- [ ] SPS workflow operational
+- [ ] Two-phase responses working
+- [ ] Cost tracking visible
+- [ ] Basic capability system started
 
-## Testing Checklist
+## Philosophy Reminders
 
-1. **Project Settings**
-   - [ ] Create `.machat` folder in new project
-   - [ ] Verify settings cascade properly
-   - [ ] Test project-specific API keys
+### Core Principles
+1. **Control > Speed**: User authority is paramount
+2. **Transparency > Efficiency**: See everything
+3. **Tools > Personalities**: Agents serve, not debate
+4. **Cost > Speed**: 3 minutes is fine
+5. **Graduated > Binary**: Multiple intervention levels
 
-2. **Conversation Storage**
-   - [ ] Verify conversations save to project folder
-   - [ ] Test migration from global storage
-   - [ ] Confirm .gitignore works
+### The Vision
+Transform the experience from "managing a dysfunctional team" to "conducting an orchestra with a dimmer switch"
 
-3. **Agent Operations**
-   - [ ] Test each specialized agent
-   - [ ] Verify team coordination
-   - [ ] Check memory isolation between projects
+## Reference Documents
 
-## Architecture Notes
+### Proposals Created This Session
+- `docs/proposals/AGENT_PERMISSIONS_PROPOSAL.md` - Trust model
+- `docs/proposals/INTER_AGENT_UX_PROPOSAL.md` - UX redesign
+- `docs/proposals/IMPLEMENTATION_PLAN_2025_09_30.md` - Original plan
+- `docs/proposals/IMPLEMENTATION_PLAN_2025_09_30_ENHANCED.md` - Enhanced plan
 
+### Key Insights Document
+See `SESSION_CONTEXT.md` for philosophical breakthroughs and test results
+
+## Commands & Configuration
+
+### Build & Test
+```bash
+# Compile
+npm run compile
+
+# Build VSIX
+npx vsce package
+
+# Install
+code --install-extension multi-agent-chat-1.13.0.vsix
+
+# Open console
+Ctrl+Shift+I (Windows)
 ```
-Extension Structure:
-├── src/
-│   ├── settings/          # Settings management
-│   ├── conversations/     # Conversation storage
-│   ├── context/          # Project context
-│   ├── agents.ts         # Agent definitions
-│   ├── providers.ts      # AI providers (cleaned)
-│   └── extension.ts      # Main extension
-└── .machat/              # Project-local storage
-    ├── config.json       # Project settings
-    ├── conversations/    # Local conversations
-    └── context/         # Agent memory
+
+### Required Settings
+```json
+{
+  "multiAgentChat.interAgentComm.maxMessagesPerConversation": 50,
+  "multiAgentChat.agents.enableInterCommunication": true,
+  "multiAgentChat.agents.showInterCommunication": true
+}
 ```
 
-## Next Major Milestones
+## Risk Mitigation
 
-1. **v1.13.0** - ✅ Settings UI with Agent Configuration (COMPLETED)
-2. **v1.14.0** - Dynamic Model Discovery
-3. **v1.15.0** - Performance Optimizations
-4. **v1.16.0** - Agent Personas & Templates
-5. **v2.0.0** - Multi-workspace Support
+### Potential Issues
+1. **UI Performance**: Too many messages
+   - Mitigation: Virtual scrolling, pagination
+
+2. **User Overwhelm**: Too much visible
+   - Mitigation: Progressive disclosure
+
+3. **Breaking Changes**: Existing conversations
+   - Mitigation: Backward compatibility
+
+## Notes for Monday Morning
+
+### Start With
+1. Coffee ☕
+2. Review this document
+3. Read `IMPLEMENTATION_PLAN_2025_09_30_ENHANCED.md`
+4. Begin with toolbar cleanup (quick win)
+5. Test each change before moving to next
+
+### Remember
+- One feature at a time
+- Test after each implementation
+- Commit frequently
+- User control is the goal
+
+---
+
+*Last Updated: 2025-09-29*
+*Session Start: Monday 2025-09-30*
+*Focus: User Control & Transparency*

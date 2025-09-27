@@ -43,8 +43,8 @@ export class AgentMessageParser {
 	parseMessage(agentId: string, message: string): InterAgentCommand[] {
 		const commands: InterAgentCommand[] = [];
 
-		console.log(`[AgentMessageParser] Parsing message from ${agentId} for inter-agent commands`);
-		console.log(`[AgentMessageParser] Message sample: ${message.substring(0, 200)}...`);
+		console.log(`\n[Parser] ====== Parsing ${agentId}'s message for @ mentions ======`);
+		console.log(`[Parser] Message preview: "${message.substring(0, 200)}${message.length > 200 ? '...' : ''}"`);
 
 		// Check for individual agent messages
 		for (const pattern of this.MESSAGE_PATTERNS) {
@@ -54,18 +54,20 @@ export class AgentMessageParser {
 				const targetAgent = match[1].toLowerCase();
 				const content = match[2].trim();
 
-				console.log(`[AgentMessageParser] Found potential command: @${targetAgent}: ${content.substring(0, 50)}...`);
+				console.log(`[Parser Match] Found: @${targetAgent}: "${content.substring(0, 80)}${content.length > 80 ? '...' : ''}"`);
 
 				// Validate target agent exists
-				if (this.agentManager.getAgent(targetAgent)) {
-					console.log(`[AgentMessageParser] Valid agent ${targetAgent} - adding command`);
+				const agentExists = this.agentManager.getAgent(targetAgent);
+				if (agentExists) {
+					console.log(`[Parser Valid] ✓ Agent '${targetAgent}' exists - creating command`);
 					commands.push({
 						type: 'message',
 						targetAgent,
 						message: content
 					});
 				} else {
-					console.log(`[AgentMessageParser] Agent ${targetAgent} not found in manager`);
+					console.log(`[Parser Invalid] ✗ Agent '${targetAgent}' not found. Available agents:`,
+						this.agentManager.getAllAgents().map(a => a.id));
 				}
 			}
 		}
@@ -96,9 +98,13 @@ export class AgentMessageParser {
 			}
 		}
 
-		console.log(`[AgentMessageParser] Total commands found: ${commands.length}`);
+		console.log(`[Parser Result] Found ${commands.length} valid inter-agent command(s)`);
 		if (commands.length > 0) {
-			console.log(`[AgentMessageParser] Commands:`, commands);
+			commands.forEach((cmd, i) => {
+				console.log(`[Parser Result] ${i+1}. ${cmd.type} -> ${cmd.targetAgent || 'all'}: "${cmd.message.substring(0, 50)}..."`);
+			});
+		} else {
+			console.log(`[Parser Result] No valid @ mentions found`);
 		}
 
 		return commands;
@@ -114,22 +120,22 @@ export class AgentMessageParser {
 	): Promise<Map<string, string>> {
 		const responses = new Map<string, string>();
 
-		console.log(`[AgentMessageParser] Executing ${commands.length} commands from ${fromAgent}`);
+		console.log(`\n[Execute] ====== Executing ${commands.length} command(s) from ${fromAgent} ======`);
 
 		for (const command of commands) {
-			console.log(`[AgentMessageParser] Executing command:`, command);
+			console.log(`[Execute] Processing: ${command.type} -> ${command.targetAgent || 'all'}`);
 			try {
 				switch (command.type) {
 					case 'message':
 						if (command.targetAgent) {
-							console.log(`[AgentMessageParser] Sending message from ${fromAgent} to ${command.targetAgent}: ${command.message.substring(0, 100)}...`);
+							console.log(`[Execute Send] ${fromAgent} >> ${command.targetAgent}: "${command.message.substring(0, 100)}..."`);
 							const response = await this.communicationHub.sendMessageBetweenAgents(
 								fromAgent,
 								command.targetAgent,
 								command.message,
 								context
 							);
-							console.log(`[AgentMessageParser] Got response from ${command.targetAgent}: ${response.substring(0, 100)}...`);
+							console.log(`[Execute Response] ${command.targetAgent} replied: "${response.substring(0, 100)}..."`);
 							responses.set(`${command.targetAgent}_message`, response);
 						}
 						break;
@@ -159,6 +165,7 @@ export class AgentMessageParser {
 						break;
 				}
 			} catch (error) {
+				console.error(`[Execute Error] Failed to execute ${command.type} command:`, error);
 				responses.set(`error_${command.type}`, `Failed to execute command: ${error}`);
 			}
 		}

@@ -1,268 +1,148 @@
 # Session Context - Multi Agent Chat Extension
 
-## Current Version: 1.13.0 (Agent Configuration UI)
+## Current Version: 1.13.0 (Inter-Agent Communication Working)
 
-## Latest Session Summary (2025-09-19)
+## Latest Session Summary (2025-09-29)
 
-Built complete agent configuration UI with per-project settings. Fixed all UI scrolling issues, implemented agent definition cards with model/provider selection, and added centralized model configuration. The settings panel now allows full customization of each agent's behavior on a per-project basis.
+### Major Breakthrough: Inter-Agent Communication is Working!
 
-## Today's Accomplishments (v1.13.0)
+#### What We Fixed
+1. **Streaming was bypassing inter-agent parsing** - Fixed by disabling streaming when inter-agent communication is enabled
+2. **Added comprehensive debug logging** - Can now trace full message flow
+3. **Context chain preservation** - User intent flows through agent-to-agent messages
+4. **Agent compliance** - Added instructions to follow user requests even if outside specialty
 
-### 1. Agent Configuration UI ✅
+#### Test Results
+- ✅ Agents successfully communicate via @mentions
+- ✅ Message parsing and routing works
+- ⚠️ Discovered "runaway conversation" problem (agents going off-topic)
+- ⚠️ Hit conversation limits quickly (10 message limit too restrictive)
+- 💡 Led to fundamental UX insights about control and transparency
 
-- Built complete settings panel with agent definition cards
-- Fixed scrolling issues with proper CSS flexbox layout
-- Added provider/model selection dropdowns
-- Implemented advanced settings (temperature, max tokens) with toggle
-- Created centralized model configuration in `src/config/models.ts`
+### Philosophical Insights Discovered
 
-### 2. UI Fixes ✅
+#### The Core Problems
+1. **Hidden Bureaucracy**: Inter-agent conversations happen in logs, invisible to users
+2. **Authority Loss**: Agents treat peer requests differently than user requests
+3. **Persona Override**: Agent "personalities" override user intent
+4. **The "Frustrated Father" Problem**: Need immediate control, not another polite request
 
-- Resolved duplicate Settings headers
-- Fixed button text for Advanced toggle
-- Made Save/Cancel buttons sticky
-- Improved overflow handling for scrollable content
+#### Key Realization
+*"We're building a bureaucracy instead of a tool. Agents should be extensions of user intent, not independent actors."*
 
-### 3. Documentation Updates ✅
+### Documentation Created
 
-- Added Dynamic Model Discovery Proposal
-- Moved completed proposals to archive
-- Updated TODO with next priorities
-- Cleaned up session context
+#### Proposals & Plans
+- `docs/proposals/AGENT_PERMISSIONS_PROPOSAL.md` - Trust-with-verification model
+- `docs/proposals/INTER_AGENT_UX_PROPOSAL.md` - Transparent collaboration approach
+- `docs/proposals/IMPLEMENTATION_PLAN_2025_09_30.md` - Detailed implementation plan
+- `docs/proposals/IMPLEMENTATION_PLAN_2025_09_30_ENHANCED.md` - Enhanced with Claude Web insights
 
-## Previous Accomplishments (v1.11.0)
+## Implementation Plan for Next Session (Monday 2025-09-30)
 
-### 1. Per-Project Settings Architecture ✅
+### Priority Order (See IMPLEMENTATION_PLAN_2025_09_30_ENHANCED.md)
 
-- **SettingsManager**: Hierarchical settings loading (VS Code → Global → Project → Workspace)
-- **ConversationManager**: Project-local conversation storage in `.machat/conversations/`
-- **ProjectContextManager**: Agent memory isolation per project
-- **MigrationCommands**: Utilities for migrating existing conversations
+#### Morning (Quick Wins)
+1. **Toolbar Cleanup** - Icons only with tooltips
+2. **STOP Button** - Emergency control
+3. **Workflow Mode Selector** - User chooses collaboration pattern
 
-### 2. Legacy Code Removal ✅
+#### Afternoon (Core Features)
+4. **Graduated Controls** - STOP/PAUSE/SIMPLIFY
+5. **Visible Inter-Agent Messages** - Transparency
+6. **Timestamps & Collapsible Messages** - Better UX
 
-- Removed entire MCP server infrastructure (~30KB of code)
-- Removed WSL support and configuration
-- Deleted 8 unused provider files
-- Cleaned up WebSocket implementations
-- Removed unused performance providers
+#### Tuesday (Advanced)
+7. **Serial-Parallel-Serial Workflow** - Proven pattern
+8. **Context-Aware Capabilities** - Replace personas
+9. **Value Tracking** - Cost optimization
 
-### 3. Branding Unification ✅
+## Technical State
 
-- Fixed all references: "claudeCodeChat" → "multiAgentChat"
-- Updated all command IDs consistently
-- Unified configuration namespaces
-- Consistent naming throughout extension
+### What's Working
+- Inter-agent communication via @mentions
+- File operations for all agents (not just Executor)
+- Debug logging throughout communication pipeline
+- Basic message loop prevention
 
-### 4. File Structure Cleanup ✅
+### What Needs Work
+- Message visibility (currently only in logs)
+- User control mechanisms (STOP button)
+- Conversation limits too restrictive
+- Agent personas too strong
 
-```
-Extension Structure (Clean):
-├── src/
-│   ├── settings/          # Settings management
-│   │   └── SettingsManager.ts
-│   ├── conversations/     # Conversation storage
-│   │   └── ConversationManager.ts
-│   ├── context/          # Project context
-│   │   └── ProjectContextManager.ts
-│   ├── commands/         # Migration commands
-│   │   └── MigrationCommands.ts
-│   ├── agents.ts         # Agent definitions
-│   ├── providers.ts      # AI providers (cleaned)
-│   ├── extension.ts      # Main extension
-│   └── webview/         # UI components
-└── .machat/              # Project-local storage
-    ├── config.json       # Project settings
-    ├── conversations/    # Local conversations
-    └── context/         # Agent memory
-```
-
-## Technical Architecture
-
-### Settings Hierarchy
-
-```typescript
-// Priority order (highest to lowest):
-1. Workspace settings (VS Code workspace)
-2. Project settings (.machat/config.json)
-3. Global extension settings
-4. VS Code default settings
+### Configuration Changes Needed
+```json
+// Increase conversation limit
+"multiAgentChat.interAgentComm.maxMessagesPerConversation": 50
 ```
 
-### Conversation Storage
+## Code Changes This Session
 
-- **Global**: `~/.vscode/extensions/multi-agent-chat/conversations/`
-- **Project**: `{projectRoot}/.machat/conversations/`
-- Auto-detection based on workspace presence
-- Migration utilities for existing conversations
+### Files Modified
+- `src/providers.ts` - Fixed streaming bypass, added context preservation
+- `src/agentCommunication.ts` - Enhanced debug logging, user context in prompts
+- `src/agentMessageParser.ts` - Improved parsing logs
+- `src/extension.ts` - File operations for all agents, context chain
+- `src/agents.ts` - Clarified Documenter role
 
-### Agent System (7 Agents)
+### Key Fixes
+1. Disabled streaming when inter-agent communication enabled
+2. Added user request context to inter-agent messages
+3. Enhanced file operation detection patterns
+4. Added "follow user request" instructions to all agents
 
-1. **Architect** (🏗️) - System design & architecture
-2. **Coder** (💻) - Implementation & development
-3. **Executor** (⚡) - File operations & commands
-4. **Reviewer** (🔍) - Code review & quality
-5. **Documenter** (📝) - Documentation
-6. **Coordinator** (🤝) - Multi-agent orchestration
-7. **Team** (👥) - Full team collaboration
+## Philosophy Shift
 
-## Files Removed in Cleanup
+### From
+- Speed optimization
+- Hidden complexity
+- Agent autonomy
+- Bureaucratic collaboration
 
-### Deleted Directories
+### To
+- Cost optimization
+- Transparent control
+- User authority
+- Tool-based capabilities
 
-- `src/mcp-server/` (entire directory)
-- Multiple unused provider files
-
-### Deleted Files
-
-```
-- src/providers/FastTeamProvider.ts
-- src/providers/FastTeamProviderV2.ts
-- src/providers/SimpleWebSocketProvider.ts
-- src/providers/IntelligentProvider.ts
-- src/webSocketTest.ts
-- src/localtest.ts
-- src/testInterAgent.ts
-- src/websocketManager.ts
-```
-
-## Configuration Changes
-
-### Package.json Updates
-
-- Version: 1.9.3 → 1.11.0
-- Removed 7 MCP-related commands
-- Reorganized settings into logical sections:
-  - API Keys
-  - Global Settings
-  - Agent Configuration
-  - Project Settings
-  - Performance
-
-### Command ID Updates
-
-All commands renamed from `claude-code-chat.*` to `multiAgentChat.*`:
-
-- `multiAgentChat.openChat`
-- `multiAgentChat.clearAllConversations`
-- `multi-agent-chat.initializeProject`
-- `multi-agent-chat.migrateConversations`
-- `multi-agent-chat.showMigrationStatus`
-
-## Build Information
-
-### v1.11.0 VSIX Package
-
-- **Size**: 1.3 MB (reduced from 1.5MB)
-- **Files**: 161 total
-- **Compilation**: Clean, no errors
-- **Dependencies**: Minimal (express, ws)
-
-## Testing Checklist
-
-### Critical Tests
-
-- [ ] Per-project settings isolation
-- [ ] Conversation migration from global to local
-- [ ] Agent memory persistence
-- [ ] File operations via Executor
-- [ ] Team coordination
-- [ ] Settings hierarchy merging
-
-### Regression Tests
-
-- [ ] All agents respond correctly
-- [ ] Conversation history saves/loads
-- [ ] Agent context maintained
-- [ ] UI renders properly
-- [ ] Commands work via palette
-
-## Known Issues
-
-### Current
-
-- Settings UI only displays API Keys section (other sections not rendering)
-- Some performance settings not fully wired up
-
-### Resolved
-
-- ✅ MCP server references removed
-- ✅ WSL configuration cleaned up
-- ✅ Branding inconsistencies fixed
-- ✅ Compilation errors resolved
-- ✅ Command ID mismatches fixed
-
-## Development Commands
-
-```bash
-# Compile TypeScript
-npm run compile
-
-# Build VSIX package
-npx vsce package --no-dependencies
-
-# Test in VS Code
-F5 to launch Extension Development Host
-
-# Clear conversations (in VS Code)
-Ctrl+Shift+P → "Clear All Conversation History"
-```
+*"AI taking 3 minutes is still faster than humans taking hours/days"*
 
 ## Next Steps
 
-### Immediate
+1. **Monday Morning**: Implement toolbar, STOP button, workflow selector
+2. **Test**: Verify inter-agent communication improvements
+3. **Refactor**: Begin moving from personas to capabilities
+4. **Document**: Update user documentation with new patterns
 
-1. Fix Settings UI rendering (non-API sections)
-2. Wire up remaining performance settings
-3. Test per-project isolation thoroughly
+## Testing Checklist
 
-### Near Future
+### Before Next Session
+- [ ] Install latest VSIX (2.89 MB)
+- [ ] Increase message limit to 50
+- [ ] Test @mentions between agents
+- [ ] Verify file operations work for all agents
+- [ ] Check console for debug messages
 
-1. Implement Settings UI with VS Code native + custom panels
-2. Create agent configuration UI
-3. Add agent templates
-4. Performance optimization
+## Key Insights to Remember
 
-### Long Term
-
-1. Multi-workspace support
-2. Agent marketplace
-3. Cloud sync capabilities
-
-## Migration Path
-
-For users upgrading from pre-1.11.0:
-
-1. Conversations remain in global storage by default
-2. Run "Initialize Multi Agent Chat Project" to create `.machat`
-3. Run "Migrate Conversations to Project" to move existing chats
-4. Add `.machat/` to `.gitignore`
+1. **Users need control, not more agents**
+2. **Transparency beats efficiency**
+3. **Tools, not coworkers**
+4. **Cost matters more than speed**
+5. **Graduated intervention beats all-or-nothing**
 
 ## Session Status
 
-✅ Architecture implementation complete
-✅ Legacy code removed successfully
-✅ Branding unified throughout
-✅ Clean VSIX package built
-✅ Ready for testing
+✅ Inter-agent communication functional
+✅ Debug logging comprehensive
+✅ Context preservation implemented
+✅ Philosophy documented
+📋 Implementation plan ready for Monday
+🎯 Focus: User control and transparency
 
-## Important Notes
+---
 
-### Project Settings
-
-- Settings in `.machat/config.json` override global
-- Sensitive settings (API keys) should stay in user settings
-- Project settings ideal for team collaboration
-
-### Performance Impact
-
-- Removed ~30KB of unused code
-- Simplified provider architecture
-- Reduced extension size by 200KB
-- Faster activation time
-
-### Backward Compatibility
-
-- Old conversations auto-migrate on first load
-- Settings cascade ensures no breaking changes
-- Agent context rebuilds from history if needed
+*Last Updated: 2025-09-29*
+*Next Session: Monday 2025-09-30 - Implement control mechanisms*
+*Key Documents: See docs/proposals/ folder*

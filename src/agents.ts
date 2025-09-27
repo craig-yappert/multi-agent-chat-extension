@@ -65,13 +65,13 @@ export const defaultAgents: AgentConfig[] = [
 		id: 'documenter',
 		name: 'Documenter',
 		role: 'Documentation & Communication',
-		description: 'Creates documentation, writes comments, and explains complex concepts',
+		description: 'Creates DOCUMENTATION files (README, guides, docs) - NOT code. For code, use @coder',
 		icon: '📝',
 		color: '#F39C12',
-		capabilities: ['documentation', 'explanation', 'comments', 'tutorials'],
+		capabilities: ['documentation', 'markdown-files', 'explanations', 'user-guides'],
 		provider: 'claude',
 		model: 'sonnet',
-		specializations: ['technical-writing', 'api-docs', 'user-guides', 'readme']
+		specializations: ['technical-writing', 'api-docs', 'user-guides', 'readme', 'markdown']
 	},
 	{
 		id: 'coordinator',

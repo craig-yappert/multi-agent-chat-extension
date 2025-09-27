@@ -279,14 +279,8 @@ class ClaudeChatProvider {
 
 		// Add view state change handler to detect when panel is restored
 		this._panel.onDidChangeViewState((e) => {
-			console.log('[FLOAT DEBUG] Panel view state changed:', {
-				active: e.webviewPanel.active,
-				visible: e.webviewPanel.visible
-			});
-
 			// When panel becomes visible again (e.g., after floating), reinitialize
 			if (e.webviewPanel.visible && e.webviewPanel.active) {
-				console.log('[FLOAT DEBUG] Panel became active, reinitializing conversation');
 				this._reinitializeAfterFloat();
 			}
 		}, null, this._disposables);
@@ -525,31 +519,21 @@ class ClaudeChatProvider {
 	}
 
 	private _initializeWebview() {
-		console.log('[FLOAT DEBUG] _initializeWebview called');
-
 		// Reload conversation index in case it wasn't loaded yet
 		this._conversationIndex = this._conversationManager.getConversationIndex();
-		console.log('[FLOAT DEBUG] Conversation index loaded, count:', this._conversationIndex.length);
 
 		// Send conversation list to webview
 		this._sendConversationList();
 
 		// Always load the most recent conversation (simpler and consistent)
 		const latestConversation = this._getLatestConversation();
-		console.log('[FLOAT DEBUG] Latest conversation:', latestConversation ? {
-			filename: latestConversation.filename,
-			sessionId: latestConversation.sessionId,
-			messageCount: latestConversation.messageCount
-		} : 'none');
 
 		this._currentSessionId = latestConversation?.sessionId;
 
 		// Load latest conversation history if available
 		if (latestConversation) {
-			console.log('[FLOAT DEBUG] Loading conversation history:', latestConversation.filename);
 			this._loadConversationHistory(latestConversation.filename);
 		} else {
-			console.log('[FLOAT DEBUG] No conversation to load, sending ready message');
 			// If no conversation to load, clear topic and send ready
 			this._conversationTopic = undefined;
 			setTimeout(() => {
@@ -569,10 +553,8 @@ class ClaudeChatProvider {
 	}
 
 	private _reinitializeAfterFloat() {
-		console.log('[FLOAT DEBUG] _reinitializeAfterFloat called');
 
 		if (!this._panel) {
-			console.log('[FLOAT DEBUG] No panel to reinitialize');
 			return;
 		}
 
@@ -581,18 +563,11 @@ class ClaudeChatProvider {
 
 		// Get latest conversation
 		const latestConversation = this._getLatestConversation();
-		console.log('[FLOAT DEBUG] Latest conversation after float:', latestConversation ? {
-			filename: latestConversation.filename,
-			sessionId: latestConversation.sessionId,
-			messageCount: latestConversation.messageCount
-		} : 'none');
 
 		// Load the conversation
 		if (latestConversation) {
-			console.log('[FLOAT DEBUG] Loading conversation after float:', latestConversation.filename);
 			this._loadConversationHistory(latestConversation.filename);
 		} else {
-			console.log('[FLOAT DEBUG] No conversation to load after float');
 			// Send ready message if no conversation
 			this._conversationTopic = undefined;
 			this._sendReadyMessage();
@@ -727,13 +702,13 @@ class ClaudeChatProvider {
 				workspaceRoot: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
 				useInterAgentComm: interAgentCommEnabled,
 				conversationHistory: agentHistory,
-				extensionContext: this._context
+				extensionContext: this._context,
+				userRequest: message  // Pass the original user message for context chain
 			});
 
-			// Parse response for file operations if this is the Executor agent
-			if (agentConfig.id === 'executor') {
-				await this._handleFileOperations(response);
-			}
+			// Parse response for file operations from any agent
+			// All agents can potentially create files (e.g., Coder creates code files, Documenter creates docs)
+			await this._handleFileOperations(response);
 
 			// Send response back to UI with agent metadata
 			this._sendAndSaveMessage({
@@ -2364,29 +2339,22 @@ class ClaudeChatProvider {
 	}
 
 	private async _floatWindow(): Promise<void> {
-		console.log('[FLOAT DEBUG] _floatWindow called');
-		console.log('[FLOAT DEBUG] Current panel exists:', !!this._panel);
-		console.log('[FLOAT DEBUG] Current conversation length:', this._currentConversation?.length || 0);
 
 		try {
 			// First ensure the panel is active
 			if (this._panel) {
-				console.log('[FLOAT DEBUG] Revealing panel');
 				this._panel.reveal();
 			} else {
-				console.log('[FLOAT DEBUG] WARNING: No panel to float!');
+				console.warn('WARNING: No panel to float!');
 			}
 
 			// Small delay to ensure the panel is ready
 			setTimeout(async () => {
-				console.log('[FLOAT DEBUG] Executing moveEditorToNewWindow command');
 				// Execute the command to move editor to new window
 				await vscode.commands.executeCommand('workbench.action.moveEditorToNewWindow');
-				console.log('[FLOAT DEBUG] Move command executed');
 
 				// After moving to new window, force reload conversation
 				setTimeout(() => {
-					console.log('[FLOAT DEBUG] Reloading conversation after float');
 					this._reinitializeAfterFloat();
 				}, 500);
 
@@ -2406,7 +2374,7 @@ class ClaudeChatProvider {
 				}
 			}, 200);
 		} catch (error) {
-			console.error('[FLOAT DEBUG] Failed to float window:', error);
+			console.error('Failed to float window:', error);
 			vscode.window.showErrorMessage('Failed to open chat in separate window');
 		}
 	}
@@ -2493,9 +2461,12 @@ class ClaudeChatProvider {
 	}
 
 	private async _handleFileOperations(response: string): Promise<void> {
-		// Parse response for file operations
-		// Look for patterns like "Creating file: <filename>" or "Writing to: <filename>"
-		const fileCreatePattern = /(?:Creating|Writing|Created|Wrote)(?:\s+(?:a\s+)?(?:new\s+)?file)?:?\s+[`"]?([^\s`"]+)[`"]?/gi;
+		console.log('[File Operations] Checking response for file operations');
+
+		// Parse response for file operations - enhanced patterns
+		// Look for various patterns agents might use
+		const fileCreatePattern = /(?:Creating|Writing|Created|Wrote|Save|Saving|Generate|Generating|File|Making)(?:\s+(?:a\s+)?(?:new\s+)?(?:file|directory|folder))?:?\s+[`"]?([^\s`"]+\.[^\s`"]+)[`"]?/gi;
+		const directoryPattern = /(?:Creating|Making|Created)(?:\s+(?:a\s+)?(?:new\s+)?(?:directory|folder)):?\s+[`"]?([^\s`"]+)[`"]?/gi;
 		const fileContentPattern = /```(?:[\w+]+)?\n([\s\S]*?)```/g;
 
 		let match;
@@ -2504,7 +2475,15 @@ class ClaudeChatProvider {
 		// Find file names mentioned
 		const fileNames: string[] = [];
 		while ((match = fileCreatePattern.exec(response)) !== null) {
+			console.log(`[File Operations] Found file mention: ${match[1]}`);
 			fileNames.push(match[1]);
+		}
+
+		// Find directory names mentioned
+		const directoryNames: string[] = [];
+		while ((match = directoryPattern.exec(response)) !== null) {
+			console.log(`[File Operations] Found directory mention: ${match[1]}`);
+			directoryNames.push(match[1]);
 		}
 
 		// Find code blocks that might be file contents
@@ -2521,8 +2500,30 @@ class ClaudeChatProvider {
 			});
 		}
 
+		// Create directories first if any mentioned
+		if (directoryNames.length > 0) {
+			console.log(`[File Operations] Creating ${directoryNames.length} directories`);
+			for (const dir of directoryNames) {
+				try {
+					const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+					if (workspaceFolder) {
+						const dirPath = path.isAbsolute(dir) ?
+							dir :
+							path.join(workspaceFolder.uri.fsPath, dir);
+
+						const dirUri = vscode.Uri.file(dirPath);
+						await vscode.workspace.fs.createDirectory(dirUri);
+						console.log(`[File Operations] Created directory: ${dirPath}`);
+					}
+				} catch (error) {
+					console.error(`[File Operations] Failed to create directory ${dir}:`, error);
+				}
+			}
+		}
+
 		// Request permission for file operations if any found
 		if (fileOperations.length > 0) {
+			console.log(`[File Operations] Found ${fileOperations.length} file operations`);
 			const fileList = fileOperations.map(op => op.filename).join(', ');
 
 			// Generate a unique permission ID
@@ -2551,10 +2552,11 @@ class ClaudeChatProvider {
 			});
 
 			if (!approved) {
-				console.log('File operations denied by user');
+				console.log('[File Operations] Permission denied by user');
 				vscode.window.showWarningMessage('File operations were denied');
 				return;
 			}
+			console.log('[File Operations] Permission approved');
 		}
 
 		// Execute file operations if approved
@@ -2568,13 +2570,23 @@ class ClaudeChatProvider {
 
 					const fileUri = vscode.Uri.file(filePath);
 					const content = new TextEncoder().encode(op.content);
+					// Ensure parent directory exists
+					const dirPath = path.dirname(filePath);
+					const dirUri = vscode.Uri.file(dirPath);
+					try {
+						await vscode.workspace.fs.stat(dirUri);
+					} catch {
+						console.log(`[File Operations] Creating parent directory: ${dirPath}`);
+						await vscode.workspace.fs.createDirectory(dirUri);
+					}
+
 					await vscode.workspace.fs.writeFile(fileUri, content);
 
-					console.log(`File created/updated by Executor agent: ${filePath}`);
+					console.log(`[File Operations] Successfully wrote file: ${filePath}`);
 					vscode.window.showInformationMessage(`File created: ${op.filename}`);
 				}
 			} catch (error) {
-				console.error(`Failed to create file ${op.filename}:`, error);
+				console.error(`[File Operations] Failed to create file ${op.filename}:`, error);
 			}
 		}
 	}
@@ -2668,18 +2680,14 @@ class ClaudeChatProvider {
 	}
 
 	private async _loadConversationHistory(filename: string): Promise<void> {
-		console.log("[FLOAT DEBUG] _loadConversationHistory called with:", filename);
-		console.log("[FLOAT DEBUG] Panel exists:", !!this._panel);
-		console.log("[FLOAT DEBUG] Webview exists:", !!this._panel?.webview);
 
 		try {
 			// Load conversation using conversation manager
 			const conversationData = await this._conversationManager.loadConversation(filename);
 			if (!conversationData) {
-				console.error(`[FLOAT DEBUG] Conversation not found: ${filename}`);
+				console.error(`Conversation not found: ${filename}`);
 				return;
 			}
-			console.log("[FLOAT DEBUG] Conversation loaded, message count:", conversationData.messages?.length || 0);
 
 			// Load conversation into current state
 			this._currentConversation = conversationData.messages || [];
@@ -2722,7 +2730,6 @@ class ClaudeChatProvider {
 				// Small delay to ensure messages are cleared before loading new ones
 				setTimeout(() => {
 					const messages = this._currentConversation;
-					console.log("[FLOAT DEBUG] Sending", messages.length, "messages to webview");
 					for (let i = 0; i < messages.length; i++) {
 
 						const message = messages[i];

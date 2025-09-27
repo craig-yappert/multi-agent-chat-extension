@@ -79,6 +79,9 @@ export class AgentCommunicationHub {
 		context?: any,
 		type: 'request' | 'response' | 'broadcast' | 'coordination' = 'request'
 	): Promise<string> {
+		// Enhanced debug logging
+		console.log(`\n[Send Message] ${fromAgent} >> ${toAgent} (${type})`);
+		console.log(`[Send Message] Content: "${message.substring(0, 100)}${message.length > 100 ? '...' : ''}"`);
 		// Check conversation limits
 		const conversationId = context?.conversationId || this.generateConversationId();
 
@@ -114,6 +117,7 @@ export class AgentCommunicationHub {
 
 		this.messageQueue.push(agentMessage);
 		this.log(`Message queued from ${fromAgent} to ${toAgent} (Conv: ${conversationId}, Count: ${messageCount + 1})`);
+		console.log(`[Message Queue] Added message to queue. Queue size: ${this.messageQueue.length}`);
 
 		// Send status update if callback is available
 		if (this.statusCallback) {
@@ -296,6 +300,7 @@ Please coordinate their efforts and provide a cohesive solution.
 			return;
 		}
 
+		console.log(`[Queue Processing] Starting to process ${this.messageQueue.length} messages`);
 		this.isProcessing = true;
 
 		while (this.messageQueue.length > 0) {
@@ -317,15 +322,17 @@ Please coordinate their efforts and provide a cohesive solution.
 	}
 
 	private async processMessage(message: AgentMessage): Promise<void> {
-		console.log(`[AgentCommunicationHub] Processing message from ${message.from} to ${message.to}`);
+		console.log(`\n[Received Message] ${message.from} >> ${message.to} (${message.type})`);
+		console.log(`[Received Message] Content: "${message.content.substring(0, 100)}${message.content.length > 100 ? '...' : ''}"`);
 		try {
 			const toAgent = this.agentManager.getAgent(message.to);
 			if (!toAgent) {
-				console.error(`[AgentCommunicationHub] Agent ${message.to} not found!`);
+				console.error(`[Process Error] Agent ${message.to} not found in AgentManager!`);
+				console.error(`[Process Error] Available agents:`, this.agentManager.getAllAgents().map(a => a.id));
 				throw new Error(`Agent ${message.to} not found`);
 			}
 
-			console.log(`[AgentCommunicationHub] Found target agent ${toAgent.name}`);
+			console.log(`[Process Message] Target agent found: ${toAgent.name} (${toAgent.id})`);
 
 			// Send status update that agent is processing
 			if (this.statusCallback) {
@@ -341,23 +348,32 @@ Please coordinate their efforts and provide a cohesive solution.
 			}
 
 			const provider = this.providerManager.getProvider(toAgent);
+			console.log(`[Process Message] Got provider for ${toAgent.id}:`, provider.constructor.name);
+
+			// Check if this is part of a user-initiated request chain
+			const userContext = message.context?.userRequest ?
+				`\nOriginal User Request: "${message.context.userRequest}"
+Note: The user asked ${message.from} to contact you with this request.\n` : '';
 
 			const interAgentPrompt = `
 You are receiving a message from another agent.
 From: ${message.from}
 Type: ${message.type}
 Priority: ${message.priority || 'normal'}
-
+${userContext}
 Message: ${message.content}
 
-Please provide your response based on your role and capabilities.
+IMPORTANT: If this is a user-initiated request (see above), prioritize fulfilling the user's intent even if it seems unusual for your role.
+Please provide your response based on the request above.
 `;
 
+			console.log(`[Process Message] Sending to provider with prompt...`);
 			const response = await provider.sendMessage(
 				interAgentPrompt,
 				toAgent,
 				message.context
 			);
+			console.log(`[Process Response] Got response from ${message.to}: "${response.substring(0, 100)}${response.length > 100 ? '...' : ''}"`);
 
 			const responseMessage: AgentMessage = {
 				id: this.generateMessageId(),
@@ -372,6 +388,7 @@ Please provide your response based on your role and capabilities.
 			this.storeResponse(message.id, response);
 
 		} catch (error) {
+			console.error(`[Process Error] Failed to process message from ${message.from} to ${message.to}:`, error);
 			this.log(`Error processing message from ${message.from} to ${message.to}: ${error}`);
 			this.storeResponse(message.id, `Error: ${error}`);
 		}

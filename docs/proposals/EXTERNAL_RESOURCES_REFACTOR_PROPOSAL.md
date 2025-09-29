@@ -330,3 +330,133 @@ The approach is proven - most major VS Code extensions use external resources ra
 4. Gradually migrate components
 5. Update documentation
 6. Celebrate never dealing with quadruple-escaped backslashes again! 🎉
+
+## Architect Feedback
+
+### Architectural Review: External Resources Refactor Proposal
+
+This is an excellent architectural proposal that addresses legitimate technical debt. Here's my analysis:
+
+### ✅ Strengths
+
+#### 1. Addresses Real Pain Points
+The current template literal approach is indeed problematic. The escaping issues, lack of IDE support, and 3500+ line files are genuine maintenance burdens.
+
+#### 2. Sound Architectural Principles
+- **Separation of concerns**: HTML/CSS/JS in their proper domains
+- **Single responsibility**: Each file has one clear purpose
+- **Configuration as data**: Makes the system more flexible
+
+#### 3. Phased Implementation Strategy
+The gradual migration approach minimizes risk and allows for validation at each step.
+
+### ⚠️ Architectural Considerations
+
+#### 1. VS Code Extension Packaging
+```typescript
+// Ensure resources are included in package.json
+"files": [
+  "out/**/*",
+  "resources/**/*"  // Critical for VSIX packaging
+]
+```
+
+#### 2. Development vs Production Loading
+Consider a hybrid approach:
+```typescript
+class ResourceLoader {
+  private isDevelopment = this.context.extensionMode === vscode.ExtensionMode.Development;
+
+  async loadResource(path: string): Promise<string> {
+    if (this.isDevelopment) {
+      // Hot-reload from filesystem
+      return this.loadFromFile(path);
+    } else {
+      // Load from bundled resources with caching
+      return this.loadFromBundle(path);
+    }
+  }
+}
+```
+
+#### 3. Performance Impact Analysis Needed
+- **Current approach**: Zero I/O, everything in memory
+- **Proposed**: Multiple file reads at webview creation
+- **Recommendation**: Benchmark webview initialization times
+
+#### 4. Security Architecture Enhancement
+```typescript
+// Resource integrity validation
+class SecureResourceLoader {
+  private validateResourcePath(path: string): boolean {
+    // Prevent path traversal
+    const normalized = path.resolve(path);
+    return normalized.startsWith(this.resourcesRoot);
+  }
+
+  private validateConfigSchema(config: unknown): boolean {
+    // Runtime schema validation as proposed
+  }
+}
+```
+
+### 📋 Recommended Modifications
+
+#### 1. Add Resource Bundling Strategy
+```typescript
+// For production, consider bundling critical resources
+interface ResourceManifest {
+  bundles: {
+    critical: string[];    // Load immediately
+    lazy: string[];        // Load on demand
+  }
+}
+```
+
+#### 2. Enhanced Configuration System
+```typescript
+interface AgentConfiguration extends BaseAgentConfig {
+  configVersion: string;           // For migration compatibility
+  overrides?: Partial<AgentConfig>; // User customizations
+  security: {
+    allowUserPrompts: boolean;
+    maxPromptLength: number;
+  }
+}
+```
+
+#### 3. Development Experience Improvements
+- Add config schema files for IntelliSense
+- Implement config validation in CI/CD
+- Create development file watchers
+
+### 🚀 Implementation Priority Recommendations
+
+#### Phase 1A: Risk Mitigation (Before PoC)
+1. Create resource bundling strategy for VSIX packaging
+2. Implement performance benchmarking suite
+3. Add rollback mechanism
+
+#### Phase 1B: Proof of Concept
+Continue as proposed with script extraction
+
+#### Phase 2: Enhanced Implementation
+Add the security and performance enhancements I've outlined
+
+### 📊 Success Metrics
+
+Track these to validate the refactor:
+- Webview initialization time (should be <100ms increase)
+- Developer velocity (time to implement new features)
+- Bug reduction (especially escaping-related issues)
+- Extension package size impact
+
+### 🎯 Verdict: APPROVE with Modifications
+
+This is a well-thought-out proposal that will significantly improve the codebase. The architectural approach is sound, and the benefits justify the effort.
+
+**Key requirement**: Address the VSIX packaging and performance concerns I've raised before proceeding.
+
+The template literal escape nightmare alone justifies this refactor. Moving to proper file separation aligns with VS Code extension best practices and will dramatically improve developer experience.
+
+**Estimated ROI**: High - The maintenance burden reduction and developer velocity improvements will pay back the implementation cost within 2-3 feature cycles.

@@ -23,6 +23,7 @@ export interface ConversationData {
     messages: ConversationMessage[];
     filename: string;
     agentContext?: Record<string, any[]>;
+    topic?: string;
 }
 
 export interface ConversationIndex {
@@ -30,6 +31,7 @@ export interface ConversationIndex {
     timestamp: string;
     messageCount: number;
     totalCost: number;
+    topic?: string;
     sessionId: string;
     projectPath?: string;
 }
@@ -248,6 +250,7 @@ export class ConversationManager {
             messageCount: conversation.messageCount,
             totalCost: conversation.totalCost,
             sessionId: conversation.sessionId,
+            topic: conversation.topic,
             projectPath: this.useProjectStorage ? this.settingsManager.getProjectRoot() : undefined
         });
 

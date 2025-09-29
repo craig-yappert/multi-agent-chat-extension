@@ -23,10 +23,51 @@ const getHtml = (isTelemetryEnabled: boolean) => `<!DOCTYPE html>
 		</div>
 		<div style="display: flex; gap: 8px; align-items: center;">
 			<div id="sessionStatus" class="session-status" style="display: none;">No session</div>
-			<button class="btn outlined" id="settingsBtn" onclick="toggleSettings()" title="Settings">⚙️</button>
-			<button class="btn outlined" id="historyBtn" onclick="toggleConversationHistory()">📚 History</button>
-			<button class="btn primary" id="newSessionBtn" onclick="newSession()">New Chat</button>
-			<button class="btn outlined" id="floatBtn" onclick="floatWindow()" title="Pop Out to Separate Window">🪟</button>
+
+			<!-- Workflow Mode Selector -->
+			<div class="workflow-selector" title="Select workflow mode">
+				<select id="workflowMode" class="workflow-dropdown" onchange="changeWorkflowMode(this.value)">
+					<option value="direct" title="Single agent handles your request directly">Direct</option>
+					<option value="review" title="Create solution, then get peer review">Review</option>
+					<option value="brainstorm" title="Multiple agents explore options in parallel">Brainstorm</option>
+					<option value="auto" selected title="System chooses best approach">Auto</option>
+				</select>
+			</div>
+
+			<div class="toolbar-divider"></div>
+
+			<button class="toolbar-btn" id="newSessionBtn" onclick="newSession()" title="New Chat">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M12 5v14M5 12h14"/>
+				</svg>
+			</button>
+			<button class="toolbar-btn" id="historyBtn" onclick="toggleConversationHistory()" title="Chat History">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+					<path d="M3 3v5h5"/>
+					<path d="M12 7v5l4 2"/>
+				</svg>
+			</button>
+			<button class="toolbar-btn" id="settingsBtn" onclick="toggleSettings()" title="Settings">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<circle cx="12" cy="12" r="3"/>
+					<path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
+				</svg>
+			</button>
+
+			<div class="toolbar-divider"></div>
+
+			<button class="toolbar-btn danger" id="stopAllBtn" onclick="emergencyStop()" title="Stop All Agents (Ctrl+Shift+S)">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+				</svg>
+			</button>
+			<button class="toolbar-btn" id="floatBtn" onclick="floatWindow()" title="Pop Out to Separate Window">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M7 7h10v10"/>
+					<path d="M7 17L17 7"/>
+				</svg>
+			</button>
 		</div>
 	</div>
 

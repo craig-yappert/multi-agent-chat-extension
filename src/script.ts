@@ -1919,11 +1919,81 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 
 		window.stopRequest = function() {
 			sendStats('Stop request');
-			
+
 			vscode.postMessage({
 				type: 'stopRequest'
 			});
 			hideStopButton();
+		}
+
+		window.emergencyStop = function() {
+			console.log('🛑 EMERGENCY STOP - Halting all agent operations');
+
+			// Send emergency stop message to extension
+			vscode.postMessage({
+				type: 'emergencyStop'
+			});
+
+			// Update UI to show stop was triggered
+			const stopBtn = document.getElementById('stopAllBtn');
+			if (stopBtn) {
+				stopBtn.classList.add('pulsing');
+				setTimeout(() => {
+					stopBtn.classList.remove('pulsing');
+				}, 1000);
+			}
+
+			// Clear any pending agent status
+			hideAgentStatus();
+
+			// Show notification to user
+			addMessage('🛑 Emergency stop triggered - All agent operations halted', 'system');
+
+			// Reset processing state
+			isProcessing = false;
+			enableButtons();
+			updateStatusWithTotals();
+		}
+
+		window.changeWorkflowMode = function(mode) {
+			console.log('Workflow mode changed to:', mode);
+
+			// Send workflow mode change to extension
+			vscode.postMessage({
+				type: 'changeWorkflowMode',
+				mode: mode
+			});
+
+			// Visual feedback
+			const selector = document.getElementById('workflowMode');
+			if (selector) {
+				// Add a brief highlight effect
+				selector.style.borderColor = 'var(--vscode-focusBorder)';
+				setTimeout(() => {
+					selector.style.borderColor = '';
+				}, 500);
+			}
+
+			// Show mode description to user
+			let modeDescription = '';
+			switch(mode) {
+				case 'direct':
+					modeDescription = 'Direct Mode: Single agent will handle your request';
+					break;
+				case 'review':
+					modeDescription = 'Review Mode: Solution will be created then peer-reviewed';
+					break;
+				case 'brainstorm':
+					modeDescription = 'Brainstorm Mode: Multiple agents will explore options in parallel';
+					break;
+				case 'auto':
+					modeDescription = 'Auto Mode: System will choose the best approach';
+					break;
+			}
+
+			if (modeDescription) {
+				addMessage(modeDescription, 'system');
+			}
 		}
 
 		// Disable/enable buttons during processing
@@ -2518,6 +2588,15 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				window.startNewChatWithTopic();
 			} else if (e.key === 'Escape') {
 				window.cancelNewChat();
+			}
+		});
+
+		// Global keyboard shortcut for emergency stop (Ctrl+Shift+S)
+		document.addEventListener('keydown', (e) => {
+			if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 's') {
+				e.preventDefault();
+				console.log('Emergency stop keyboard shortcut triggered');
+				window.emergencyStop();
 			}
 		});
 

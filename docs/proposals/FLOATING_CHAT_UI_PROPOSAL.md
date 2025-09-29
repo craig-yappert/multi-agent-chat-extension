@@ -151,6 +151,7 @@ private _setCompactMode(enabled: boolean) {
 3. **Full Functionality**: All features work in floating window
 4. **Native Integration**: Uses VS Code's built-in windowing system
 5. **Zero Configuration**: Works out of the box
+6. **Native Drag-and-Drop**: When floated, drag-and-drop file paths works perfectly since VS Code doesn't intercept drops in windows without editor tabs!
 
 ## Technical Notes
 

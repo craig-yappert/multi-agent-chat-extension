@@ -171,27 +171,6 @@
         }
       ]
     },
-    "views": {
-      "multiAgentChat": [
-        {
-          "id": "multiAgentChat.chat",
-          "type": "webview",
-          "name": "Multi Agent Chat",
-          "when": "true",
-          "icon": "icon.png",
-          "contextualTitle": "Multi Agent Chat"
-        }
-      ]
-    },
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "multiAgentChat",
-          "title": "Multi Agent Chat",
-          "icon": "icon.png"
-        }
-      ]
-    },
     "configuration": [
       {
         "title": "API Keys",

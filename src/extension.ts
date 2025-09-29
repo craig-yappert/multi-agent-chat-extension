@@ -10,7 +10,7 @@ import { SettingsManager } from './settings/SettingsManager';
 import { ConversationManager, ConversationIndex } from './conversations/ConversationManager';
 import { ProjectContextManager } from './context/ProjectContextManager';
 import { MigrationCommands } from './commands/MigrationCommands';
-import { MCPServerManager } from './mcp-server/serverManager';
+// import { MCPServerManager } from './mcp-server/serverManager';  // Disabled - not needed
 import { SettingsPanel } from './ui/SettingsPanel';
 
 const exec = util.promisify(cp.exec);
@@ -33,11 +33,11 @@ export async function activate(context: vscode.ExtensionContext) {
 	const migrationCommands = new MigrationCommands(context, settingsManager, conversationManager, contextManager);
 	migrationCommands.registerCommands();
 
-	// Initialize MCP Server Manager
-	const mcpServerManager = new MCPServerManager(context);
-	console.log('MCP Server Manager initialized');
+	// MCP Server Manager disabled - not needed for current functionality
+	// const mcpServerManager = new MCPServerManager(context);
+	// console.log('MCP Server Manager initialized');
 
-	const provider = new ClaudeChatProvider(context.extensionUri, context, settingsManager, conversationManager, contextManager, mcpServerManager);
+	const provider = new ClaudeChatProvider(context.extensionUri, context, settingsManager, conversationManager, contextManager, undefined);
 
 	const disposable = vscode.commands.registerCommand('multiAgentChat.openChat', (column?: vscode.ViewColumn) => {
 		console.log('Multi Agent Chat command executed!');
@@ -174,6 +174,9 @@ class ClaudeChatProvider {
 	private _outputChannel: vscode.OutputChannel;
 	private _settingsPanel: SettingsPanel | undefined;
 	private _currentView: 'chat' | 'settings' | 'history' = 'chat';
+	private _activeOperations: Set<string> = new Set();
+	private _abortControllers: Map<string, AbortController> = new Map();
+	private _workflowMode: 'direct' | 'review' | 'brainstorm' | 'auto' = 'auto';
 
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
@@ -181,7 +184,7 @@ class ClaudeChatProvider {
 		private readonly _settingsManager: SettingsManager,
 		private readonly _conversationManager: ConversationManager,
 		private readonly _contextManager: ProjectContextManager,
-		private readonly _mcpServerManager?: MCPServerManager
+		private readonly _mcpServerManager?: any // MCPServerManager disabled
 	) {
 		this._agentManager = new AgentManager();
 		this._outputChannel = vscode.window.createOutputChannel('Multi-Agent Communication');
@@ -412,6 +415,12 @@ class ClaudeChatProvider {
 			case 'stopRequest':
 				this._stopClaudeProcess();
 				return;
+			case 'emergencyStop':
+				this._emergencyStopAllAgents();
+				return;
+			case 'changeWorkflowMode':
+				this._setWorkflowMode(message.mode);
+				return;
 			case 'getSettings':
 				this._sendCurrentSettings();
 				return;
@@ -589,18 +598,54 @@ class ClaudeChatProvider {
 
 		// Parse @agent mentions in the message
 		const agentMentions = this._parseAgentMentions(message);
-		const targetAgent = agentMentions.length > 0 ? agentMentions[0] : this._selectedAgent;
+
+		// Determine target agent based on workflow mode
+		let targetAgent = agentMentions.length > 0 ? agentMentions[0] : this._selectedAgent;
+
+		// Override agent selection based on workflow mode
+		if (this._workflowMode !== 'auto' && agentMentions.length === 0) {
+			// No explicit agent mention, let workflow mode determine routing
+			switch(this._workflowMode) {
+				case 'direct':
+					// Use the currently selected single agent
+					break;
+				case 'review':
+					// Start with coder, will trigger review after
+					targetAgent = 'coder';
+					break;
+				case 'brainstorm':
+					// Use team for parallel exploration
+					targetAgent = 'team';
+					break;
+			}
+		}
 
 		// Get agent configuration for display
 		const agentConfig = this._agentManager.getAgent(targetAgent);
 		const agentName = agentConfig ? agentConfig.name : targetAgent;
 		const agentIcon = agentConfig ? agentConfig.icon : '🤖';
 
-		// Send initial status message
+		// Send initial status message based on workflow mode
+		let statusMessage = '';
+		switch(this._workflowMode) {
+			case 'direct':
+				statusMessage = `${agentIcon} ${agentName} is processing your request directly...`;
+				break;
+			case 'review':
+				statusMessage = `Starting review workflow: ${agentIcon} ${agentName} will create solution, then peer review...`;
+				break;
+			case 'brainstorm':
+				statusMessage = `Starting brainstorm: Multiple agents will explore options in parallel...`;
+				break;
+			case 'auto':
+				statusMessage = `User message sent to ${agentName}. ${agentIcon} ${agentName} is processing...`;
+				break;
+		}
+
 		this._postMessage({
 			type: 'agentStatus',
 			data: {
-				message: `User message sent to ${agentName}. ${agentIcon} ${agentName} is processing...`,
+				message: statusMessage,
 				agents: []  // Don't show agent pills, just the message
 			}
 		});
@@ -703,7 +748,8 @@ class ClaudeChatProvider {
 				useInterAgentComm: interAgentCommEnabled,
 				conversationHistory: agentHistory,
 				extensionContext: this._context,
-				userRequest: message  // Pass the original user message for context chain
+				userRequest: message,  // Pass the original user message for context chain
+				workflowMode: this._workflowMode  // Pass workflow mode for provider to adjust behavior
 			});
 
 			// Parse response for file operations from any agent
@@ -2458,6 +2504,96 @@ class ClaudeChatProvider {
 		} else {
 			console.log('No Claude process running to stop');
 		}
+	}
+
+	private _emergencyStopAllAgents(): void {
+		console.log('🛑 EMERGENCY STOP - Halting all agent operations');
+
+		// Set emergency stop flag
+		this._isProcessing = false;
+
+		// Clear the communication hub message queue if available
+		if (this._communicationHub) {
+			// Clear any pending messages
+			this._communicationHub.clearMessageQueue();
+
+			// Reset all agent states
+			console.log('Resetting all agent states...');
+		}
+
+		// Stop any active Claude process
+		if (this._currentClaudeProcess) {
+			console.log('Force stopping active Claude process...');
+			this._currentClaudeProcess.kill('SIGKILL');
+			this._currentClaudeProcess = undefined;
+		}
+
+		// Clear any active operations
+		this._activeOperations.clear();
+		this._abortControllers.forEach(controller => controller.abort());
+		this._abortControllers.clear();
+
+		// Update UI state
+		this._postMessage({
+			type: 'setProcessing',
+			data: { isProcessing: false }
+		});
+
+		this._postMessage({
+			type: 'clearLoading'
+		});
+
+		// Hide agent status
+		this._postMessage({
+			type: 'hideAgentStatus'
+		});
+
+		// Send emergency stop confirmation to UI
+		this._sendAndSaveMessage({
+			type: 'system',
+			data: '🛑 Emergency Stop: All agent operations have been halted. The system is now idle.'
+		});
+
+		// Log the emergency stop event
+		console.log('Emergency stop completed. All operations halted.');
+
+		// Show VS Code notification
+		vscode.window.showWarningMessage('Emergency Stop: All agent operations have been halted');
+	}
+
+	private _setWorkflowMode(mode: 'direct' | 'review' | 'brainstorm' | 'auto'): void {
+		console.log(`Setting workflow mode to: ${mode}`);
+		this._workflowMode = mode;
+
+		// Store the preference
+		this._context.globalState.update('workflowMode', mode);
+
+		// Log the change
+		this._outputChannel.appendLine(`Workflow mode changed to: ${mode.toUpperCase()}`);
+
+		// Optionally update agent selection based on workflow mode
+		if (mode === 'direct') {
+			// In direct mode, we might want to use a specific agent
+			// For now, keep the current agent selection
+		}
+
+		// Show VS Code notification
+		let modeLabel = '';
+		switch(mode) {
+			case 'direct':
+				modeLabel = 'Direct (Single Agent)';
+				break;
+			case 'review':
+				modeLabel = 'Review (With Peer Review)';
+				break;
+			case 'brainstorm':
+				modeLabel = 'Brainstorm (Parallel Exploration)';
+				break;
+			case 'auto':
+				modeLabel = 'Auto (System Choice)';
+				break;
+		}
+		vscode.window.showInformationMessage(`Workflow mode: ${modeLabel}`);
 	}
 
 	private async _handleFileOperations(response: string): Promise<void> {

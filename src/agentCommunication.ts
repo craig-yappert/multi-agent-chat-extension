@@ -437,6 +437,17 @@ Please provide your response based on the request above.
 		return new Promise(resolve => setTimeout(resolve, ms));
 	}
 
+	clearMessageQueue(): void {
+		console.log('Clearing message queue - Emergency stop');
+		this.messageQueue = [];
+		this.isProcessing = false;
+		this.activeAgents.clear();
+		this.conversationMessageCount.clear();
+		this.messageChainDepth.clear();
+		this.conversations.clear();
+		this.workflows.clear();
+	}
+
 	private log(message: string): void {
 		if (this.outputChannel) {
 			this.outputChannel.appendLine(`[AgentComm] ${new Date().toISOString()} - ${message}`);

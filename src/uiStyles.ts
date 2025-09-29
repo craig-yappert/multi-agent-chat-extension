@@ -83,6 +83,137 @@ const styles = `
         opacity: 1;
     }
 
+    /* Icon-only buttons */
+    .btn.icon-only {
+        padding: 6px 8px;
+        font-size: 16px;
+        min-width: 32px;
+        justify-content: center;
+    }
+
+    .btn.icon-only.primary {
+        background-color: var(--vscode-button-background);
+        color: var(--vscode-button-foreground);
+    }
+
+    .btn.icon-only.primary:hover {
+        background-color: var(--vscode-button-hoverBackground);
+    }
+
+    /* Danger button for emergency stop */
+    .btn.danger {
+        background-color: rgba(231, 76, 60, 0.1);
+        color: #e74c3c;
+        border-color: rgba(231, 76, 60, 0.3);
+    }
+
+    .btn.danger:hover {
+        background-color: rgba(231, 76, 60, 0.2);
+        border-color: rgba(231, 76, 60, 0.5);
+        transform: scale(1.05);
+    }
+
+    .btn.icon-only.danger {
+        font-size: 18px;
+    }
+
+    /* Pulsing animation for emergency stop feedback */
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7);
+        }
+        70% {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
+        }
+        100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
+        }
+    }
+
+    .btn.pulsing {
+        animation: pulse 1s ease-in-out;
+    }
+
+    /* Toolbar Styling */
+    .toolbar-btn {
+        background: transparent;
+        border: none;
+        color: var(--vscode-foreground);
+        padding: 6px;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+        opacity: 0.8;
+    }
+
+    .toolbar-btn:hover {
+        background-color: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground));
+        opacity: 1;
+    }
+
+    .toolbar-btn:active {
+        transform: scale(0.95);
+    }
+
+    .toolbar-btn.danger {
+        color: var(--vscode-errorForeground, #e74c3c);
+    }
+
+    .toolbar-btn.danger:hover {
+        background-color: rgba(231, 76, 60, 0.1);
+    }
+
+    .toolbar-divider {
+        width: 1px;
+        height: 24px;
+        background-color: var(--vscode-panel-border);
+        opacity: 0.8;
+        margin: 0 8px;
+    }
+
+    /* Workflow Mode Selector */
+    .workflow-selector {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-right: 8px;
+    }
+
+    .workflow-dropdown {
+        background-color: transparent;
+        color: var(--vscode-foreground);
+        border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        min-width: 100px;
+    }
+
+    .workflow-dropdown:hover {
+        background-color: var(--vscode-list-hoverBackground);
+        border-color: var(--vscode-focusBorder);
+    }
+
+    .workflow-dropdown:focus {
+        outline: none;
+        border-color: var(--vscode-focusBorder);
+    }
+
+    .workflow-dropdown option {
+        background-color: var(--vscode-dropdown-background);
+        color: var(--vscode-dropdown-foreground);
+        padding: 4px;
+    }
+
     /* Permission Request */
     .permission-request {
         margin: 4px 12px 20px 12px;

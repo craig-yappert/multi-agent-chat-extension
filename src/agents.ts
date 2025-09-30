@@ -6,9 +6,9 @@ export interface AgentConfig {
 	icon: string;
 	color: string;
 	capabilities: string[];
-	provider: 'claude' | 'openai' | 'local' | 'mcp' | 'multi';
+	provider: 'claude' | 'openai' | 'local' | 'multi';
 	model?: string;
-	mcpServer?: string;
+	// mcpServer removed;
 	specializations: string[];
 }
 

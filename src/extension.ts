@@ -143,6 +143,7 @@ class ClaudeChatProvider {
 	public _panel: vscode.WebviewPanel | undefined;
 	private _webview: vscode.Webview | undefined;
 	private _webviewView: vscode.WebviewView | undefined;
+	private _pendingInterAgentMessages: any[] = [];
 	private _disposables: vscode.Disposable[] = [];
 	private _messageHandlerDisposable: vscode.Disposable | undefined;
 	private _totalCost: number = 0;
@@ -202,14 +203,45 @@ class ClaudeChatProvider {
 			}
 		};
 
+		// Buffer for messages that arrive before webview is ready
+		this._pendingInterAgentMessages = [];
+
 		// Create communication hub first with status callback
 		this._communicationHub = new AgentCommunicationHub(
 			this._agentManager,
 			null as any,  // We'll set the provider manager after creation
 			this._outputChannel,
-			(status: string, fromAgent?: string, toAgent?: string) => {
-				// Send status update to webview
-				if (this._webview) {
+			(status: string, fromAgent?: string, toAgent?: string, messageContent?: string) => {
+				console.log(`[Extension statusCallback] Received: ${status}, from: ${fromAgent}, to: ${toAgent}, hasContent: ${!!messageContent}`);
+				console.log(`[Extension statusCallback] Current _webview: ${!!this._webview}, Current _panel: ${!!this._panel}`);
+
+				// Try multiple sources for webview reference
+				const currentWebview = this._webview || this._panel?.webview;
+
+				// Send inter-agent messages to webview for visibility
+				if (currentWebview && messageContent) {
+					console.log(`[Extension statusCallback] Posting interAgentMessage to webview`);
+					// Send as inter-agent message for special display
+					this._postMessage({
+						type: 'interAgentMessage',
+						data: {
+							from: fromAgent,
+							to: toAgent,
+							content: messageContent,
+							timestamp: new Date().toISOString()
+						}
+					});
+				} else if (messageContent && !currentWebview) {
+					// Buffer the message if webview isn't ready yet
+					console.log(`[Extension statusCallback] Buffering message until webview ready`);
+					this._pendingInterAgentMessages.push({
+						from: fromAgent,
+						to: toAgent,
+						content: messageContent,
+						timestamp: new Date().toISOString()
+					});
+				} else if (currentWebview) {
+					// Regular status update
 					this._postMessage({
 						type: 'agentStatus',
 						data: {
@@ -222,7 +254,7 @@ class ClaudeChatProvider {
 		);
 
 		// Now create provider manager with the communication hub already available
-		this._providerManager = new ProviderManager(_context, this._agentManager, this._communicationHub, streamCallback, this._mcpServerManager);
+		this._providerManager = new ProviderManager(_context, this._agentManager, this._communicationHub, streamCallback);
 
 		// Update the communication hub with the provider manager reference
 		(this._communicationHub as any).providerManager = this._providerManager;
@@ -519,6 +551,52 @@ class ClaudeChatProvider {
 		this._webview = webview;
 		this._webviewView = webviewView;
 		this._webview.html = this._getHtmlForWebview();
+
+		// Flush any pending inter-agent messages now that webview is ready
+		if (this._pendingInterAgentMessages.length > 0) {
+			console.log(`[Extension] Flushing ${this._pendingInterAgentMessages.length} buffered inter-agent messages`);
+			for (const message of this._pendingInterAgentMessages) {
+				this._postMessage({
+					type: 'interAgentMessage',
+					data: message
+				});
+			}
+			this._pendingInterAgentMessages = [];
+		}
+
+		// Update the communication hub's status callback now that webview is available
+		if (this._communicationHub) {
+			console.log('[Extension] Updating communication hub callback with webview');
+			this._communicationHub.setStatusCallback(
+				(status: string, fromAgent?: string, toAgent?: string, messageContent?: string) => {
+					console.log(`[Extension statusCallback] Received: ${status}, from: ${fromAgent}, to: ${toAgent}, hasContent: ${!!messageContent}`);
+
+					// Send inter-agent messages to webview for visibility
+					if (this._webview && messageContent) {
+						console.log(`[Extension statusCallback] Posting interAgentMessage to webview`);
+						// Send as inter-agent message for special display
+						this._postMessage({
+							type: 'interAgentMessage',
+							data: {
+								from: fromAgent,
+								to: toAgent,
+								content: messageContent,
+								timestamp: new Date().toISOString()
+							}
+						});
+					} else if (this._webview) {
+						// Regular status update
+						this._postMessage({
+							type: 'agentStatus',
+							data: {
+								agentId: fromAgent || 'system',
+								status: status
+							}
+						});
+					}
+				}
+			);
+		}
 
 		this._setupWebviewMessageHandler(this._webview);
 		this._initializePermissions();
@@ -868,16 +946,8 @@ class ClaudeChatProvider {
 		const yoloMode = config.get<boolean>('permissions.yoloMode', false);
 
 		if (yoloMode) {
-			// Yolo mode: skip all permissions regardless of MCP config
+			// Yolo mode: skip all permissions
 			args.push('--dangerously-skip-permissions');
-		} else {
-			// Add MCP configuration for permissions
-			const mcpConfigPath = this.getMCPConfigPath();
-			if (mcpConfigPath) {
-				args.push('--mcp-config', mcpConfigPath);
-				args.push('--allowedTools', 'mcp__multiAgentChat-permissions__approval_prompt');
-				args.push('--permission-prompt-tool', 'mcp__multiAgentChat-permissions__approval_prompt');
-			}
 		}
 
 		// Add model selection if not using default
@@ -1508,57 +1578,7 @@ class ClaudeChatProvider {
 	}
 
 	private async _initializeMCPConfig(): Promise<void> {
-		try {
-			const storagePath = this._context.storageUri?.fsPath;
-			if (!storagePath) { return; }
-
-			// Create MCP config directory
-			const mcpConfigDir = path.join(storagePath, 'mcp');
-			try {
-				await vscode.workspace.fs.stat(vscode.Uri.file(mcpConfigDir));
-			} catch {
-				await vscode.workspace.fs.createDirectory(vscode.Uri.file(mcpConfigDir));
-				console.log(`Created MCP config directory at: ${mcpConfigDir}`);
-			}
-
-			// Create or update mcp-servers.json with permissions server, preserving existing servers
-			const mcpConfigPath = path.join(mcpConfigDir, 'mcp-servers.json');
-			const mcpPermissionsPath = path.join(this._extensionUri.fsPath, 'mcp-permissions.js');
-			const permissionRequestsPath = path.join(storagePath, 'permission-requests');
-
-			// Load existing config or create new one
-			let mcpConfig: any = { mcpServers: {} };
-			const mcpConfigUri = vscode.Uri.file(mcpConfigPath);
-
-			try {
-				const existingContent = await vscode.workspace.fs.readFile(mcpConfigUri);
-				mcpConfig = JSON.parse(new TextDecoder().decode(existingContent));
-				console.log('Loaded existing MCP config, preserving user servers');
-			} catch {
-				console.log('No existing MCP config found, creating new one');
-			}
-
-			// Ensure mcpServers exists
-			if (!mcpConfig.mcpServers) {
-				mcpConfig.mcpServers = {};
-			}
-
-			// Add or update the permissions server entry
-			mcpConfig.mcpServers['multiAgentChat-permissions'] = {
-				command: 'node',
-				args: [mcpPermissionsPath],
-				env: {
-					CLAUDE_PERMISSIONS_PATH: permissionRequestsPath
-				}
-			};
-
-			const configContent = new TextEncoder().encode(JSON.stringify(mcpConfig, null, 2));
-			await vscode.workspace.fs.writeFile(mcpConfigUri, configContent);
-
-			console.log(`Updated MCP config at: ${mcpConfigPath}`);
-		} catch (error: any) {
-			console.error('Failed to initialize MCP config:', error.message);
-		}
+		// MCP configuration removed - no longer needed after cleanup
 	}
 
 	private async _initializePermissions(): Promise<void> {
@@ -1978,120 +1998,20 @@ class ClaudeChatProvider {
 	}
 
 	private async _loadMCPServers(): Promise<void> {
-		try {
-			const mcpConfigPath = this.getMCPConfigPath();
-			if (!mcpConfigPath) {
-				this._postMessage({ type: 'mcpServers', data: {} });
-				return;
-			}
-
-			const mcpConfigUri = vscode.Uri.file(mcpConfigPath);
-			let mcpConfig: any = { mcpServers: {} };
-
-			try {
-				const content = await vscode.workspace.fs.readFile(mcpConfigUri);
-				mcpConfig = JSON.parse(new TextDecoder().decode(content));
-			} catch (error) {
-				console.log('MCP config file not found or error reading:', error);
-				// File doesn't exist, return empty servers
-			}
-
-			// Filter out internal servers before sending to UI
-			const filteredServers = Object.fromEntries(
-				Object.entries(mcpConfig.mcpServers || {}).filter(([name]) => name !== 'multiAgentChat-permissions')
-			);
-			this._postMessage({ type: 'mcpServers', data: filteredServers });
-		} catch (error) {
-			console.error('Error loading MCP servers:', error);
-			this._postMessage({ type: 'mcpServerError', data: { error: 'Failed to load MCP servers' } });
-		}
+		// MCP server functionality removed
+		this._postMessage({ type: 'mcpServers', data: {} });
 	}
 
 	private async _saveMCPServer(name: string, config: any): Promise<void> {
-		try {
-			const mcpConfigPath = this.getMCPConfigPath();
-			if (!mcpConfigPath) {
-				this._postMessage({ type: 'mcpServerError', data: { error: 'Storage path not available' } });
-				return;
-			}
-
-			const mcpConfigUri = vscode.Uri.file(mcpConfigPath);
-			let mcpConfig: any = { mcpServers: {} };
-
-			// Load existing config
-			try {
-				const content = await vscode.workspace.fs.readFile(mcpConfigUri);
-				mcpConfig = JSON.parse(new TextDecoder().decode(content));
-			} catch {
-				// File doesn't exist, use default structure
-			}
-
-			// Ensure mcpServers exists
-			if (!mcpConfig.mcpServers) {
-				mcpConfig.mcpServers = {};
-			}
-
-			// Add/update the server
-			mcpConfig.mcpServers[name] = config;
-
-			// Ensure directory exists
-			const mcpDir = vscode.Uri.file(path.dirname(mcpConfigPath));
-			try {
-				await vscode.workspace.fs.stat(mcpDir);
-			} catch {
-				await vscode.workspace.fs.createDirectory(mcpDir);
-			}
-
-			// Save the config
-			const configContent = new TextEncoder().encode(JSON.stringify(mcpConfig, null, 2));
-			await vscode.workspace.fs.writeFile(mcpConfigUri, configContent);
-
-			this._postMessage({ type: 'mcpServerSaved', data: { name } });
-			console.log(`Saved MCP server: ${name}`);
-		} catch (error) {
-			console.error('Error saving MCP server:', error);
-			this._postMessage({ type: 'mcpServerError', data: { error: 'Failed to save MCP server' } });
-		}
+		// MCP server functionality removed
+		this._postMessage({ type: 'mcpServerError', data: { error: 'MCP servers no longer supported' } });
+		return;
 	}
 
 	private async _deleteMCPServer(name: string): Promise<void> {
-		try {
-			const mcpConfigPath = this.getMCPConfigPath();
-			if (!mcpConfigPath) {
-				this._postMessage({ type: 'mcpServerError', data: { error: 'Storage path not available' } });
-				return;
-			}
-
-			const mcpConfigUri = vscode.Uri.file(mcpConfigPath);
-			let mcpConfig: any = { mcpServers: {} };
-
-			// Load existing config
-			try {
-				const content = await vscode.workspace.fs.readFile(mcpConfigUri);
-				mcpConfig = JSON.parse(new TextDecoder().decode(content));
-			} catch {
-				// File doesn't exist, nothing to delete
-				this._postMessage({ type: 'mcpServerError', data: { error: 'MCP config file not found' } });
-				return;
-			}
-
-			// Delete the server
-			if (mcpConfig.mcpServers && mcpConfig.mcpServers[name]) {
-				delete mcpConfig.mcpServers[name];
-
-				// Save the updated config
-				const configContent = new TextEncoder().encode(JSON.stringify(mcpConfig, null, 2));
-				await vscode.workspace.fs.writeFile(mcpConfigUri, configContent);
-
-				this._postMessage({ type: 'mcpServerDeleted', data: { name } });
-				console.log(`Deleted MCP server: ${name}`);
-			} else {
-				this._postMessage({ type: 'mcpServerError', data: { error: `Server '${name}' not found` } });
-			}
-		} catch (error) {
-			console.error('Error deleting MCP server:', error);
-			this._postMessage({ type: 'mcpServerError', data: { error: 'Failed to delete MCP server' } });
-		}
+		// MCP server functionality removed
+		this._postMessage({ type: 'mcpServerError', data: { error: 'MCP servers no longer supported' } });
+		return;
 	}
 
 	private async _sendCustomSnippets(): Promise<void> {
@@ -2163,13 +2083,6 @@ class ClaudeChatProvider {
 
 	// WSL support removed - no longer needed
 
-	public getMCPConfigPath(): string | undefined {
-		const storagePath = this._context.storageUri?.fsPath;
-		if (!storagePath) { return undefined; }
-
-		const configPath = path.join(storagePath, 'mcp', 'mcp-servers.json');
-		return path.join(configPath);
-	}
 
 	private _sendAndSaveMessage(message: { type: string, data: any, agent?: any }): void {
 		// Initialize conversation if this is the first message
@@ -2511,6 +2424,12 @@ class ClaudeChatProvider {
 
 		// Set emergency stop flag
 		this._isProcessing = false;
+
+		// Kill all active provider processes FIRST
+		if (this._providerManager) {
+			console.log('Killing all active provider processes...');
+			this._providerManager.killAllActiveProcesses();
+		}
 
 		// Clear the communication hub message queue if available
 		if (this._communicationHub) {
@@ -2927,7 +2846,53 @@ class ClaudeChatProvider {
 	}
 
 	private _getHtmlForWebview(): string {
-		return getHtml(vscode.env?.isTelemetryEnabled);
+		// Get the webview instance
+		const webview = this._webview || this._panel?.webview;
+		if (!webview) {
+			// Fallback to old method if no webview available yet
+			return getHtml(vscode.env?.isTelemetryEnabled);
+		}
+
+		// Load external resources
+		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(
+			this._extensionUri,
+			'resources',
+			'webview',
+			'script.js'
+		));
+
+		const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(
+			this._extensionUri,
+			'resources',
+			'webview',
+			'styles.css'
+		));
+
+		// Load HTML template
+		const htmlPath = vscode.Uri.joinPath(this._extensionUri, 'resources', 'webview', 'index.html');
+		let html: string;
+
+		try {
+			// Try to read the file synchronously
+			const fs = require('fs');
+			html = fs.readFileSync(htmlPath.fsPath, 'utf-8');
+		} catch (error) {
+			console.error('Failed to load external HTML, falling back to embedded version:', error);
+			// Fallback to the old embedded version
+			return getHtml(vscode.env?.isTelemetryEnabled);
+		}
+
+		// Replace placeholders with actual URIs
+		html = html.replace(/\${scriptUri}/g, scriptUri.toString());
+		html = html.replace(/\${styleUri}/g, styleUri.toString());
+		html = html.replace(/\${cspSource}/g, webview.cspSource);
+
+		// Add telemetry parameter to script
+		if (vscode.env?.isTelemetryEnabled) {
+			html = html.replace('script.js', 'script.js?telemetry=true');
+		}
+
+		return html;
 	}
 
 	private _sendCurrentSettings(): void {

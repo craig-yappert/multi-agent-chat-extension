@@ -3,7 +3,7 @@ import * as cp from 'child_process';
 import { AgentConfig } from './agents';
 import { AgentCommunicationHub } from './agentCommunication';
 import { StreamingClaudeProvider, OptimizedMultiProvider, ResponseCache } from './performanceOptimizer';
-import { MCPWebSocketProvider } from './providers/mcpWebSocketProvider';
+// MCP WebSocket provider removed - see archive/mcp-infrastructure-v1 branch
 import { AgentMessageParser } from './agentMessageParser';
 
 export interface AIProvider {
@@ -12,16 +12,16 @@ export interface AIProvider {
 
 export class ClaudeProvider implements AIProvider {
 	private streamingProvider?: StreamingClaudeProvider;
-	private mcpWebSocketProvider?: MCPWebSocketProvider;
+	// MCP WebSocket provider removed
 	private cache: ResponseCache = new ResponseCache();
 	private messageParser?: AgentMessageParser;
 	private communicationHub?: AgentCommunicationHub;
 	private agentManager?: any;
+	private activeProcesses: Set<cp.ChildProcess> = new Set();
 
 	constructor(
 		private context: vscode.ExtensionContext,
 		onStreamCallback?: (chunk: string, agentId: string) => void,
-		mcpServerManager?: any,
 		agentManager?: any,
 		communicationHub?: AgentCommunicationHub
 	) {
@@ -42,16 +42,7 @@ export class ClaudeProvider implements AIProvider {
 			this.streamingProvider = new StreamingClaudeProvider(context, onStreamCallback);
 		}
 
-		// Initialize MCP WebSocket provider if MCP is enabled
-		if (config.get<boolean>('mcp.enabled', true)) {
-			const wsPort = config.get<number>('mcp.wsPort', 3030);
-			const httpPort = config.get<number>('mcp.httpPort', 3031);
-			this.mcpWebSocketProvider = new MCPWebSocketProvider(
-				`ws://localhost:${wsPort}`,
-				`http://localhost:${httpPort}/api`,
-				context
-			);
-		}
+		// MCP WebSocket provider initialization removed
 	}
 
 	async sendMessage(message: string, agentConfig: AgentConfig, context?: any): Promise<string> {
@@ -60,19 +51,8 @@ export class ClaudeProvider implements AIProvider {
 		// Check if we need inter-agent communication features
 		const needsInterAgent = config.get<boolean>('agents.enableInterCommunication', true) && this.messageParser;
 
-		// Try MCP WebSocket provider first if available and connected (but not for inter-agent communication)
-		if (!needsInterAgent && this.mcpWebSocketProvider && config.get<boolean>('mcp.preferWebSocket', false)) {
-			try {
-				if (this.mcpWebSocketProvider.isConnected) {
-					console.log(`[ClaudeProvider] Using MCP WebSocket for ${agentConfig.id}`);
-					return await this.mcpWebSocketProvider.sendMessage(message, agentConfig, context);
-				}
-			} catch (error) {
-				console.warn('[ClaudeProvider] MCP WebSocket failed, falling back:', error);
-			}
-		}
-
-		// Log if we're skipping MCP for inter-agent communication
+		// MCP WebSocket provider removed - using direct Claude CLI
+		// Log if we're using inter-agent communication
 		if (needsInterAgent) {
 			console.log(`[ClaudeProvider] Using direct Claude CLI for ${agentConfig.id} (inter-agent communication enabled)`);
 		}
@@ -125,7 +105,13 @@ You are ${agentConfig.name}, a ${agentConfig.role}. ${agentConfig.description}\n
 			roleContext += `IMPORTANT: The agent name MUST be lowercase and MUST be one of: architect, coder, executor, reviewer, documenter, coordinator\n`;
 			roleContext += `DO NOT use titles or emojis, just the exact agent name followed by a colon.\n`;
 			roleContext += `CONTEXT TIP: When relaying a user request to another agent, mention it's from the user, e.g., "@architect: The user asked me to ask you to tell a joke"\n`;
-			roleContext += `Messages are limited to ${config.get<number>('interAgentComm.maxMessagesPerConversation', 10)} per conversation.\n\n`;
+			roleContext += `\n⚠️ CONVERSATION LIMITS (to prevent token consumption during testing):\n`;
+			roleContext += `- Max ${config.get<number>('interAgentComm.maxMessagesPerConversation', 5)} messages per conversation\n`;
+			roleContext += `- Max ${config.get<number>('interAgentComm.maxConversationDepth', 3)} conversation depth\n`;
+			roleContext += `- Only originally contacted agents can participate (no sprawl allowed)\n`;
+			roleContext += `- BE CONCISE to stay within limits\n`;
+			roleContext += `- DO NOT respond back to acknowledgments (e.g., if an agent says "confirmed", "acknowledged", "received" - DON'T reply)\n`;
+			roleContext += `- For comms checks: Just acknowledge ONCE, don't create response chains\n\n`;
 		}
 
 		// Add conversation history if available
@@ -211,7 +197,12 @@ You are ${agentConfig.name}, a ${agentConfig.role}. ${agentConfig.description}\n
 				});
 			}
 
+			// Track the process
+			this.activeProcesses.add(claudeProcess);
+
 			claudeProcess.on('close', async (code) => {
+				// Remove from active processes
+				this.activeProcesses.delete(claudeProcess);
 				if (code === 0) {
 					let result = output.trim();
 
@@ -282,6 +273,18 @@ You are ${agentConfig.name}, a ${agentConfig.role}. ${agentConfig.description}\n
 			});
 		});
 	}
+
+	killAllProcesses(): void {
+		console.log(`[ClaudeProvider] Killing ${this.activeProcesses.size} active processes...`);
+		this.activeProcesses.forEach(process => {
+			try {
+				process.kill('SIGKILL');
+			} catch (error) {
+				console.error('[ClaudeProvider] Error killing process:', error);
+			}
+		});
+		this.activeProcesses.clear();
+	}
 }
 
 export class OpenAIProvider implements AIProvider {
@@ -294,20 +297,8 @@ export class OpenAIProvider implements AIProvider {
 	}
 }
 
-export class MCPProvider implements AIProvider {
-
-	constructor(
-		private claudeProvider: ClaudeProvider,
-		private context?: vscode.ExtensionContext
-	) {
-		// MCP functionality removed - using direct Claude CLI
-	}
-
-	async sendMessage(message: string, agentConfig: AgentConfig, context?: any): Promise<string> {
-		// Direct pass-through to Claude provider
-		return this.claudeProvider.sendMessage(message, agentConfig, context);
-	}
-}
+// MCPProvider class removed - see archive/mcp-infrastructure-v1 branch
+// All agents now use Claude provider directly
 
 export class MultiProvider implements AIProvider {
 	private optimizedProvider?: OptimizedMultiProvider;
@@ -315,7 +306,7 @@ export class MultiProvider implements AIProvider {
 	constructor(
 		private claudeProvider: ClaudeProvider,
 		private openaiProvider: OpenAIProvider,
-		private mcpProvider: MCPProvider,
+		// mcpProvider removed,
 		private agentManager?: any,
 		private communicationHub?: AgentCommunicationHub,
 		private context?: vscode.ExtensionContext,
@@ -445,7 +436,7 @@ Provide a concise synthesis (3-5 sentences) that represents the team's collectiv
 export class ProviderManager {
 	private claudeProvider: ClaudeProvider;
 	private openaiProvider: OpenAIProvider;
-	private mcpProvider: MCPProvider;
+	// mcpProvider removed;
 	private multiProvider: MultiProvider;
 	private communicationHub?: AgentCommunicationHub;
 
@@ -454,17 +445,17 @@ export class ProviderManager {
 		agentManager?: any,
 		communicationHub?: AgentCommunicationHub,
 		onStreamCallback?: (chunk: string, agentId: string) => void,
-		mcpServerManager?: any
+		// mcpServerManager removed
 	) {
 		// Pass agentManager and communicationHub to ClaudeProvider for inter-agent messaging
-		this.claudeProvider = new ClaudeProvider(context, onStreamCallback, mcpServerManager, agentManager, communicationHub);
+		this.claudeProvider = new ClaudeProvider(context, onStreamCallback, agentManager, communicationHub);
 		this.openaiProvider = new OpenAIProvider(this.claudeProvider);
-		this.mcpProvider = new MCPProvider(this.claudeProvider, context);
+		// mcpProvider initialization removed
 		this.communicationHub = communicationHub;
 		this.multiProvider = new MultiProvider(
 			this.claudeProvider,
 			this.openaiProvider,
-			this.mcpProvider,
+			// mcpProvider removed,
 			agentManager,
 			communicationHub,
 			context,
@@ -478,12 +469,17 @@ export class ProviderManager {
 				return this.claudeProvider;
 			case 'openai':
 				return this.openaiProvider;
-			case 'mcp':
-				return this.mcpProvider;
+			// 'mcp' provider case removed
 			case 'multi':
 				return this.multiProvider;
 			default:
 				return this.claudeProvider; // fallback
 		}
+	}
+
+	killAllActiveProcesses(): void {
+		console.log('[ProviderManager] Killing all active processes...');
+		this.claudeProvider.killAllProcesses();
+		// Add other providers if they have similar methods
 	}
 }

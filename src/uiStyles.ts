@@ -214,6 +214,92 @@ const styles = `
         padding: 4px;
     }
 
+    /* Inter-Agent Messages */
+    .inter-agent-message {
+        margin: 8px 16px;
+        padding: 10px;
+        background-color: var(--vscode-editor-inactiveSelectionBackground);
+        border-left: 3px solid var(--vscode-editorInfo-foreground);
+        border-radius: 4px;
+        opacity: 0.85;
+        font-size: 12px;
+        animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(-10px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 0.85;
+        }
+    }
+
+    .inter-agent-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        font-size: 11px;
+        color: var(--vscode-descriptionForeground);
+    }
+
+    .inter-agent-header .agent-from {
+        font-weight: 600;
+        color: var(--vscode-textLink-foreground);
+    }
+
+    .inter-agent-header .arrow {
+        opacity: 0.5;
+    }
+
+    .inter-agent-header .agent-to {
+        font-weight: 600;
+        color: var(--vscode-textLink-foreground);
+    }
+
+    .inter-agent-header .timestamp {
+        margin-left: auto;
+        opacity: 0.6;
+        font-size: 10px;
+    }
+
+    .inter-agent-content {
+        padding-left: 8px;
+    }
+
+    .inter-agent-content .message-text {
+        color: var(--vscode-foreground);
+        opacity: 0.9;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+    .inter-agent-content .message-text.truncated {
+        max-height: 100px;
+        overflow: hidden;
+    }
+
+    .inter-agent-content .expand-btn {
+        margin-top: 4px;
+        padding: 2px 8px;
+        background: transparent;
+        border: 1px solid var(--vscode-panel-border);
+        border-radius: 3px;
+        color: var(--vscode-textLink-foreground);
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .inter-agent-content .expand-btn:hover {
+        background-color: var(--vscode-list-hoverBackground);
+        border-color: var(--vscode-focusBorder);
+    }
+
     /* Permission Request */
     .permission-request {
         margin: 4px 12px 20px 12px;
@@ -812,6 +898,16 @@ const styles = `
         margin-bottom: 6px;
         padding: 6px 8px;
         border-radius: 4px;
+        position: relative;
+    }
+
+    .message-timestamp {
+        position: absolute;
+        top: 4px;
+        right: 8px;
+        font-size: 11px;
+        color: var(--vscode-descriptionForeground);
+        opacity: 0.7;
     }
 
     .message.user {

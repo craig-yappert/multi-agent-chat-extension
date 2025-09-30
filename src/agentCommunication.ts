@@ -54,22 +54,25 @@ export class AgentCommunicationHub {
 	private maxConversationDepth: number = 5;
 	private conversationMessageCount: Map<string, number> = new Map();
 	private messageChainDepth: Map<string, number> = new Map();
+	// Track original conversation participants to prevent sprawl
+	private conversationParticipants: Map<string, Set<string>> = new Map();
 
-	// Status update callback
-	private statusCallback?: (status: string, fromAgent?: string, toAgent?: string) => void;
+	// Status update callback - now includes optional message content for visibility
+	private statusCallback?: (status: string, fromAgent?: string, toAgent?: string, messageContent?: string) => void;
 
 	constructor(
 		private agentManager: AgentManager,
 		private providerManager: ProviderManager,
 		private outputChannel?: vscode.OutputChannel,
-		statusCallback?: (status: string, fromAgent?: string, toAgent?: string) => void
+		statusCallback?: (status: string, fromAgent?: string, toAgent?: string, messageContent?: string) => void
 	) {
 		this.statusCallback = statusCallback;
-		// Load configuration
+		// Load configuration - with tighter defaults for testing
 		const config = vscode.workspace.getConfiguration('multiAgentChat');
-		this.maxConcurrentAgents = config.get<number>('interAgentComm.maxConcurrent', 3);
-		this.maxMessagesPerConversation = config.get<number>('interAgentComm.maxMessagesPerConversation', 10);
-		this.maxConversationDepth = config.get<number>('interAgentComm.maxConversationDepth', 5);
+		this.maxConcurrentAgents = config.get<number>('interAgentComm.maxConcurrent', 2);
+		// Reduced limits for testing to prevent token consumption
+		this.maxMessagesPerConversation = config.get<number>('interAgentComm.maxMessagesPerConversation', 5);
+		this.maxConversationDepth = config.get<number>('interAgentComm.maxConversationDepth', 3);
 	}
 
 	async sendMessageBetweenAgents(
@@ -82,21 +85,91 @@ export class AgentCommunicationHub {
 		// Enhanced debug logging
 		console.log(`\n[Send Message] ${fromAgent} >> ${toAgent} (${type})`);
 		console.log(`[Send Message] Content: "${message.substring(0, 100)}${message.length > 100 ? '...' : ''}"`);
+
+		// PREVENT RESPONSE LOOPS: Don't allow agents to respond back to acknowledging messages
+		const lowerMessage = message.toLowerCase();
+		const isAcknowledgment =
+			lowerMessage.includes('acknowledged') ||
+			lowerMessage.includes('confirmed') ||
+			lowerMessage.includes('received') ||
+			lowerMessage.includes('roger that') ||
+			lowerMessage.includes('comms check') ||
+			lowerMessage.includes('communications verified');
+
+		if (type === 'request' && isAcknowledgment) {
+			console.log(`[Loop Prevention] Blocking acknowledgment loop from ${fromAgent} to ${toAgent}`);
+			return '[System: Acknowledgment received - no further response needed]';
+		}
+
 		// Check conversation limits
 		const conversationId = context?.conversationId || this.generateConversationId();
+
+		// Initialize participants for new conversations
+		if (!this.conversationParticipants.has(conversationId)) {
+			this.conversationParticipants.set(conversationId, new Set([fromAgent, toAgent]));
+			this.log(`New conversation ${conversationId} started between ${fromAgent} and ${toAgent}`);
+		}
+
+		// Check if this agent is allowed in the conversation (prevent sprawl)
+		const participants = this.conversationParticipants.get(conversationId)!;
+		const isOriginalParticipant = participants.has(fromAgent) && participants.has(toAgent);
+		const isUserInitiated = context?.userRequest !== undefined;
+
+		// Only allow new participants if this is the first hop from a user request
+		if (!isOriginalParticipant && !isUserInitiated) {
+			const participantList = Array.from(participants).join(', ');
+			this.log(`Blocking message from ${fromAgent} to ${toAgent} - not original participants (allowed: ${participantList})`);
+
+			// Send status about blocked message
+			if (this.statusCallback) {
+				this.statusCallback(
+					`[Blocked: ${fromAgent} → ${toAgent} - preventing conversation sprawl]`,
+					fromAgent,
+					toAgent
+				);
+			}
+
+			return `[System: Message blocked to prevent conversation sprawl. Only original participants (${participantList}) can continue this conversation]`;
+		}
+
+		// Add new participants only for user-initiated first hop
+		if (isUserInitiated && !participants.has(toAgent)) {
+			participants.add(toAgent);
+			this.log(`Added ${toAgent} to conversation ${conversationId} (user-initiated)`);
+		}
 
 		// Check message count limit
 		const messageCount = this.conversationMessageCount.get(conversationId) || 0;
 		if (messageCount >= this.maxMessagesPerConversation) {
 			this.log(`Conversation ${conversationId} reached max message limit (${this.maxMessagesPerConversation})`);
-			return `[System: Maximum message limit reached for this conversation (${this.maxMessagesPerConversation} messages)]`;
+
+			// Send status update about limit reached
+			if (this.statusCallback) {
+				this.statusCallback(
+					`⚠️ Conversation limit reached (${this.maxMessagesPerConversation} messages) - stopping to prevent token consumption`,
+					fromAgent,
+					toAgent
+				);
+			}
+
+			return `[System: Maximum message limit reached for this conversation (${this.maxMessagesPerConversation} messages). Stopping to prevent excessive token consumption.]`;
 		}
 
 		// Check conversation depth
 		const depth = this.messageChainDepth.get(conversationId) || 0;
 		if (depth >= this.maxConversationDepth) {
 			this.log(`Conversation ${conversationId} reached max depth (${this.maxConversationDepth})`);
-			return `[System: Maximum conversation depth reached (${this.maxConversationDepth} levels)]`;
+
+			// Send status update about depth limit reached
+			if (this.statusCallback) {
+				this.statusCallback(
+					`⚠️ Conversation depth limit reached (${this.maxConversationDepth} levels) - stopping to prevent cascading messages`,
+					fromAgent,
+					toAgent
+				);
+			}
+
+			return `[System: Maximum conversation depth reached (${this.maxConversationDepth} levels). Stopping to prevent cascading agent messages.]`;
 		}
 
 		// Update counters
@@ -119,7 +192,7 @@ export class AgentCommunicationHub {
 		this.log(`Message queued from ${fromAgent} to ${toAgent} (Conv: ${conversationId}, Count: ${messageCount + 1})`);
 		console.log(`[Message Queue] Added message to queue. Queue size: ${this.messageQueue.length}`);
 
-		// Send status update if callback is available
+		// Send status update AND message content if callback is available
 		if (this.statusCallback) {
 			const fromAgentConfig = this.agentManager.getAgent(fromAgent);
 			const toAgentConfig = this.agentManager.getAgent(toAgent);
@@ -128,11 +201,18 @@ export class AgentCommunicationHub {
 			const fromIcon = fromAgentConfig ? fromAgentConfig.icon : '🤖';
 			const toIcon = toAgentConfig ? toAgentConfig.icon : '🤖';
 
+			console.log(`[statusCallback] Sending initial message visibility: ${fromName} → ${toName}`);
+			console.log(`[statusCallback] Message content: "${message.substring(0, 50)}..."`);
+
+			// Send the actual message content for visibility
 			this.statusCallback(
-				`${fromName} sending message to ${toName}...`,
+				`${fromName} → ${toName} (sending)`,
 				fromAgent,
-				toAgent
+				toAgent,
+				message  // Include the actual message content
 			);
+		} else {
+			console.log(`[statusCallback] WARNING: No statusCallback available for message visibility`);
 		}
 
 		if (!this.isProcessing) {
@@ -334,7 +414,7 @@ Please coordinate their efforts and provide a cohesive solution.
 
 			console.log(`[Process Message] Target agent found: ${toAgent.name} (${toAgent.id})`);
 
-			// Send status update that agent is processing
+			// Send status update that agent is processing - include message content for visibility
 			if (this.statusCallback) {
 				const fromAgentConfig = this.agentManager.getAgent(message.from);
 				const fromName = fromAgentConfig ? fromAgentConfig.name : message.from;
@@ -343,7 +423,8 @@ Please coordinate their efforts and provide a cohesive solution.
 				this.statusCallback(
 					`${toAgent.name} is processing message from ${fromName}...`,
 					message.from,
-					message.to
+					message.to,
+					message.content  // Include the message content for visibility
 				);
 			}
 
@@ -386,6 +467,21 @@ Please provide your response based on the request above.
 			};
 
 			this.storeResponse(message.id, response);
+
+			// Send the response message for visibility
+			if (this.statusCallback) {
+				const fromAgentConfig = this.agentManager.getAgent(responseMessage.from);
+				const toAgentConfig = this.agentManager.getAgent(responseMessage.to);
+				const fromName = fromAgentConfig ? fromAgentConfig.name : responseMessage.from;
+				const toName = toAgentConfig ? toAgentConfig.name : responseMessage.to;
+
+				this.statusCallback(
+					`${fromName} → ${toName} (response)`,
+					responseMessage.from,
+					responseMessage.to,
+					response  // Include the response content for visibility
+				);
+			}
 
 		} catch (error) {
 			console.error(`[Process Error] Failed to process message from ${message.from} to ${message.to}:`, error);
@@ -444,8 +540,14 @@ Please provide your response based on the request above.
 		this.activeAgents.clear();
 		this.conversationMessageCount.clear();
 		this.messageChainDepth.clear();
+		this.conversationParticipants.clear();
 		this.conversations.clear();
 		this.workflows.clear();
+	}
+
+	setStatusCallback(callback: (status: string, fromAgent?: string, toAgent?: string, messageContent?: string) => void): void {
+		this.statusCallback = callback;
+		console.log('[AgentComm] Status callback updated');
 	}
 
 	private log(message: string): void {

@@ -94,12 +94,6 @@ Your project management specialist who:
 - @ mentions for specific agent requests
 - Team mode for collaborative responses
 
-### 🔌 **MCP Server Support**
-- Full Model Context Protocol integration
-- Configure and manage MCP servers
-- Access external tools and data sources
-- Seamless permission management
-
 ### 📁 **Context Management**
 - Drag and drop files into chat
 - Image and screenshot support

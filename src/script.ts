@@ -46,7 +46,13 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			const shouldScroll = shouldAutoScroll(messagesDiv);
 
 			const messageDiv = document.createElement('div');
-			messageDiv.className = \`message \${type}\`;
+			messageDiv.className = 'message ' + type;
+
+			// Add timestamp to all messages
+			const timestampDiv = document.createElement('div');
+			timestampDiv.className = 'message-timestamp';
+			timestampDiv.textContent = formatTimestamp(new Date().toISOString());
+			messageDiv.appendChild(timestampDiv);
 
 			// Apply agent-specific color styling if agent info is provided
 			if (agentInfo && agentInfo.color && type === 'claude') {
@@ -56,18 +62,16 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 
 				// Add dynamic styles for this specific message
 				const style = document.createElement('style');
-				style.textContent = \`
-					[data-style-id="\${styleId}"]::before {
-						background: \${agentInfo.color} !important;
-						width: 4px !important;
-					}
-					[data-style-id="\${styleId}"] {
-						border-color: \${agentInfo.color}20 !important;
-					}
-					[data-style-id="\${styleId}"] .message-icon.claude {
-						background: \${agentInfo.color} !important;
-					}
-				\`;
+				style.textContent = '[data-style-id="' + styleId + '"]::before {' +
+					'background: ' + agentInfo.color + ' !important;' +
+					'width: 4px !important;' +
+					'}' +
+					'[data-style-id="' + styleId + '"] {' +
+					'border-color: ' + agentInfo.color + '20 !important;' +
+					'}' +
+					'[data-style-id="' + styleId + '"] .message-icon.claude {' +
+					'background: ' + agentInfo.color + ' !important;' +
+					'}';
 				document.head.appendChild(style);
 			}
 
@@ -77,7 +81,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				headerDiv.className = 'message-header';
 
 				const iconDiv = document.createElement('div');
-				iconDiv.className = \`message-icon \${type}\`;
+				iconDiv.className = 'message-icon ' + type;
 
 				const labelDiv = document.createElement('div');
 				labelDiv.className = 'message-label';
@@ -128,30 +132,46 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				messageDiv.appendChild(headerDiv);
 			}
 			
-			// Add content
+			// Add content with expand/collapse for long messages
 			const contentDiv = document.createElement('div');
 			contentDiv.className = 'message-content';
-			
+
+			// Check if content is long (over 1000 chars or has many lines)
+			const isLongContent = content.length > 1000 || (content.match(/\n/g) || []).length > 15;
+
 			if(type == 'user' || type === 'claude' || type === 'thinking'){
-				contentDiv.innerHTML = content;
+				if (isLongContent) {
+					// Create expandable content
+					const truncatedContent = content.substring(0, 800);
+					const lastNewline = truncatedContent.lastIndexOf('\n');
+					const displayContent = lastNewline > 600 ? truncatedContent.substring(0, lastNewline) : truncatedContent;
+
+					contentDiv.innerHTML =
+						'<div class="content-expandable">' +
+						'<div class="content-truncated">' + escapeHtml(displayContent) + '...</div>' +
+						'<div class="content-full" style="display: none;">' + escapeHtml(content) + '</div>' +
+						'<button class="expand-btn" onclick="toggleMessageContent(this)">Show more ▼</button>' +
+						'</div>';
+				} else {
+					contentDiv.innerHTML = content;
+				}
 			} else {
 				const preElement = document.createElement('pre');
 				preElement.textContent = content;
 				contentDiv.appendChild(preElement);
 			}
-			
+
 			messageDiv.appendChild(contentDiv);
 			
 			// Check if this is a permission-related error and add yolo mode button
 			if (type === 'error' && isPermissionError(content)) {
 				const yoloSuggestion = document.createElement('div');
 				yoloSuggestion.className = 'yolo-suggestion';
-				yoloSuggestion.innerHTML = \`
-					<div class="yolo-suggestion-text">
-						<span>💡 This looks like a permission issue. You can enable Yolo Mode to skip all permission checks.</span>
-					</div>
-					<button class="yolo-suggestion-btn" onclick="enableYoloMode()">Enable Yolo Mode</button>
-				\`;
+				yoloSuggestion.innerHTML =
+					'<div class="yolo-suggestion-text">' +
+					'<span>💡 This looks like a permission issue. You can enable Yolo Mode to skip all permission checks.</span>' +
+					'</div>' +
+					'<button class="yolo-suggestion-btn" onclick="enableYoloMode()">Enable Yolo Mode</button>';
 				messageDiv.appendChild(yoloSuggestion);
 			}
 			
@@ -255,7 +275,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 						const valueStr = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
 						const escapedValue = valueStr.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 						btnIndex++;
-						return \`<span class="expand-btn" data-key="\${key}" data-value="\${escapedValue}" onclick="toggleExpand(this)">expand</span>\`;
+						return '<span class="expand-btn" data-key="' + key + '" data-value="' + escapedValue + '" onclick="toggleExpand(this)">expand</span>';
 					});
 				}
 				
@@ -354,12 +374,11 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			if (data.isError && isPermissionError(content)) {
 				const yoloSuggestion = document.createElement('div');
 				yoloSuggestion.className = 'yolo-suggestion';
-				yoloSuggestion.innerHTML = \`
-					<div class="yolo-suggestion-text">
-						<span>💡 This looks like a permission issue. You can enable Yolo Mode to skip all permission checks.</span>
-					</div>
-					<button class="yolo-suggestion-btn" onclick="enableYoloMode()">Enable Yolo Mode</button>
-				\`;
+				yoloSuggestion.innerHTML =
+					'<div class="yolo-suggestion-text">' +
+					'<span>💡 This looks like a permission issue. You can enable Yolo Mode to skip all permission checks.</span>' +
+					'</div>' +
+					'<button class="yolo-suggestion-btn" onclick="enableYoloMode()">Enable Yolo Mode</button>';
 				messageDiv.appendChild(yoloSuggestion);
 			}
 			
@@ -822,7 +841,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 
 		function updateStatus(text, state = 'ready') {
 			if (statusTextDiv) statusTextDiv.textContent = text;
-			if (statusDiv) statusDiv.className = \`status \${state}\`;
+			if (statusDiv) statusDiv.className = 'status ' + state;
 		}
 
 		function updateStatusWithTotals() {
@@ -830,25 +849,25 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				// While processing, show tokens and elapsed time
 				const totalTokens = totalTokensInput + totalTokensOutput;
 				const tokensStr = totalTokens > 0 ? 
-					\`\${totalTokens.toLocaleString()} tokens\` : '0 tokens';
+					totalTokens.toLocaleString() + ' tokens' : '0 tokens';
 				
 				let elapsedStr = '';
 				if (requestStartTime) {
 					const elapsedSeconds = Math.floor((Date.now() - requestStartTime) / 1000);
-					elapsedStr = \` • \${elapsedSeconds}s\`;
+					elapsedStr = ' • ' + elapsedSeconds + 's';
 				}
 				
-				const statusText = \`Processing • \${tokensStr}\${elapsedStr}\`;
+				const statusText = 'Processing • ' + tokensStr + elapsedStr;
 				updateStatus(statusText, 'processing');
 			} else {
 				// When ready, show full info
-				const costStr = totalCost > 0 ? \`$\${totalCost.toFixed(4)}\` : '$0.00';
+				const costStr = totalCost > 0 ? '$' + totalCost.toFixed(4) : '$0.00';
 				const totalTokens = totalTokensInput + totalTokensOutput;
 				const tokensStr = totalTokens > 0 ? 
-					\`\${totalTokens.toLocaleString()} tokens\` : '0 tokens';
-				const requestStr = requestCount > 0 ? \`\${requestCount} requests\` : '';
+					totalTokens.toLocaleString() + ' tokens' : '0 tokens';
+				const requestStr = requestCount > 0 ? requestCount + ' requests' : '';
 				
-				const statusText = \`Ready • \${costStr} • \${tokensStr}\${requestStr ? \` • \${requestStr}\` : ''}\`;
+				const statusText = 'Ready • ' + costStr + ' • ' + tokensStr + (requestStr ? ' • ' + requestStr : '');
 				updateStatus(statusText, 'ready');
 			}
 		}
@@ -1323,7 +1342,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				for (let server of existingServers) {
 					if (server.textContent === name) {
 						const notification = document.createElement('div');
-						notification.textContent = \`Server "\${name}" already exists\`;
+						notification.textContent = 'Server "' + name + '" already exists';
 						notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--vscode-inputValidation-errorBackground); color: var(--vscode-inputValidation-errorForeground); padding: 8px 12px; border-radius: 4px; z-index: 9999;';
 						document.body.appendChild(notification);
 						setTimeout(() => notification.remove(), 3000);
@@ -1444,11 +1463,11 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				document.getElementById('serverArgs').value = config.args.join('\\n');
 			}
 			if (config.env) {
-				const envLines = Object.entries(config.env).map(([key, value]) => \`\${key}=\${value}\`);
+				const envLines = Object.entries(config.env).map(([key, value]) => key + '=' + value);
 				document.getElementById('serverEnv').value = envLines.join('\\n');
 			}
 			if (config.headers) {
-				const headerLines = Object.entries(config.headers).map(([key, value]) => \`\${key}=\${value}\`);
+				const headerLines = Object.entries(config.headers).map(([key, value]) => key + '=' + value);
 				document.getElementById('serverHeaders').value = headerLines.join('\\n');
 			}
 			
@@ -1468,7 +1487,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			for (let server of existingServers) {
 				if (server.textContent === name) {
 					const notification = document.createElement('div');
-					notification.textContent = \`Server "\${name}" already exists\`;
+					notification.textContent = 'Server "' + name + '" already exists';
 					notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--vscode-inputValidation-errorBackground); color: var(--vscode-inputValidation-errorForeground); padding: 8px 12px; border-radius: 4px; z-index: 9999;';
 					document.body.appendChild(notification);
 					setTimeout(() => notification.remove(), 3000);
@@ -1509,27 +1528,29 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				let configDisplay = '';
 				
 				if (serverType === 'stdio') {
-					configDisplay = \`Command: \${config.command || 'Not specified'}\`;
+					configDisplay = 'Command: ' + (config.command || 'Not specified');
 					if (config.args && Array.isArray(config.args)) {
-						configDisplay += \`<br>Args: \${config.args.join(' ')}\`;
+						configDisplay += '<br>Args: ' + config.args.join(' ');
 					}
 				} else if (serverType === 'http' || serverType === 'sse') {
-					configDisplay = \`URL: \${config.url || 'Not specified'}\`;
+					configDisplay = 'URL: ' + (config.url || 'Not specified');
 				} else {
-					configDisplay = \`Type: \${serverType}\`;
+					configDisplay = 'Type: ' + serverType;
 				}
 
-				serverItem.innerHTML = \`
-					<div class="server-info">
-						<div class="server-name">\${name}</div>
-						<div class="server-type">\${serverType.toUpperCase()}</div>
-						<div class="server-config">\${configDisplay}</div>
-					</div>
-					<div class="server-actions">
-						<button class="btn outlined server-edit-btn" onclick="editMCPServer('\${name}', \${JSON.stringify(config).replace(/"/g, '&quot;')})">Edit</button>
-						<button class="btn outlined server-delete-btn" onclick="deleteMCPServer('\${name}')">Delete</button>
-					</div>
-				\`;
+				// Build server item HTML without template literals
+				const configStr = JSON.stringify(config).replace(/"/g, '&quot;');
+				const nameEscaped = name.replace(/'/g, "\\'");
+
+				serverItem.innerHTML = '<div class="server-info">' +
+					'<div class="server-name">' + escapeHtml(name) + '</div>' +
+					'<div class="server-type">' + escapeHtml(serverType.toUpperCase()) + '</div>' +
+					'<div class="server-config">' + escapeHtml(configDisplay) + '</div>' +
+					'</div>' +
+					'<div class="server-actions">' +
+					'<button class="btn outlined server-edit-btn" onclick="editMCPServer(\\'' + nameEscaped + '\\', ' + configStr + ')">Edit</button>' +
+					'<button class="btn outlined server-delete-btn" onclick="deleteMCPServer(\\'' + nameEscaped + '\\')">Delete</button>' +
+					'</div>';
 				
 				serversList.appendChild(serverItem);
 			}
@@ -1683,7 +1704,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			});
 			
 			// Show user feedback
-			addMessage('user', \`Executing /\${command} command in terminal. Check the terminal output and return when ready.\`, 'assistant');
+			addMessage('user', 'Executing /' + command + ' command in terminal. Check the terminal output and return when ready.', 'assistant');
 		}
 
 		function handleCustomCommandKeydown(event) {
@@ -1795,16 +1816,16 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				snippetElement.className = 'slash-command-item prompt-snippet-item custom-snippet-item';
 				snippetElement.onclick = () => usePromptSnippet(snippet.id);
 				
-				snippetElement.innerHTML = \`
-					<div class="slash-command-icon">📝</div>
-					<div class="slash-command-content">
-						<div class="slash-command-title">/\${snippet.name}</div>
-						<div class="slash-command-description">\${snippet.prompt}</div>
-					</div>
-					<div class="snippet-actions">
-						<button class="snippet-delete-btn" onclick="event.stopPropagation(); deleteCustomSnippet('\${snippet.id}')" title="Delete snippet">🗑️</button>
-					</div>
-				\`;
+				// Build snippet HTML without template literals
+				const snippetIdEscaped = snippet.id.replace(/'/g, "\\'");
+				snippetElement.innerHTML = '<div class="slash-command-icon">📝</div>' +
+					'<div class="slash-command-content">' +
+					'<div class="slash-command-title">/' + escapeHtml(snippet.name) + '</div>' +
+					'<div class="slash-command-description">' + escapeHtml(snippet.prompt) + '</div>' +
+					'</div>' +
+					'<div class="snippet-actions">' +
+					'<button class="snippet-delete-btn" onclick="event.stopPropagation(); deleteCustomSnippet(\\'' + snippetIdEscaped + '\\')" title="Delete snippet">🗑️</button>' +
+					'</div>';
 				
 				// Insert after the form
 				addForm.parentNode.insertBefore(snippetElement, addForm.nextSibling);
@@ -1924,6 +1945,160 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				type: 'stopRequest'
 			});
 			hideStopButton();
+		}
+
+		function displayInterAgentMessage(data) {
+			const messagesDiv = document.getElementById('messages');
+			const shouldScroll = shouldAutoScroll(messagesDiv);
+
+			// Get agent configurations for display
+			const fromAgent = data.from;
+			const toAgent = data.to;
+			const content = data.content;
+			const timestamp = data.timestamp;
+
+			// Create inter-agent message container
+			const messageDiv = document.createElement('div');
+			messageDiv.className = 'inter-agent-message';
+
+			// Create header showing from → to
+			const headerDiv = document.createElement('div');
+			headerDiv.className = 'inter-agent-header';
+
+			// Get agent names from their IDs (you might need to map these)
+			const agentNames = {
+				'architect': '🏗️ Architect',
+				'coder': '💻 Coder',
+				'executor': '⚡ Executor',
+				'reviewer': '🔍 Reviewer',
+				'documenter': '📝 Documenter',
+				'coordinator': '🤝 Coordinator',
+				'team': '👥 Team'
+			};
+
+			const fromName = agentNames[fromAgent] || fromAgent;
+			const toName = agentNames[toAgent] || toAgent;
+
+			headerDiv.innerHTML =
+				'<span class="agent-from">' + escapeHtml(fromName) + '</span>' +
+				'<span class="arrow">→</span>' +
+				'<span class="agent-to">' + escapeHtml(toName) + '</span>' +
+				'<span class="timestamp">' + formatTimestamp(timestamp) + '</span>';
+
+			// Create content div
+			const contentDiv = document.createElement('div');
+			contentDiv.className = 'inter-agent-content';
+
+			// Truncate long messages but make them expandable
+			const maxLength = 500;
+			const isLong = content.length > maxLength;
+
+			if (isLong) {
+				const truncated = content.substring(0, maxLength);
+				const fullContent = content;
+
+				const messageTextDiv = document.createElement('div');
+				messageTextDiv.className = 'message-text truncated';
+				messageTextDiv.textContent = truncated + '...';
+
+				const expandBtn = document.createElement('button');
+				expandBtn.className = 'expand-btn';
+				expandBtn.textContent = 'Show more';
+				expandBtn.dataset.fullContent = btoa(content);
+				expandBtn.onclick = function() { toggleInterAgentMessage(this); };
+
+				contentDiv.appendChild(messageTextDiv);
+				contentDiv.appendChild(expandBtn);
+			} else {
+				const messageTextDiv = document.createElement('div');
+				messageTextDiv.className = 'message-text';
+				messageTextDiv.textContent = content;
+				contentDiv.appendChild(messageTextDiv);
+			}
+
+			messageDiv.appendChild(headerDiv);
+			messageDiv.appendChild(contentDiv);
+			messagesDiv.appendChild(messageDiv);
+
+			scrollToBottomIfNeeded(messagesDiv, shouldScroll);
+		}
+
+		window.toggleInterAgentMessage = function(button, encodedContent) {
+			const contentDiv = button.parentElement;
+			const messageText = contentDiv.querySelector('.message-text');
+			const fullContent = atob(encodedContent);
+
+			if (messageText.classList.contains('truncated')) {
+				messageText.textContent = fullContent;
+				messageText.classList.remove('truncated');
+				button.textContent = 'Show less';
+			} else {
+				messageText.textContent = fullContent.substring(0, 500) + '...';
+				messageText.classList.add('truncated');
+				button.textContent = 'Show more';
+			}
+		}
+
+		function toggleMessageContent(button) {
+			const expandableDiv = button.parentElement;
+			const truncated = expandableDiv.querySelector('.content-truncated');
+			const full = expandableDiv.querySelector('.content-full');
+
+			if (full.style.display === 'none') {
+				truncated.style.display = 'none';
+				full.style.display = 'block';
+				button.textContent = 'Show less ▲';
+			} else {
+				truncated.style.display = 'block';
+				full.style.display = 'none';
+				button.textContent = 'Show more ▼';
+			}
+		}
+		window.toggleMessageContent = toggleMessageContent;
+
+		function toggleInterAgentMessage(button) {
+			const fullContent = atob(button.dataset.fullContent);
+			const textDiv = button.previousElementSibling;
+
+			if (textDiv.classList.contains('truncated')) {
+				textDiv.textContent = fullContent;
+				textDiv.classList.remove('truncated');
+				button.textContent = 'Show less';
+			} else {
+				const truncated = fullContent.substring(0, 500);
+				textDiv.textContent = truncated + '...';
+				textDiv.classList.add('truncated');
+				button.textContent = 'Show more';
+			}
+		}
+		window.toggleInterAgentMessage = toggleInterAgentMessage;
+
+		function formatTimestamp(isoString) {
+			const date = new Date(isoString);
+			const now = new Date();
+			const diff = now - date;
+
+			// Less than 1 minute
+			if (diff < 60000) {
+				return 'just now';
+			}
+			// Less than 1 hour
+			if (diff < 3600000) {
+				const minutes = Math.floor(diff / 60000);
+				return minutes + 'm ago';
+			}
+			// Today
+			if (date.toDateString() === now.toDateString()) {
+				return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+			}
+			// Yesterday or older
+			return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+		}
+
+		function escapeHtml(text) {
+			const div = document.createElement('div');
+			div.textContent = text;
+			return div.innerHTML;
 		}
 
 		window.emergencyStop = function() {
@@ -2095,6 +2270,14 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 						updateAgentStatus(message.data.agentId, message.data.status);
 					}
 					break;
+
+				case 'interAgentMessage':
+					// Display inter-agent communication in the chat
+					console.log('[Script] Received interAgentMessage:', message.data);
+					if (message.data) {
+						displayInterAgentMessage(message.data);
+					}
+					break;
 					
 				case 'restoreInputText':
 					const inputField = document.getElementById('messageInput');
@@ -2129,7 +2312,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 									year: 'numeric'
 								}
 							);
-							displayData = displayData.replace(usageLimitMatch[0], \`Claude AI usage limit reached: \${readableDate}\`);
+							displayData = displayData.replace(usageLimitMatch[0], 'Claude AI usage limit reached: ' + readableDate);
 						}
 						
 						addMessage(parseSimpleMarkdown(displayData), 'claude');
@@ -2219,9 +2402,9 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 						showSessionInfo(message.data.sessionId);
 						// Show detailed session information
 						const sessionDetails = [
-							\`🆔 Session ID: \${message.data.sessionId}\`,
-							\`🔧 Tools Available: \${message.data.tools.length}\`,
-							\`🖥️ MCP Servers: \${message.data.mcpServers ? message.data.mcpServers.length : 0}\`
+							'🆔 Session ID: ' + message.data.sessionId,
+							'🔧 Tools Available: ' + message.data.tools.length,
+							'🖥️ MCP Servers: ' + (message.data.mcpServers ? message.data.mcpServers.length : 0)
 						];
 						//addMessage(sessionDetails.join('\\n'), 'system');
 					}
@@ -2267,13 +2450,13 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 					// Show detailed token breakdown for current message
 					const currentTotal = (message.data.currentInputTokens || 0) + (message.data.currentOutputTokens || 0);
 					if (currentTotal > 0) {
-						let tokenBreakdown = \`📊 Tokens: \${currentTotal.toLocaleString()}\`;
+						let tokenBreakdown = '📊 Tokens: ' + currentTotal.toLocaleString();
 						
 						if (message.data.cacheCreationTokens || message.data.cacheReadTokens) {
 							const cacheInfo = [];
-							if (message.data.cacheCreationTokens) cacheInfo.push(\`\${message.data.cacheCreationTokens.toLocaleString()} cache created\`);
-							if (message.data.cacheReadTokens) cacheInfo.push(\`\${message.data.cacheReadTokens.toLocaleString()} cache read\`);
-							tokenBreakdown += \` • \${cacheInfo.join(' • ')}\`;
+							if (message.data.cacheCreationTokens) cacheInfo.push(message.data.cacheCreationTokens.toLocaleString() + ' cache created');
+							if (message.data.cacheReadTokens) cacheInfo.push(message.data.cacheReadTokens.toLocaleString() + ' cache read');
+							tokenBreakdown += ' • ' + cacheInfo.join(' • ');
 						}
 						
 						addMessage(tokenBreakdown, 'system');
@@ -2292,16 +2475,16 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 					
 					// Show current request info if available
 					if (message.data.currentCost || message.data.currentDuration) {
-						const currentCostStr = message.data.currentCost ? \`$\${message.data.currentCost.toFixed(4)}\` : 'N/A';
-						const currentDurationStr = message.data.currentDuration ? \`\${message.data.currentDuration}ms\` : 'N/A';
-						addMessage(\`Request completed - Cost: \${currentCostStr}, Duration: \${currentDurationStr}\`, 'system');
+						const currentCostStr = message.data.currentCost ? '$' + message.data.currentCost.toFixed(4) : 'N/A';
+						const currentDurationStr = message.data.currentDuration ? message.data.currentDuration + 'ms' : 'N/A';
+						addMessage('Request completed - Cost: ' + currentCostStr + ', Duration: ' + currentDurationStr, 'system');
 					}
 					break;
 					
 				case 'sessionResumed':
 					console.log('Session resumed:', message.data);
 					showSessionInfo(message.data.sessionId);
-					addMessage(\`📝 Resumed previous session\\n🆔 Session ID: \${message.data.sessionId}\\n💡 Your conversation history is preserved\`, 'system');
+					addMessage('📝 Resumed previous session\n🆔 Session ID: ' + message.data.sessionId + '\n💡 Your conversation history is preserved', 'system');
 					break;
 					
 				case 'sessionCleared':
@@ -2350,7 +2533,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				case 'imagePath':
 					// Add the image path to the textarea
 					const currentText = messageInput.value;
-					const pathIndicator = \`@\${message.path} \`;
+					const pathIndicator = '@' + message.path + ' ';
 					messageInput.value = currentText + pathIndicator;
 					messageInput.focus();
 					adjustTextareaHeight();
@@ -2418,43 +2601,42 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			const toolName = data.tool || 'Unknown Tool';
 			
 			// Create always allow button text with command styling for Bash
-			let alwaysAllowText = \`Always allow \${toolName}\`;
+			let alwaysAllowText = 'Always allow ' + toolName;
 			let alwaysAllowTooltip = '';
 			if (toolName === 'Bash' && data.pattern) {
 				const pattern = data.pattern;
 				// Remove the asterisk for display - show "npm i" instead of "npm i *"
 				const displayPattern = pattern.replace(' *', '');
 				const truncatedPattern = displayPattern.length > 30 ? displayPattern.substring(0, 30) + '...' : displayPattern;
-				alwaysAllowText = \`Always allow <code>\${truncatedPattern}</code>\`;
-				alwaysAllowTooltip = displayPattern.length > 30 ? \`title="\${displayPattern}"\` : '';
+				alwaysAllowText = 'Always allow <code>' + truncatedPattern + '</code>';
+				alwaysAllowTooltip = displayPattern.length > 30 ? 'title="' + displayPattern + '"' : '';
 			}
 			
-			messageDiv.innerHTML = \`
-				<div class="permission-header">
-					<span class="icon">🔐</span>
-					<span>Permission Required</span>
-					<div class="permission-menu">
-						<button class="permission-menu-btn" onclick="togglePermissionMenu('\${data.id}')" title="More options">⋮</button>
-						<div class="permission-menu-dropdown" id="permissionMenu-\${data.id}" style="display: none;">
-							<button class="permission-menu-item" onclick="enableYoloMode('\${data.id}')">
-								<span class="menu-icon">⚡</span>
-								<div class="menu-content">
-									<span class="menu-title">Enable YOLO Mode</span>
-									<span class="menu-subtitle">Auto-allow all permissions</span>
-								</div>
-							</button>
-						</div>
-					</div>
-				</div>
-				<div class="permission-content">
-					<p>Allow <strong>\${toolName}</strong> to execute the tool call above?</p>
-					<div class="permission-buttons">
-						<button class="btn deny" onclick="respondToPermission('\${data.id}', false)">Deny</button>
-						<button class="btn always-allow" onclick="respondToPermission('\${data.id}', true, true)" \${alwaysAllowTooltip}>\${alwaysAllowText}</button>
-						<button class="btn allow" onclick="respondToPermission('\${data.id}', true)">Allow</button>
-					</div>
-				</div>
-			\`;
+			messageDiv.innerHTML =
+				'<div class="permission-header">' +
+					'<span class="icon">🔐</span>' +
+					'<span>Permission Required</span>' +
+					'<div class="permission-menu">' +
+						'<button class="permission-menu-btn" onclick="togglePermissionMenu(\\'' + data.id + '\\')" title="More options">⋮</button>' +
+						'<div class="permission-menu-dropdown" id="permissionMenu-' + data.id + '" style="display: none;">' +
+							'<button class="permission-menu-item" onclick="enableYoloMode(\\'' + data.id + '\\')">' +
+								'<span class="menu-icon">⚡</span>' +
+								'<div class="menu-content">' +
+									'<span class="menu-title">Enable YOLO Mode</span>' +
+									'<span class="menu-subtitle">Auto-allow all permissions</span>' +
+								'</div>' +
+							'</button>' +
+						'</div>' +
+					'</div>' +
+				'</div>' +
+				'<div class="permission-content">' +
+					'<p>Allow <strong>' + escapeHtml(toolName) + '</strong> to execute the tool call above?</p>' +
+					'<div class="permission-buttons">' +
+						'<button class="btn deny" onclick="respondToPermission(\\'' + data.id + '\\', false)">Deny</button>' +
+						'<button class="btn always-allow" onclick="respondToPermission(\\'' + data.id + '\\', true, true)" ' + alwaysAllowTooltip + '>' + alwaysAllowText + '</button>' +
+						'<button class="btn allow" onclick="respondToPermission(\\'' + data.id + '\\', true)">Allow</button>' +
+					'</div>' +
+				'</div>';
 			
 			messagesDiv.appendChild(messageDiv);
 			scrollToBottomIfNeeded(messagesDiv, shouldScroll);
@@ -2470,7 +2652,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			});
 			
 			// Update the UI to show the decision
-			const permissionMsg = document.querySelector(\`.permission-request:has([onclick*="\${id}"])\`);
+			const permissionMsg = document.querySelector('.permission-request:has([onclick*="' + id + '"])');
 			if (permissionMsg) {
 				const buttons = permissionMsg.querySelector('.permission-buttons');
 				const permissionContent = permissionMsg.querySelector('.permission-content');
@@ -2488,8 +2670,8 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 				
 				// Add decision div to permission-content
 				const decisionDiv = document.createElement('div');
-				decisionDiv.className = \`permission-decision \${decisionClass}\`;
-				decisionDiv.innerHTML = \`\${emoji} \${decision}\`;
+				decisionDiv.className = 'permission-decision ' + decisionClass;
+				decisionDiv.innerHTML = emoji + ' ' + decision;
 				permissionContent.appendChild(decisionDiv);
 				
 				permissionMsg.classList.add('permission-decided', decisionClass);
@@ -2497,7 +2679,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		}
 
 		function togglePermissionMenu(permissionId) {
-			const menu = document.getElementById(\`permissionMenu-\${permissionId}\`);
+			const menu = document.getElementById('permissionMenu-' + permissionId);
 			const isVisible = menu.style.display !== 'none';
 			
 			// Close all other permission menus
@@ -2513,7 +2695,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			sendStats('YOLO mode enabled');
 			
 			// Hide the menu
-			document.getElementById(\`permissionMenu-\${permissionId}\`).style.display = 'none';
+			document.getElementById('permissionMenu-' + permissionId).style.display = 'none';
 			
 			// Send message to enable YOLO mode
 			vscode.postMessage({
@@ -2621,24 +2803,23 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			
 			const restoreContainer = document.createElement('div');
 			restoreContainer.className = 'restore-container';
-			restoreContainer.id = \`restore-\${data.sha}\`;
+			restoreContainer.id = 'restore-' + data.sha;
 			
 			const timeAgo = new Date(data.timestamp).toLocaleTimeString();
 			const shortSha = data.sha ? data.sha.substring(0, 8) : 'unknown';
 			
-			restoreContainer.innerHTML = \`
-				<button class="restore-btn dark" onclick="restoreToCommit('\${data.sha}')">
-					Restore checkpoint
-				</button>
-				<span class="restore-date">\${timeAgo}</span>
-			\`;
+			restoreContainer.innerHTML =
+				'<button class="restore-btn dark" onclick="restoreToCommit(\'' + data.sha + '\')">' +
+				'Restore checkpoint' +
+				'</button>' +
+				'<span class="restore-date">' + timeAgo + '</span>';
 			
 			messagesDiv.appendChild(restoreContainer);
 			scrollToBottomIfNeeded(messagesDiv, shouldScroll);
 		}
 
 		function hideRestoreContainer(commitSha) {
-			const container = document.getElementById(\`restore-\${commitSha}\`);
+			const container = document.getElementById('restore-' + commitSha);
 			if (container) {
 				container.remove();
 			}
@@ -2928,15 +3109,14 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			// Create a custom confirmation dialog since confirm() doesn't work in sandboxed webviews
 			const confirmDialog = document.createElement('div');
 			confirmDialog.className = 'confirm-dialog-overlay';
-			confirmDialog.innerHTML = \`
-				<div class="confirm-dialog">
-					<div class="confirm-message">Are you sure you want to delete this conversation?</div>
-					<div class="confirm-buttons">
-						<button class="confirm-btn confirm-yes" onclick="confirmDelete('\${filename}')">Delete</button>
-						<button class="confirm-btn confirm-cancel" onclick="cancelDelete()">Cancel</button>
-					</div>
-				</div>
-			\`;
+			confirmDialog.innerHTML =
+				'<div class="confirm-dialog">' +
+					'<div class="confirm-message">Are you sure you want to delete this conversation?</div>' +
+					'<div class="confirm-buttons">' +
+						'<button class="confirm-btn confirm-yes" onclick="confirmDelete(\\'' + filename + '\\')">Delete</button>' +
+						'<button class="confirm-btn confirm-cancel" onclick="cancelDelete()">Cancel</button>' +
+					'</div>' +
+				'</div>';
 			document.body.appendChild(confirmDialog);
 		}
 
@@ -3052,13 +3232,12 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 					fileItem.classList.add('selected');
 				}
 				
-				fileItem.innerHTML = \`
-					<span class="file-icon">\${getFileIcon(file.name)}</span>
-					<div class="file-info">
-						<div class="file-name">\${file.name}</div>
-						<div class="file-path">\${file.path}</div>
-					</div>
-				\`;
+				fileItem.innerHTML =
+					'<span class="file-icon">' + getFileIcon(file.name) + '</span>' +
+					'<div class="file-info">' +
+						'<div class="file-name">' + escapeHtml(file.name) + '</div>' +
+						'<div class="file-path">' + escapeHtml(file.path) + '</div>' +
+					'</div>';
 				
 				fileItem.addEventListener('click', () => {
 					selectFile(file);
@@ -3125,7 +3304,7 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 		function showImageAddedFeedback(fileName) {
 			// Create temporary feedback element
 			const feedback = document.createElement('div');
-			feedback.textContent = \`Added: \${fileName}\`;
+			feedback.textContent = 'Added: ' + fileName;
 			feedback.style.cssText = \`
 				position: fixed;
 				top: 20px;
@@ -3190,18 +3369,22 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 					titleText = filenameParts.slice(2).join(' ').replace(/-/g, ' ') || 'Conversation';
 				}
 
-				item.innerHTML = \`
-					<div style="display: flex; justify-content: space-between; align-items: start;">
-						<div style="flex: 1; cursor: pointer;" onclick="loadConversation('\${conv.filename}')">
-							<div class="conversation-title">\${titleText.substring(0, 80)}\${titleText.length > 80 ? '...' : ''}</div>
-							<div class="conversation-meta">\${date} at \${time} • \${conv.messageCount} messages • $\${conv.totalCost.toFixed(3)}</div>
-							<div class="conversation-preview">Session: \${conv.sessionId.substring(0, 20)}...</div>
-						</div>
-						<button class="delete-conversation-btn" onclick="event.stopPropagation(); deleteConversation('\${conv.filename}')" title="Delete conversation">
-							🗑️
-						</button>
-					</div>
-				\`;
+				const titleDisplay = titleText.substring(0, 80) + (titleText.length > 80 ? '...' : '');
+				const sessionDisplay = conv.sessionId.substring(0, 20) + '...';
+				const costDisplay = conv.totalCost.toFixed(3);
+				const filenameEscaped = conv.filename.replace(/'/g, "\\'");
+
+				item.innerHTML =
+					'<div style="display: flex; justify-content: space-between; align-items: start;">' +
+						'<div style="flex: 1; cursor: pointer;" onclick="loadConversation(\\'' + filenameEscaped + '\\')">' +
+							'<div class="conversation-title">' + escapeHtml(titleDisplay) + '</div>' +
+							'<div class="conversation-meta">' + date + ' at ' + time + ' • ' + conv.messageCount + ' messages • $' + costDisplay + '</div>' +
+							'<div class="conversation-preview">Session: ' + sessionDisplay + '</div>' +
+						'</div>' +
+						'<button class="delete-conversation-btn" onclick="event.stopPropagation(); deleteConversation(\\'' + filenameEscaped + '\\')" title="Delete conversation">' +
+							'🗑️' +
+						'</button>' +
+					'</div>';
 
 				listDiv.appendChild(item);
 			});
@@ -3272,28 +3455,24 @@ const getScript = (isTelemetryEnabled: boolean) => `<script>
 			for (const [toolName, permission] of Object.entries(permissions.alwaysAllow)) {
 				if (permission === true) {
 					// Tool is always allowed
-					html += \`
-						<div class="permission-item">
-							<div class="permission-info">
-								<span class="permission-tool">\${toolName}</span>
-								<span class="permission-desc">All</span>
-							</div>
-							<button class="permission-remove-btn" onclick="removePermission('\${toolName}', null)">Remove</button>
-						</div>
-					\`;
+					html += '<div class="permission-item">' +
+						'<div class="permission-info">' +
+							'<span class="permission-tool">' + escapeHtml(toolName) + '</span>' +
+							'<span class="permission-desc">All</span>' +
+						'</div>' +
+						'<button class="permission-remove-btn" onclick="removePermission(\'' + escapeHtml(toolName) + '\', null)">Remove</button>' +
+						'</div>';
 				} else if (Array.isArray(permission)) {
 					// Tool has specific commands/patterns
 					for (const command of permission) {
 						const displayCommand = command.replace(' *', ''); // Remove asterisk for display
-						html += \`
-							<div class="permission-item">
-								<div class="permission-info">
-									<span class="permission-tool">\${toolName}</span>
-									<span class="permission-command"><code>\${displayCommand}</code></span>
-								</div>
-								<button class="permission-remove-btn" onclick="removePermission('\${toolName}', '\${escapeHtml(command)}')">Remove</button>
-							</div>
-						\`;
+						html += '<div class="permission-item">' +
+							'<div class="permission-info">' +
+								'<span class="permission-tool">' + escapeHtml(toolName) + '</span>' +
+								'<span class="permission-command"><code>' + escapeHtml(displayCommand) + '</code></span>' +
+							'</div>' +
+							'<button class="permission-remove-btn" onclick="removePermission(\'' + escapeHtml(toolName) + '\', \'' + escapeHtml(command) + '\')">Remove</button>' +
+							'</div>';
 					}
 				}
 			}

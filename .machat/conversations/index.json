@@ -1,38 +1,20 @@
 [
   {
-    "filename": "2025-09-24_23-43_architect-are-you-there.json",
-    "timestamp": "2025-09-25T00:19:23.849Z",
+    "filename": "2025-09-27_16-45_documenter-can-you-write-a-small-test-file-in-the-.json",
+    "timestamp": "2025-09-30T00:45:48.562Z",
+    "messageCount": 30,
+    "totalCost": 0,
+    "sessionId": "session_1759193119218_x1qcj9d2x",
+    "topic": "Testing Inter-Agent comms",
+    "projectPath": "c:\\Users\\cyapp\\multi-agent-chat-extension"
+  },
+  {
+    "filename": "2025-09-30_00-46_coordinator-we-made-a-bunch-of-changes-in-the-code.json",
+    "timestamp": "2025-09-30T00:49:34.761Z",
     "messageCount": 4,
     "totalCost": 0,
-    "sessionId": "session_1758233746305_wmr41xh41",
-    "topic": "Testing the fun stuff",
-    "projectPath": "c:\\Users\\cyapp\\multi-agent-chat-extension"
-  },
-  {
-    "filename": "2025-09-25_00-19_coder-can-you-see-this.json",
-    "timestamp": "2025-09-25T00:26:50.021Z",
-    "messageCount": 2,
-    "totalCost": 0,
-    "sessionId": "session_1758759564012_7q88478sl",
-    "topic": "Even more testing",
-    "projectPath": "c:\\Users\\cyapp\\multi-agent-chat-extension"
-  },
-  {
-    "filename": "2025-09-25_00-27_documenter-can-you-see-this.json",
-    "timestamp": "2025-09-27T16:45:30.367Z",
-    "messageCount": 22,
-    "totalCost": 0,
-    "sessionId": "session_1758760010037_hg7eddnc5",
-    "topic": "Third round of testing",
-    "projectPath": "c:\\Users\\cyapp\\multi-agent-chat-extension"
-  },
-  {
-    "filename": "2025-09-27_16-45_documenter-can-you-write-a-small-test-file-in-the-.json",
-    "timestamp": "2025-09-29T16:57:08.272Z",
-    "messageCount": 8,
-    "totalCost": 0,
-    "sessionId": "session_1758991530379_u20uj5aa3",
-    "topic": "Testing Inter-Agent comms",
+    "sessionId": "session_1759193148568_ylxm79fkz",
+    "topic": "Testing multi-agent chat again",
     "projectPath": "c:\\Users\\cyapp\\multi-agent-chat-extension"
   }
 ]

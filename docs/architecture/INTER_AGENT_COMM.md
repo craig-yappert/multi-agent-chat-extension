@@ -24,16 +24,16 @@ Enable inter-agent communication in VS Code settings:
 
 ```json
 {
-  "claudeCodeChat.interAgentComm.enabled": true,
-  "claudeCodeChat.interAgentComm.showInUI": true,
-  "claudeCodeChat.interAgentComm.maxConcurrent": 3
+  "multiAgentChat.agents.enableInterCommunication": true,
+  "multiAgentChat.agents.showInterCommunication": false,
+  "multiAgentChat.interAgentComm.maxConcurrent": 3
 }
 ```
 
 ### Settings Description
 
-- **enabled**: Turn inter-agent communication on/off
-- **showInUI**: Display inter-agent messages in the chat UI
+- **enableInterCommunication**: Turn inter-agent communication on/off (default: true)
+- **showInterCommunication**: Display summary of inter-agent messages (default: false, live messages shown instead)
 - **maxConcurrent**: Maximum number of agents that can communicate simultaneously (1-6)
 
 ## How It Works

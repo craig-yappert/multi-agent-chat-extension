@@ -3,13 +3,18 @@
 ## Overview
 Technical architecture and system design documentation.
 
-## Contents
+## Current Documents
 
-- `decisions.md` - Architectural Decision Records (ADRs)
-- `system-design.md` - Overall system architecture
-- `component-design.md` - Individual component designs
-- `data-flow.md` - Data flow and state management
-- `security.md` - Security architecture and considerations
+- `INTER_AGENT_COMM.md` - Inter-agent communication system design
+- `ARCHITECTURE_REDESIGN.md` - Architecture evolution notes
+- `per-project-settings-implemented.md` - Per-project settings implementation
+
+## Removed/Obsolete
+
+- ~~`MCP_ARCHITECTURE.md`~~ - Deleted (MCP infrastructure removed in v1.11.0)
+
+## Note
+Some architecture docs may be outdated. See `docs/DOCUMENTATION_AUDIT_2025_09_30.md` for status.
 
 ## Key Principles
 

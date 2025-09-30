@@ -3,19 +3,20 @@
 ## Overview
 Step-by-step guides and tutorials for users and developers.
 
-## Getting Started
-- `getting-started.md` - Quick start guide
-- `installation.md` - Installation instructions
-- `first-chat.md` - Creating your first multi-agent chat
+## Current Guides
 
-## User Guides
-- `basic-usage.md` - Basic usage patterns
-- `advanced-features.md` - Advanced features and tips
-- `agent-interactions.md` - Working with different agents
-- `file-context.md` - Using file context in conversations
+- `QUICK_START_v131.md` - Quick start guide (version 1.3.1, may be outdated)
+- `PERFORMANCE_GUIDE.md` - Performance optimization tips
 
-## Developer Guides
-- `creating-agents.md` - How to create new agents
-- `custom-providers.md` - Adding custom AI providers
-- `extending-functionality.md` - Extending the extension
-- `debugging.md` - Debugging tips and tricks
+## Removed/Obsolete
+
+- ~~`MCP_VALIDATION_GUIDE.md`~~ - Deleted (MCP infrastructure removed in v1.11.0)
+- ~~`FAST_MODE_SETUP.md`~~ - Deleted (MCP-based fast mode removed)
+
+## Note
+Some guides may be outdated. See `docs/DOCUMENTATION_AUDIT_2025_09_30.md` for complete status.
+
+## Needed for Public Release
+- User guide for basic features
+- Configuration guide
+- Troubleshooting FAQ

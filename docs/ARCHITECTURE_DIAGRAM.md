@@ -35,7 +35,7 @@ graph TB
         AgentMgr[AgentManager<br/>Agent Registry]
         Agents[7 Agents:<br/>Team, Architect,<br/>Coder, Executor,<br/>Reviewer, Documenter,<br/>Coordinator]
         CommHub[AgentCommunicationHub<br/>Inter-agent Messages]
-        MsgParser[AgentMessageParser<br/>@mention Parser]
+        MsgParser[AgentMessageParser<br/>Mention Parser]
     end
 
     subgraph "Provider Layer"

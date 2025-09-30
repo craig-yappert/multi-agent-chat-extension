@@ -6,10 +6,10 @@ Welcome! This guide will help you understand how the Multi Agent Chat extension 
 
 I've created several documents to help you understand the codebase:
 
-### 1. **[CODE_FLOWS.md](CODE_FLOWS.md)** - Detailed Function Flows
+### 1. **[CODE_FLOWS.md](CODE_FLOWS.md)** - Conceptual Code Flows
 
-- Shows exactly how code flows through the system
-- Covers 6 core scenarios with function-by-function breakdown
+- Shows how code flows through the system conceptually
+- Covers 7 core scenarios with component-level breakdowns
 - Includes Mermaid diagrams for visual understanding
 - **Start here to understand specific features**
 
@@ -40,23 +40,24 @@ I've created several documents to help you understand the codebase:
 
 1. Study **Single Agent Communication** in CODE_FLOWS.md
 2. Set breakpoints at:
-   - `extension.ts:550` (_handleMessage)
-   - `providers.ts:39` (sendMessage)
+   - `extension.ts` in `_handleMessage()` method
+   - `providers.ts` in `ClaudeProvider.sendMessage()` method
 3. Send a message and watch it flow through
 
-### Day 3: Team Collaboration
+### Day 3: Inter-Agent Communication
 
-1. Study **Multi-Agent/Team Communication** in CODE_FLOWS.md
-2. Understand how `OptimizedMultiProvider` works
-3. Try sending a message to the Team agent
-4. Watch the Output panel for inter-agent communication
+1. Study **Inter-Agent Communication (@mentions)** in CODE_FLOWS.md
+2. Study **Team Coordination** flow in CODE_FLOWS.md
+3. Understand how `AgentCommunicationHub` routes messages
+4. Try using @mentions to trigger agent collaboration
+5. Watch live inter-agent messages appear in the UI
 
 ### Day 4: Customization
 
 1. Review **Quick Reference** for modification tips
 2. Try adding a console.log in `selectBestAgent()`
 3. Change a default setting and see it apply
-4. Modify the UI slightly in `ui.ts`
+4. Modify the webview UI in `resources/webview/script.js`
 
 ## 🔍 Key Concepts to Master
 
@@ -76,7 +77,7 @@ UI → postMessage → _handleMessage → Agent → Provider → Claude → Resp
 
 - ClaudeProvider: Direct Claude CLI calls
 - MultiProvider: Team coordination
-- MCPProvider: Enhanced capabilities
+- OpenAIProvider: Fallback to Claude (not fully implemented)
 
 ### 4. **Settings Hierarchy**
 
@@ -107,11 +108,12 @@ Pick a simple message like "Hello" and trace it:
 
 ### Read in This Order
 
-1. `extension.ts` - Main orchestrator
-2. `agents.ts` - Agent definitions
-3. `providers.ts` - AI provider logic
-4. `script.ts` - UI behavior
-5. Everything else builds on these
+1. `src/extension.ts` - Main orchestrator
+2. `src/agents.ts` - Agent definitions
+3. `src/providers.ts` - AI provider logic
+4. `resources/webview/script.js` - UI behavior
+5. `src/agentCommunication.ts` - Inter-agent messaging
+6. Everything else builds on these
 
 ### Use VS Code Features
 
@@ -126,7 +128,7 @@ Pick a simple message like "Hello" and trace it:
 Try this simple modification:
 
 1. Open `src/agents.ts`
-2. Find the `defaultAgents` array (line 15)
+2. Find the `defaultAgents` array
 3. Change an agent's icon (e.g., Architect from 🏗️ to 🎨)
 4. Run `npm run compile`
 5. Press F5 to test
@@ -146,28 +148,29 @@ To help set expectations, here's what you're working with:
 ## 🤔 Common Questions
 
 **Q: Where does the UI HTML come from?**
-A: `src/ui.ts` generates it dynamically
+A: `resources/webview/index.html` with `script.js` and `styles.css`
 
 **Q: How do agents know their role?**
 A: Defined in `src/agents.ts` defaultAgents array
 
 **Q: Where are conversations saved?**
-A: `.machat/conversations/` or global storage
+A: `.machat/conversations/` (project-local) or global storage
 
 **Q: How does streaming work?**
-A: `StreamingClaudeProvider` in `performanceOptimizer.ts`
+A: Response streaming in `performanceOptimizer.ts`
 
 **Q: What triggers extension activation?**
-A: `onStartupFinished` in `package.json:51`
+A: `onStartupFinished` in `package.json`
 
 ## 🎓 Advanced Understanding
 
 Once comfortable with basics:
 
-1. Study `AgentCommunicationHub` for inter-agent messaging
-2. Understand `ResponseCache` for performance
-3. Learn how `ProjectContextManager` isolates agent memory
-4. Explore `MCPServerManager` for advanced capabilities
+1. Study `AgentCommunicationHub` for inter-agent messaging and loop prevention
+2. Study `AgentMessageParser` for @mention extraction
+3. Understand `ResponseCache` for performance optimization
+4. Learn how `ProjectContextManager` isolates agent memory per project
+5. Explore the STOP button flow in `ClaudeProvider.killAllProcesses()`
 
 ## 🚦 Signs You Understand the Code
 

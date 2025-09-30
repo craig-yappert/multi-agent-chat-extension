@@ -4,19 +4,19 @@
 
 ### Where to Start Reading
 
-1. **`src/extension.ts:activate()`** (Line 18)
+1. **`src/extension.ts:activate()`**
    - This is where EVERYTHING starts
    - Follow this to understand initialization
 
-2. **`src/extension.ts:_handleMessage()`** (Line 550)
+2. **`src/extension.ts:_handleMessage()`**
    - This routes ALL messages from the UI
    - Put a breakpoint here to trace any user action
 
-3. **`src/providers.ts:sendMessage()`** (Line 39)
+3. **`src/providers.ts:ClaudeProvider.sendMessage()`**
    - This is where AI calls happen
-   - Trace this to understand Claude integration
+   - Trace this to understand Claude CLI integration
 
-4. **`src/agents.ts:selectBestAgent()`** (Line 143)
+4. **`src/agents.ts:selectBestAgent()`**
    - This decides which agent handles a request
    - Key to understanding agent routing
 
@@ -25,22 +25,25 @@
 ### Setting Breakpoints
 
 ```javascript
-// Most useful breakpoints:
+// Most useful breakpoints (search for method names):
 
 // 1. See every user message
-src/extension.ts:550  // _handleMessage()
+src/extension.ts  // _handleMessage()
 
 // 2. See agent selection
-src/agents.ts:143     // selectBestAgent()
+src/agents.ts     // selectBestAgent()
 
 // 3. See AI provider calls
-src/providers.ts:39   // sendMessage()
+src/providers.ts  // ClaudeProvider.sendMessage()
 
 // 4. See team coordination
-src/performanceOptimizer.ts:280  // OptimizedMultiProvider.sendMessage()
+src/providers.ts  // MultiProvider.sendMessage()
 
-// 5. See settings changes
-src/settings/SettingsManager.ts:120  // loadSettings()
+// 5. See inter-agent communication
+src/agentCommunication.ts  // AgentCommunicationHub.sendMessage()
+
+// 6. See settings changes
+src/settings/SettingsManager.ts  // loadSettings()
 ```
 
 ### Console Logging Points
@@ -105,18 +108,18 @@ All available commands you can run:
 
 ```
 1. User types in UI
-2. script.ts → sendButton.click()
+2. resources/webview/script.js → sendButton.click()
 3. vscode.postMessage({type: 'sendMessage', text: ...})
 4. extension.ts → _handleMessage() case 'sendMessage'
 5. extension.ts → _processMessage()
 6. agents.ts → selectBestAgent() OR use selected agent
-7. providers.ts → getProvider()
-8. providers.ts → sendMessage()
-9. Claude CLI spawned
-10. Response returned
-11. extension.ts → _postMessage({type: 'response'})
-12. script.ts → window.addEventListener('message')
-13. UI updated
+7. providers.ts → ProviderManager.getProvider()
+8. providers.ts → ClaudeProvider.sendMessage()
+9. Claude CLI process spawned
+10. Response streamed back (if streaming enabled)
+11. extension.ts → webview.postMessage({type: 'agentResponse'})
+12. resources/webview/script.js → window.addEventListener('message')
+13. UI updated with response
 ```
 
 ### When Team Agent is Used
@@ -125,13 +128,13 @@ All available commands you can run:
 1. User selects Team agent
 2. Message sent (steps 1-6 above)
 3. providers.ts → MultiProvider returned
-4. performanceOptimizer.ts → OptimizedMultiProvider.sendMessage()
-5. Select 3-6 agents based on task
-6. Parallel queries to each agent
-7. agentCommunication.ts → broadcast context
+4. providers.ts → MultiProvider.sendMessage()
+5. Select 3-6 agents based on task (Quick Mode: 3, Full Mode: 6)
+6. Parallel queries to each agent via ProviderManager
+7. agentCommunication.ts → AgentCommunicationHub broadcasts context
 8. Collect all responses
-9. Synthesize into team response
-10. Return unified answer
+9. Synthesize into unified team response
+10. Return combined answer to user
 ```
 
 ## 🛠️ Modifying Common Features
@@ -139,15 +142,15 @@ All available commands you can run:
 ### Add a New Agent
 
 1. Edit `src/agents.ts`
-2. Add to `defaultAgents` array (line 15)
-3. Update `selectBestAgent()` logic (line 143)
-4. Restart extension
+2. Add to `defaultAgents` array
+3. Update `selectBestAgent()` logic if needed
+4. Restart extension (F5)
 
 ### Change Default Model
 
-1. Edit `src/providers.ts`
-2. Modify `agentConfig.model` default (line 100)
-3. Or change in settings: `multiAgentChat.defaultModel`
+1. Edit `src/config/models.ts` for model configurations
+2. Or change in VS Code settings: `multiAgentChat.defaultModel`
+3. Or change per-agent in `src/agents.ts`
 
 ### Adjust Performance Settings
 
@@ -161,11 +164,12 @@ Edit in VS Code settings:
 }
 ```
 
-### Modify UI Styling
+### Modify UI
 
-1. Edit `src/ui.ts` for HTML structure
-2. Edit `src/uiStyles.ts` for CSS styles
-3. Recompile: `npm run compile`
+1. Edit `resources/webview/index.html` for HTML structure
+2. Edit `resources/webview/styles.css` for CSS styles
+3. Edit `resources/webview/script.js` for UI behavior
+4. Restart extension (F5) - no compilation needed for webview files
 
 ## 📊 Data Flow Cheat Sheet
 
@@ -186,12 +190,12 @@ When debugging, watch these variables:
 
 | Variable | Location | What It Shows |
 |----------|----------|---------------|
-| `this._selectedAgent` | `extension.ts:155` | Currently selected agent |
-| `this._currentConversation` | `extension.ts:149` | Chat history |
-| `message` | `_handleMessage():550` | Incoming UI messages |
-| `agentConfig` | `providers.ts:40` | Agent being used |
-| `context` | `providers.ts:40` | Conversation context |
-| `this._agentSettings` | `extension.ts:156` | Agent-specific settings |
+| `this._selectedAgent` | `extension.ts` | Currently selected agent |
+| `this._currentConversation` | `extension.ts` | Chat history |
+| `message` | `_handleMessage()` | Incoming UI messages |
+| `agentConfig` | `providers.ts` | Agent being used |
+| `context` | `providers.ts` | Conversation context |
+| `activeProcesses` | `providers.ts` | Running Claude CLI processes |
 
 ## 🚀 Performance Monitoring
 
@@ -199,10 +203,11 @@ When debugging, watch these variables:
 
 Look for these console logs:
 ```
-[Cache HIT] architect        // Response from cache
-[ClaudeProvider] Using MCP   // Using MCP server
-[Streaming] architect        // Streaming response
-[Team] Query time: 3421ms    // Team response time
+[Cache HIT] architect                            // Response from cache
+[ClaudeProvider] Using direct Claude CLI         // Direct CLI call
+[Streaming] architect                            // Streaming response
+[Team] Query time: 3421ms                        // Team response time
+[AgentCommunicationHub] Broadcasting to 3 agents // Inter-agent communication
 ```
 
 ### Monitor Agent Communication
@@ -228,12 +233,12 @@ When testing changes:
 
 | Issue | Solution | File to Check |
 |-------|----------|---------------|
-| Extension not loading | Check `package.json` activation events | `package.json:50` |
-| Agent not responding | Verify Claude CLI works | `providers.ts:126` |
-| Settings not applying | Check settings hierarchy | `SettingsManager.ts` |
-| Conversations not saving | Check storage paths | `ConversationManager.ts:85` |
-| Team not coordinating | Verify CommHub initialized | `agentCommunication.ts` |
-| UI not updating | Check postMessage calls | `extension.ts:1620` |
+| Extension not loading | Check `package.json` activation events | `package.json` |
+| Agent not responding | Verify Claude CLI works (`claude --version`) | `providers.ts` |
+| Settings not applying | Check settings hierarchy (workspace > project > global) | `SettingsManager.ts` |
+| Conversations not saving | Check `.machat/conversations/` exists | `ConversationManager.ts` |
+| Inter-agent comm not working | Check @mention syntax and enableInterCommunication setting | `agentCommunication.ts` |
+| UI not updating | Check postMessage calls and webview console | `extension.ts` + `resources/webview/script.js` |
 
 ## 💡 Pro Tips
 

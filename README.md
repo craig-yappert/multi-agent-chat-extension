@@ -15,12 +15,12 @@ Transform your development workflow with Multi Agent Chat - a VS Code extension 
 ## ✨ **Why Multi Agent Chat?**
 
 🤝 **Specialized AI Team** - Seven expert agents, each focused on their domain
-👥 **Collaborative Problem Solving** - Agents work together on complex tasks
+👥 **Collaborative Problem Solving** - Agents work together with @mentions
 🎯 **Targeted Expertise** - Choose the right agent for the right job
-🔌 **MCP Server Integration** - Full Model Context Protocol support
 💬 **Beautiful Chat Interface** - Intuitive UI with markdown support
 ⚡ **Smart Context Management** - Agents share context and collaborate
 🛠️ **Flexible Workflow** - Work with individual agents or the entire team
+🪟 **Floating Windows** - Detach chat to separate window
 
 ---
 
@@ -101,26 +101,32 @@ Your project management specialist who:
 - Full markdown support with syntax highlighting
 - Code block copying with one click
 - Auto-resizing input area
+- Floating window mode (detach chat to separate window)
+- STOP button to kill all running processes
 
-### 🎯 **Smart Agent Selection**
+### 🎯 **Smart Agent Selection & Inter-Agent Communication**
 
 - Quick agent switcher in the chat interface
 - Automatic agent recommendation based on task
-- @ mentions for specific agent requests
+- @mentions for specific agent requests (e.g., "@architect design a schema")
+- Live inter-agent message display (see agents collaborate in real-time)
 - Team mode for collaborative responses
+- Loop prevention for safe inter-agent messaging
 
 ### 📁 **Context Management**
 
-- Drag and drop files into chat
+- File attachment support
 - Image and screenshot support
 - Smart file referencing
 - Shared context between agents
+- Per-project conversation storage (`.machat/` folder)
 
 ### ⚙️ **Advanced Configuration**
 
-- WSL support for Windows users
+- Hierarchical settings: Global → Project → Workspace
+- Project-specific settings in `.machat/config.json`
 - Customizable settings per agent
-- Thinking mode intensity levels
+- Performance optimizations (caching, streaming, quick team mode)
 - YOLO mode for power users
 
 ---
@@ -130,8 +136,14 @@ Your project management specialist who:
 ### Prerequisites
 
 - **VS Code 1.94+** - Latest version recommended
-- **Claude Desktop** - With API key configured
-- **Node.js** - For MCP server support (optional)
+- **Claude CLI** - Installed and configured with API key
+  ```bash
+  # Install Claude CLI
+  npm install -g @anthropic-ai/claude-cli
+
+  # Or via Homebrew (macOS)
+  brew install claude
+  ```
 
 ### Installation
 
@@ -204,20 +216,24 @@ Team: I'll coordinate the team to help you build this feature:
 - Choose from Team, Architect, Coder, Executor, Reviewer, Documenter, or Coordinator
 - Your selection persists across sessions
 
-### WSL Integration (Windows)
+### Per-Project Settings
 
-For Windows users running Claude in WSL:
+Initialize project-local settings and conversation storage:
 
-1. Open settings (gear icon)
-2. Enable WSL integration
-3. Configure your WSL distribution name
-4. Set paths to Node.js and Claude
+1. Run: `Ctrl+Shift+P` → "Initialize Multi Agent Chat Project"
+2. This creates a `.machat/` folder with:
+   - `config.json` - Project-specific settings
+   - `conversations/` - Local conversation history
+   - `context/` - Agent memory for this project
 
-### MCP Servers
+### Settings Configuration
 
-1. Click the MCP button (when available)
-2. Add servers from the popular gallery or custom configurations
-3. Manage permissions and tools
+Configure via VS Code settings (`multiAgentChat.*`):
+- API keys (Claude, OpenAI)
+- Default agent and model
+- Inter-agent communication settings
+- Performance options (caching, streaming, quick team mode)
+- Permission policies
 
 ---
 
@@ -226,20 +242,21 @@ For Windows users running Claude in WSL:
 ### Extension Not Loading
 
 - Ensure VS Code is version 1.94 or higher
-- Check that Claude Desktop is installed and configured
+- Check that Claude CLI is installed: `claude --version`
 - Reload VS Code window: `Developer: Reload Window`
 
 ### Agent Not Responding
 
-- Verify Claude API key is configured
+- Verify Claude CLI is working: `claude "hello"`
+- Check Claude API key is configured
 - Check internet connection
-- Try selecting a different agent and switching back
+- Try the STOP button to kill running processes and retry
 
-### WSL Issues (Windows)
+### Inter-Agent Communication Not Working
 
-- Ensure WSL is installed and running
-- Verify the distribution name in settings
-- Check that Claude is installed in WSL
+- Verify setting: `multiAgentChat.agents.enableInterCommunication` is `true`
+- Use proper @mention syntax: `@architect design a schema`
+- Check Output panel: `View → Output → Multi-Agent Communication`
 
 ---
 
@@ -276,12 +293,22 @@ This project is a fork and extension of [Claude Code Chat](https://github.com/an
 
 ### Enhancements in This Fork
 
+**v1.13.0 (2025-09-30):**
+- External webview resources (clean separation of HTML/CSS/JS)
+- Inter-agent communication with @mentions
+- Live inter-agent message display
+- Loop prevention for safe agent collaboration
+- STOP button for process management
+- Floating window support
+
+**Core Features:**
 - Multi-agent system with specialized AI roles (Architect, Coder, Reviewer, etc.)
 - Team collaboration mode for complex tasks
+- Per-project settings and conversation storage
 - Enhanced agent routing and context management
-- Specialized agent capabilities for different development tasks
+- Direct Claude CLI integration (MCP removed for simplicity)
 
-We maintain full compatibility with the original Claude Code Chat features while extending its capabilities to provide a comprehensive AI development team experience.
+We've significantly evolved from the original foundation while maintaining the core philosophy of providing a great developer experience with AI assistance.
 
 ---
 

@@ -15,10 +15,6 @@ export const MODEL_CONFIGS: Record<string, ModelOption[]> = {
         { value: 'claude-3-opus-latest', label: 'Claude 3 Opus' },
         { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku' }
     ],
-    mcp: [
-        { value: 'claude-3-5-sonnet-latest', label: 'Claude 3.5 Sonnet (via MCP)' },
-        { value: 'claude-3-opus-latest', label: 'Claude 3 Opus (via MCP)' }
-    ],
     openai: [
         { value: 'gpt-4o', label: 'GPT-4o' },
         { value: 'gpt-4-turbo-preview', label: 'GPT-4 Turbo' },
@@ -35,7 +31,6 @@ export const MODEL_CONFIGS: Record<string, ModelOption[]> = {
 // Default model per provider
 export const DEFAULT_MODELS: Record<string, string> = {
     claude: 'claude-3-5-sonnet-latest',
-    mcp: 'claude-3-5-sonnet-latest',
     openai: 'gpt-4o',
     local: 'llama-2'
 };

@@ -7,18 +7,21 @@ Welcome! This guide will help you understand how the Multi Agent Chat extension 
 I've created several documents to help you understand the codebase:
 
 ### 1. **[CODE_FLOWS.md](CODE_FLOWS.md)** - Detailed Function Flows
+
 - Shows exactly how code flows through the system
 - Covers 6 core scenarios with function-by-function breakdown
 - Includes Mermaid diagrams for visual understanding
 - **Start here to understand specific features**
 
 ### 2. **[ARCHITECTURE_DIAGRAM.md](ARCHITECTURE_DIAGRAM.md)** - System Architecture
+
 - High-level system overview with visual diagrams
 - Component relationships and responsibilities
 - Data flow patterns and state management
 - **Read this to understand the big picture**
 
 ### 3. **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - Developer Cheat Sheet
+
 - Key entry points for code reading
 - Debugging tips and breakpoint locations
 - Common code paths simplified
@@ -27,12 +30,14 @@ I've created several documents to help you understand the codebase:
 ## 🎯 Your Learning Path
 
 ### Day 1: Understanding the Basics
+
 1. Read the **System Architecture** section in ARCHITECTURE_DIAGRAM.md
 2. Study **Extension Initiation** flow in CODE_FLOWS.md
 3. Open `src/extension.ts` and find the `activate()` function
 4. Set a breakpoint and run the extension (F5)
 
 ### Day 2: Message Flow
+
 1. Study **Single Agent Communication** in CODE_FLOWS.md
 2. Set breakpoints at:
    - `extension.ts:550` (_handleMessage)
@@ -40,12 +45,14 @@ I've created several documents to help you understand the codebase:
 3. Send a message and watch it flow through
 
 ### Day 3: Team Collaboration
+
 1. Study **Multi-Agent/Team Communication** in CODE_FLOWS.md
 2. Understand how `OptimizedMultiProvider` works
 3. Try sending a message to the Team agent
 4. Watch the Output panel for inter-agent communication
 
 ### Day 4: Customization
+
 1. Review **Quick Reference** for modification tips
 2. Try adding a console.log in `selectBestAgent()`
 3. Change a default setting and see it apply
@@ -54,27 +61,33 @@ I've created several documents to help you understand the codebase:
 ## 🔍 Key Concepts to Master
 
 ### 1. **The Message Loop**
+
 ```
 UI → postMessage → _handleMessage → Agent → Provider → Claude → Response → UI
 ```
 
 ### 2. **Agent Selection**
+
 - User can manually select an agent
 - Or AgentManager.selectBestAgent() chooses based on keywords
 - Team agent coordinates multiple agents
 
 ### 3. **Provider Pattern**
+
 - ClaudeProvider: Direct Claude CLI calls
 - MultiProvider: Team coordination
 - MCPProvider: Enhanced capabilities
 
 ### 4. **Settings Hierarchy**
+
 ```
 Default < VS Code < Global < Project < Workspace
 ```
+
 Higher levels override lower levels.
 
 ### 5. **Storage Locations**
+
 - Global: Extension's global storage
 - Project: `.machat/` folder in project
 - Settings cascade from global to project-specific
@@ -82,7 +95,9 @@ Higher levels override lower levels.
 ## 💡 Understanding Tips
 
 ### Follow One Message
+
 Pick a simple message like "Hello" and trace it:
+
 1. Where user types it (webview)
 2. How it reaches the extension
 3. Which agent handles it
@@ -91,6 +106,7 @@ Pick a simple message like "Hello" and trace it:
 6. How UI updates
 
 ### Read in This Order
+
 1. `extension.ts` - Main orchestrator
 2. `agents.ts` - Agent definitions
 3. `providers.ts` - AI provider logic
@@ -98,6 +114,7 @@ Pick a simple message like "Hello" and trace it:
 5. Everything else builds on these
 
 ### Use VS Code Features
+
 - **F12**: Go to Definition
 - **Shift+F12**: Find All References
 - **Ctrl+K Ctrl+0**: Fold all code
@@ -155,6 +172,7 @@ Once comfortable with basics:
 ## 🚦 Signs You Understand the Code
 
 You're ready when you can:
+
 - [ ] Explain how a message flows from UI to Claude
 - [ ] Add a new command to the extension
 - [ ] Change how an agent behaves

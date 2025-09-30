@@ -8,7 +8,6 @@ export interface AgentConfig {
 	capabilities: string[];
 	provider: 'claude' | 'openai' | 'local' | 'multi';
 	model?: string;
-	// mcpServer removed;
 	specializations: string[];
 }
 

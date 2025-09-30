@@ -3,7 +3,6 @@ import * as cp from 'child_process';
 import { AgentConfig } from './agents';
 import { AgentCommunicationHub } from './agentCommunication';
 import { StreamingClaudeProvider, OptimizedMultiProvider, ResponseCache } from './performanceOptimizer';
-// MCP WebSocket provider removed - see archive/mcp-infrastructure-v1 branch
 import { AgentMessageParser } from './agentMessageParser';
 
 export interface AIProvider {
@@ -12,7 +11,6 @@ export interface AIProvider {
 
 export class ClaudeProvider implements AIProvider {
 	private streamingProvider?: StreamingClaudeProvider;
-	// MCP WebSocket provider removed
 	private cache: ResponseCache = new ResponseCache();
 	private messageParser?: AgentMessageParser;
 	private communicationHub?: AgentCommunicationHub;
@@ -41,8 +39,6 @@ export class ClaudeProvider implements AIProvider {
 		if (config.get<boolean>('performance.enableStreaming', true)) {
 			this.streamingProvider = new StreamingClaudeProvider(context, onStreamCallback);
 		}
-
-		// MCP WebSocket provider initialization removed
 	}
 
 	async sendMessage(message: string, agentConfig: AgentConfig, context?: any): Promise<string> {
@@ -51,7 +47,6 @@ export class ClaudeProvider implements AIProvider {
 		// Check if we need inter-agent communication features
 		const needsInterAgent = config.get<boolean>('agents.enableInterCommunication', true) && this.messageParser;
 
-		// MCP WebSocket provider removed - using direct Claude CLI
 		// Log if we're using inter-agent communication
 		if (needsInterAgent) {
 			console.log(`[ClaudeProvider] Using direct Claude CLI for ${agentConfig.id} (inter-agent communication enabled)`);
@@ -316,16 +311,12 @@ export class OpenAIProvider implements AIProvider {
 	}
 }
 
-// MCPProvider class removed - see archive/mcp-infrastructure-v1 branch
-// All agents now use Claude provider directly
-
 export class MultiProvider implements AIProvider {
 	private optimizedProvider?: OptimizedMultiProvider;
 
 	constructor(
 		private claudeProvider: ClaudeProvider,
 		private openaiProvider: OpenAIProvider,
-		// mcpProvider removed,
 		private agentManager?: any,
 		private communicationHub?: AgentCommunicationHub,
 		private context?: vscode.ExtensionContext,
@@ -455,7 +446,6 @@ Provide a concise synthesis (3-5 sentences) that represents the team's collectiv
 export class ProviderManager {
 	private claudeProvider: ClaudeProvider;
 	private openaiProvider: OpenAIProvider;
-	// mcpProvider removed;
 	private multiProvider: MultiProvider;
 	private communicationHub?: AgentCommunicationHub;
 
@@ -463,18 +453,15 @@ export class ProviderManager {
 		context: vscode.ExtensionContext,
 		agentManager?: any,
 		communicationHub?: AgentCommunicationHub,
-		onStreamCallback?: (chunk: string, agentId: string) => void,
-		// mcpServerManager removed
+		onStreamCallback?: (chunk: string, agentId: string) => void
 	) {
 		// Pass agentManager and communicationHub to ClaudeProvider for inter-agent messaging
 		this.claudeProvider = new ClaudeProvider(context, onStreamCallback, agentManager, communicationHub);
 		this.openaiProvider = new OpenAIProvider(this.claudeProvider);
-		// mcpProvider initialization removed
 		this.communicationHub = communicationHub;
 		this.multiProvider = new MultiProvider(
 			this.claudeProvider,
 			this.openaiProvider,
-			// mcpProvider removed,
 			agentManager,
 			communicationHub,
 			context,
@@ -488,7 +475,6 @@ export class ProviderManager {
 				return this.claudeProvider;
 			case 'openai':
 				return this.openaiProvider;
-			// 'mcp' provider case removed
 			case 'multi':
 				return this.multiProvider;
 			default:

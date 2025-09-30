@@ -9,7 +9,6 @@ import { SettingsManager } from './settings/SettingsManager';
 import { ConversationManager, ConversationIndex } from './conversations/ConversationManager';
 import { ProjectContextManager } from './context/ProjectContextManager';
 import { MigrationCommands } from './commands/MigrationCommands';
-// import { MCPServerManager } from './mcp-server/serverManager';  // Disabled - not needed
 import { SettingsPanel } from './ui/SettingsPanel';
 
 const exec = util.promisify(cp.exec);
@@ -32,11 +31,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	const migrationCommands = new MigrationCommands(context, settingsManager, conversationManager, contextManager);
 	migrationCommands.registerCommands();
 
-	// MCP Server Manager disabled - not needed for current functionality
-	// const mcpServerManager = new MCPServerManager(context);
-	// console.log('MCP Server Manager initialized');
-
-	const provider = new ClaudeChatProvider(context.extensionUri, context, settingsManager, conversationManager, contextManager, undefined);
+	const provider = new ClaudeChatProvider(context.extensionUri, context, settingsManager, conversationManager, contextManager);
 
 	const disposable = vscode.commands.registerCommand('multiAgentChat.openChat', (column?: vscode.ViewColumn) => {
 		console.log('Multi Agent Chat command executed!');
@@ -59,9 +54,6 @@ export async function activate(context: vscode.ExtensionContext) {
 			await provider._clearAllConversations();
 		}
 	});
-
-	// MCP Server commands are registered internally by MCPServerManager
-	// No need to register them here as it would cause duplicate registration
 
 	// Register webview view provider for sidebar chat (using shared provider instance)
 	const webviewProvider = new ClaudeChatWebviewProvider(context.extensionUri, context, provider);
@@ -183,8 +175,7 @@ class ClaudeChatProvider {
 		private readonly _context: vscode.ExtensionContext,
 		private readonly _settingsManager: SettingsManager,
 		private readonly _conversationManager: ConversationManager,
-		private readonly _contextManager: ProjectContextManager,
-		private readonly _mcpServerManager?: any // MCPServerManager disabled
+		private readonly _contextManager: ProjectContextManager
 	) {
 		this._agentManager = new AgentManager();
 		this._outputChannel = vscode.window.createOutputChannel('Multi-Agent Communication');
@@ -261,7 +252,6 @@ class ClaudeChatProvider {
 		// Initialize backup repository and conversations
 		this._initializeBackupRepo();
 		this._initializeConversations();
-		this._initializeMCPConfig();
 
 		// Load conversation index from conversation manager (uses .machat folder when available)
 		// Ensure ConversationManager is initialized first
@@ -487,15 +477,6 @@ class ClaudeChatProvider {
 				return;
 			case 'addPermission':
 				this._addPermission(message.toolName, message.command);
-				return;
-			case 'loadMCPServers':
-				this._loadMCPServers();
-				return;
-			case 'saveMCPServer':
-				this._saveMCPServer(message.name, message.config);
-				return;
-			case 'deleteMCPServer':
-				this._deleteMCPServer(message.name);
 				return;
 			case 'getCustomSnippets':
 				this._sendCustomSnippets();
@@ -1365,9 +1346,6 @@ class ClaudeChatProvider {
 	}
 
 	public newSessionOnConfigChange() {
-		// Reinitialize MCP config with new WSL paths
-		this._initializeMCPConfig();
-
 		// Start a new session due to configuration change
 		this._newSession();
 
@@ -1587,10 +1565,6 @@ class ClaudeChatProvider {
 		} catch (error: any) {
 			console.error('Failed to initialize conversations:', error.message);
 		}
-	}
-
-	private async _initializeMCPConfig(): Promise<void> {
-		// MCP configuration removed - no longer needed after cleanup
 	}
 
 	private async _initializePermissions(): Promise<void> {
@@ -2009,22 +1983,6 @@ class ClaudeChatProvider {
 		}
 	}
 
-	private async _loadMCPServers(): Promise<void> {
-		// MCP server functionality removed
-		this._postMessage({ type: 'mcpServers', data: {} });
-	}
-
-	private async _saveMCPServer(name: string, config: any): Promise<void> {
-		// MCP server functionality removed
-		this._postMessage({ type: 'mcpServerError', data: { error: 'MCP servers no longer supported' } });
-		return;
-	}
-
-	private async _deleteMCPServer(name: string): Promise<void> {
-		// MCP server functionality removed
-		this._postMessage({ type: 'mcpServerError', data: { error: 'MCP servers no longer supported' } });
-		return;
-	}
 
 	private async _sendCustomSnippets(): Promise<void> {
 		try {

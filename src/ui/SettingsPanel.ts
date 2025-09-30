@@ -4,7 +4,7 @@ import { MODEL_CONFIGS, DEFAULT_MODELS } from '../config/models';
 
 export interface AgentSettings {
     model: string;
-    provider: 'claude' | 'openai' | 'local' | 'mcp';
+    provider: 'claude' | 'openai' | 'local';
     systemPrompt?: string;
     temperature?: number;
     maxTokens?: number;
@@ -179,7 +179,6 @@ export class SettingsPanel {
             html += '<label>Provider:</label>';
             html += '<select id="provider-' + agent.id + '" onchange="updateModelOptions(\'' + agent.id + '\')">';
             html += '<option value="claude"' + (config.provider === 'claude' ? ' selected' : '') + '>Claude</option>';
-            html += '<option value="mcp"' + (config.provider === 'mcp' ? ' selected' : '') + '>MCP (Claude)</option>';
             html += '<option value="openai"' + (config.provider === 'openai' ? ' selected' : '') + '>OpenAI</option>';
             html += '</select>';
             html += '</div>';
@@ -400,10 +399,6 @@ export class SettingsPanel {
                         { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet (Oct 2024)' },
                         { value: 'claude-3-opus-latest', label: 'Claude 3 Opus' },
                         { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku' }
-                    ],
-                    mcp: [
-                        { value: 'claude-3-5-sonnet-latest', label: 'Claude 3.5 Sonnet (via MCP)' },
-                        { value: 'claude-3-opus-latest', label: 'Claude 3 Opus (via MCP)' }
                     ],
                     openai: [
                         { value: 'gpt-4o', label: 'GPT-4o' },

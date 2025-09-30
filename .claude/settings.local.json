@@ -23,7 +23,8 @@
       "Bash(npm run lint)",
       "WebSearch",
       "Bash(code:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(del srcscript.ts srcui.ts srcuiStyles.ts)"
     ],
     "deny": []
   },

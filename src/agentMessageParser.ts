@@ -46,6 +46,20 @@ export class AgentMessageParser {
 		console.log(`\n[Parser] ====== Parsing ${agentId}'s message for @ mentions ======`);
 		console.log(`[Parser] Message preview: "${message.substring(0, 200)}${message.length > 200 ? '...' : ''}"`);
 
+		// Check for broadcast messages FIRST (so @all doesn't get validated as an agent)
+		for (const pattern of this.BROADCAST_PATTERNS) {
+			let match;
+			pattern.lastIndex = 0;
+			while ((match = pattern.exec(message)) !== null) {
+				const content = match[1].trim();
+				console.log(`[Parser Match] Found broadcast: @all -> "${content.substring(0, 80)}${content.length > 80 ? '...' : ''}"`);
+				commands.push({
+					type: 'broadcast',
+					message: content
+				});
+			}
+		}
+
 		// Check for individual agent messages
 		for (const pattern of this.MESSAGE_PATTERNS) {
 			let match;
@@ -53,6 +67,11 @@ export class AgentMessageParser {
 			while ((match = pattern.exec(message)) !== null) {
 				const targetAgent = match[1].toLowerCase();
 				const content = match[2].trim();
+
+				// Skip if this is 'all' (already handled by broadcast patterns)
+				if (targetAgent === 'all') {
+					continue;
+				}
 
 				console.log(`[Parser Match] Found: @${targetAgent}: "${content.substring(0, 80)}${content.length > 80 ? '...' : ''}"`);
 
@@ -69,19 +88,6 @@ export class AgentMessageParser {
 					console.log(`[Parser Invalid] ✗ Agent '${targetAgent}' not found. Available agents:`,
 						this.agentManager.getAllAgents().map(a => a.id));
 				}
-			}
-		}
-
-		// Check for broadcast messages
-		for (const pattern of this.BROADCAST_PATTERNS) {
-			let match;
-			pattern.lastIndex = 0;
-			while ((match = pattern.exec(message)) !== null) {
-				const content = match[1].trim();
-				commands.push({
-					type: 'broadcast',
-					message: content
-				});
 			}
 		}
 

@@ -207,10 +207,12 @@ You are ${agentConfig.name}, a ${agentConfig.role}. ${agentConfig.description}\n
 					let result = output.trim();
 
 					// Process inter-agent commands if message parser is available
+					// But skip parsing if this is already an inter-agent response (prevent nested commands)
 					const interCommEnabled = config.get<boolean>('agents.enableInterCommunication', true);
-					console.log(`[ClaudeProvider] Inter-agent communication enabled: ${interCommEnabled}, Parser available: ${!!this.messageParser}`);
+					const isInterAgentResponse = context?.isInterAgentResponse === true;
+					console.log(`[ClaudeProvider] Inter-agent communication enabled: ${interCommEnabled}, Parser available: ${!!this.messageParser}, IsResponse: ${isInterAgentResponse}`);
 
-					if (this.messageParser && interCommEnabled) {
+					if (this.messageParser && interCommEnabled && !isInterAgentResponse) {
 						console.log(`\n[Inter-Agent Parse] Processing ${agentConfig.id}'s response for @ mentions`);
 						console.log(`[Inter-Agent Parse] Response length: ${result.length} chars`);
 						// Parse for inter-agent commands
@@ -221,7 +223,29 @@ You are ${agentConfig.name}, a ${agentConfig.role}. ${agentConfig.description}\n
 							commands.forEach((cmd, i) => {
 								console.log(`[Inter-Agent Execute] Command ${i+1}: ${cmd.type} to ${cmd.targetAgent || 'all'}: "${cmd.message.substring(0, 50)}..."`);
 							});
-							// Execute the commands with user context
+
+							// Clean the original message first to show initial text
+							const originalLength = result.length;
+							result = this.messageParser.cleanMessage(result);
+							console.log(`[Inter-Agent Clean] Cleaned message: ${originalLength} -> ${result.length} chars`);
+
+							// Show the cleaned message immediately via callback BEFORE executing commands
+							if (context?.onPartialResponse) {
+								if (result.trim()) {
+									console.log('[Inter-Agent Display] Showing initial agent text before executing commands');
+									context.onPartialResponse(result.trim());
+									result = ''; // Clear so we don't send it again at the end
+								} else {
+									// If cleaned message is empty, the agent only sent inter-agent commands
+									// Show a system message so user knows what's happening
+									console.log('[Inter-Agent Display] Agent response was only commands, showing system message');
+									const targetAgents = commands.map(cmd => cmd.targetAgent || 'all').join(', ');
+									context.onPartialResponse(`*Broadcasting to agents: ${targetAgents}...*`);
+									result = ''; // Clear so we don't send it again at the end
+								}
+							}
+
+							// Now execute the commands (inter-agent messages will appear after initial text)
 							const enrichedContext = {
 								...context,
 								userRequest: context?.userRequest || message  // Ensure user request is in context
@@ -233,17 +257,12 @@ You are ${agentConfig.name}, a ${agentConfig.role}. ${agentConfig.description}\n
 							);
 							console.log(`[Inter-Agent Execute] Execution completed, ${responses.size} responses received`);
 
-							// Clean the original message of commands
-							const originalLength = result.length;
-							result = this.messageParser.cleanMessage(result);
-							console.log(`[Inter-Agent Clean] Cleaned message: ${originalLength} -> ${result.length} chars`);
-
 							// Add inter-agent responses if configured to show them
 							if (config.get<boolean>('agents.showInterCommunication', false)) {
 								console.log('[ClaudeProvider] Showing inter-agent communication in UI');
 								const formatted = this.messageParser.formatResponses(responses);
 								if (formatted) {
-									result += formatted;
+									result = formatted; // This will be the summary
 								}
 							}
 						} else {

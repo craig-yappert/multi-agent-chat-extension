@@ -244,8 +244,8 @@
           },
           "multiAgentChat.agents.showInterCommunication": {
             "type": "boolean",
-            "default": true,
-            "description": "Display inter-agent communication in the chat UI",
+            "default": false,
+            "description": "Show formatted summary of inter-agent responses (redundant with live messages, usually disabled)",
             "order": 9
           },
           "multiAgentChat.interAgentComm.maxConcurrent": {

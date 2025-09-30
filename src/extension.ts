@@ -218,11 +218,11 @@ class ClaudeChatProvider {
 				// Try multiple sources for webview reference
 				const currentWebview = this._webview || this._panel?.webview;
 
-				// Send inter-agent messages to webview for visibility
+				// Send inter-agent messages to webview for visibility AND save to conversation log
 				if (currentWebview && messageContent) {
-					console.log(`[Extension statusCallback] Posting interAgentMessage to webview`);
-					// Send as inter-agent message for special display
-					this._postMessage({
+					console.log(`[Extension statusCallback] Posting interAgentMessage to webview and saving`);
+					// Send as inter-agent message for special display AND save
+					this._sendAndSaveMessage({
 						type: 'interAgentMessage',
 						data: {
 							from: fromAgent,
@@ -554,9 +554,9 @@ class ClaudeChatProvider {
 
 		// Flush any pending inter-agent messages now that webview is ready
 		if (this._pendingInterAgentMessages.length > 0) {
-			console.log(`[Extension] Flushing ${this._pendingInterAgentMessages.length} buffered inter-agent messages`);
+			console.log(`[Extension] Flushing ${this._pendingInterAgentMessages.length} buffered inter-agent messages and saving`);
 			for (const message of this._pendingInterAgentMessages) {
-				this._postMessage({
+				this._sendAndSaveMessage({
 					type: 'interAgentMessage',
 					data: message
 				});
@@ -571,11 +571,11 @@ class ClaudeChatProvider {
 				(status: string, fromAgent?: string, toAgent?: string, messageContent?: string) => {
 					console.log(`[Extension statusCallback] Received: ${status}, from: ${fromAgent}, to: ${toAgent}, hasContent: ${!!messageContent}`);
 
-					// Send inter-agent messages to webview for visibility
+					// Send inter-agent messages to webview for visibility AND save to conversation log
 					if (this._webview && messageContent) {
-						console.log(`[Extension statusCallback] Posting interAgentMessage to webview`);
-						// Send as inter-agent message for special display
-						this._postMessage({
+						console.log(`[Extension statusCallback] Posting interAgentMessage to webview and saving`);
+						// Send as inter-agent message for special display AND save
+						this._sendAndSaveMessage({
 							type: 'interAgentMessage',
 							data: {
 								from: fromAgent,
@@ -827,7 +827,20 @@ class ClaudeChatProvider {
 				conversationHistory: agentHistory,
 				extensionContext: this._context,
 				userRequest: message,  // Pass the original user message for context chain
-				workflowMode: this._workflowMode  // Pass workflow mode for provider to adjust behavior
+				workflowMode: this._workflowMode,  // Pass workflow mode for provider to adjust behavior
+				onPartialResponse: (partialText: string) => {
+					// Callback for providers to send partial responses before full completion
+					this._sendAndSaveMessage({
+						type: 'agentResponse',
+						data: partialText,
+						agent: {
+							id: agentConfig.id,
+							name: agentConfig.name,
+							icon: agentConfig.icon,
+							color: agentConfig.color
+						}
+					});
+				}
 			});
 
 			// Parse response for file operations from any agent
@@ -2799,7 +2812,8 @@ class ClaudeChatProvider {
 						// Include agent metadata if present (for agentResponse messages)
 						const postMsg: any = {
 							type: message.messageType,
-							data: message.data
+							data: message.data,
+							timestamp: message.timestamp // Preserve original timestamp
 						};
 
 						if (message.agent) {

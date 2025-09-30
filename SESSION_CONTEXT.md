@@ -1,10 +1,25 @@
 # Session Context - Multi Agent Chat Extension
 
-## Current Version: 1.13.0 (External Resources Refactor Complete!)
+## Current Version: 1.13.0 (Inter-Agent Communication Polish Complete!)
 
-## Latest Session Summary (2025-09-30)
+## Latest Session Summary (2025-09-30 Afternoon - Inter-Agent UX Polish)
 
-### MAJOR ACHIEVEMENT: External Resources Refactor Completed! 🎉
+### MAJOR ACHIEVEMENTS: Complete Inter-Agent Communication Polish! 🎉
+
+#### Issues Fixed
+1. **Timestamp Persistence** - Messages now show actual timestamps on reload (not "just now")
+2. **Timestamp Formatting** - Added time-of-day for older messages ("Sep 30 4:40 PM")
+3. **CSS Overlap Fix** - Timestamps no longer overlap with copy button
+4. **Duplicate Messages** - Removed duplicate inter-agent messages (processing status no longer sends content)
+5. **Message Display Order** - Coordinator acknowledgment appears BEFORE inter-agent execution
+6. **Expand/Collapse Bug** - Fixed by using DOM elements instead of innerHTML (markdown was corrupting HTML)
+7. **Empty Acknowledgment** - Shows "Broadcasting to agents..." when response is only commands
+8. **@all Validation Error** - Removed false "Agent 'all' not found" error (check broadcasts first)
+9. **Loop Prevention** - Fixed to only block simple response acknowledgments, not requests
+10. **Nested Commands** - Prevented responses from triggering new @mentions (isInterAgentResponse flag)
+11. **Redundant Summary** - Disabled default `showInterCommunication` (live messages are better)
+
+### MAJOR ACHIEVEMENT: External Resources Refactor Completed! 🎉 (Morning Session)
 
 #### The Problem Solved
 - **Template Literal Hell**: The entire webview (3700+ lines) was wrapped in template literals
@@ -75,8 +90,28 @@ resources/
 - **Performance**: Resources cached by VS Code
 - **Development**: Hot reload works properly
 
+#### Key Files Modified (Afternoon Session)
+- `src/extension.ts` - Timestamp preservation, onPartialResponse callback
+- `src/providers.ts` - Message order fix, isInterAgentResponse flag
+- `src/agentCommunication.ts` - Loop prevention improvement, isInterAgentResponse context
+- `src/agentMessageParser.ts` - @all broadcast pattern priority
+- `resources/webview/script.js` - Timestamp parameter, expand/collapse DOM fix
+- `resources/webview/styles.css` - Timestamp position adjustment
+- `package.json` - showInterCommunication default changed to false
+
+#### Testing Results
+- ✅ Timestamps persistent and show time-of-day
+- ✅ No duplicate inter-agent messages
+- ✅ Message flow: acknowledgment → execution → summary
+- ✅ Expand/collapse works on all messages
+- ✅ @all broadcast works without errors
+- ✅ Loop prevention allows legitimate requests
+- ✅ No nested inter-agent commands
+- ✅ Clean chat UI without redundant summaries
+
 ## Current State
-- Version 1.13.0 packaged and ready (1.7 MB VSIX)
-- All major functionality working
-- Inter-agent communication transparent to users
-- Ready for next phase of development
+- Version 1.13.0 packaged and ready (1.74 MB VSIX)
+- All major functionality working perfectly
+- Inter-agent communication clean and transparent
+- Message flow is logical and complete
+- Ready for more complex agent interactions

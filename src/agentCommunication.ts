@@ -86,19 +86,23 @@ export class AgentCommunicationHub {
 		console.log(`\n[Send Message] ${fromAgent} >> ${toAgent} (${type})`);
 		console.log(`[Send Message] Content: "${message.substring(0, 100)}${message.length > 100 ? '...' : ''}"`);
 
-		// PREVENT RESPONSE LOOPS: Don't allow agents to respond back to acknowledging messages
-		const lowerMessage = message.toLowerCase();
-		const isAcknowledgment =
-			lowerMessage.includes('acknowledged') ||
-			lowerMessage.includes('confirmed') ||
-			lowerMessage.includes('received') ||
-			lowerMessage.includes('roger that') ||
-			lowerMessage.includes('comms check') ||
-			lowerMessage.includes('communications verified');
+		// PREVENT RESPONSE LOOPS: Block simple acknowledgment responses to prevent cascading
+		// Only check responses, not initial requests
+		if (type === 'response') {
+			const lowerMessage = message.toLowerCase().trim();
+			// Check if this is a short, simple acknowledgment (under 100 chars and matches patterns)
+			const isSimpleAcknowledgment = message.length < 100 && (
+				lowerMessage.includes('acknowledged') ||
+				lowerMessage.includes('confirmed') ||
+				/^(message\s+)?(received|confirmed|acknowledged)/i.test(lowerMessage) ||
+				lowerMessage.includes('roger that') ||
+				lowerMessage.includes('communications verified')
+			);
 
-		if (type === 'request' && isAcknowledgment) {
-			console.log(`[Loop Prevention] Blocking acknowledgment loop from ${fromAgent} to ${toAgent}`);
-			return '[System: Acknowledgment received - no further response needed]';
+			if (isSimpleAcknowledgment) {
+				console.log(`[Loop Prevention] Blocking simple acknowledgment response from ${fromAgent} to ${toAgent}`);
+				return '[System: Acknowledgment received - no further response needed]';
+			}
 		}
 
 		// Check conversation limits
@@ -423,8 +427,8 @@ Please coordinate their efforts and provide a cohesive solution.
 				this.statusCallback(
 					`${toAgent.name} is processing message from ${fromName}...`,
 					message.from,
-					message.to,
-					message.content  // Include the message content for visibility
+					message.to
+					// Don't send message content here - already sent during initial "sending" status
 				);
 			}
 
@@ -452,7 +456,10 @@ Please provide your response based on the request above.
 			const response = await provider.sendMessage(
 				interAgentPrompt,
 				toAgent,
-				message.context
+				{
+					...message.context,
+					isInterAgentResponse: true  // Flag to prevent recursive parsing
+				}
 			);
 			console.log(`[Process Response] Got response from ${message.to}: "${response.substring(0, 100)}${response.length > 100 ? '...' : ''}"`);
 

@@ -43,7 +43,7 @@ function scrollToBottomIfNeeded(messagesDiv, shouldScroll = null) {
 	}
 }
 
-function addMessage(content, type = 'claude', agentInfo = null) {
+function addMessage(content, type = 'claude', agentInfo = null, timestamp = null) {
 	const messagesDiv = document.getElementById('messages');
 	const shouldScroll = shouldAutoScroll(messagesDiv);
 
@@ -53,7 +53,8 @@ function addMessage(content, type = 'claude', agentInfo = null) {
 	// Add timestamp to all messages
 	const timestampDiv = document.createElement('div');
 	timestampDiv.className = 'message-timestamp';
-	timestampDiv.textContent = formatTimestamp(new Date().toISOString());
+	// Use provided timestamp or create new one
+	timestampDiv.textContent = formatTimestamp(timestamp || new Date().toISOString());
 	messageDiv.appendChild(timestampDiv);
 
 	// Apply agent-specific color styling if agent info is provided
@@ -143,17 +144,37 @@ function addMessage(content, type = 'claude', agentInfo = null) {
 
 	if(type == 'user' || type === 'claude' || type === 'thinking'){
 		if (isLongContent) {
-			// Create expandable content
+			// Create expandable content using DOM methods to avoid markdown parsing issues
 			const truncatedContent = content.substring(0, 800);
 			const lastNewline = truncatedContent.lastIndexOf('\n');
 			const displayContent = lastNewline > 600 ? truncatedContent.substring(0, lastNewline) : truncatedContent;
 
-			contentDiv.innerHTML =
-				'<div class="content-expandable">' +
-				'<div class="content-truncated">' + displayContent + '...</div>' +
-				'<div class="content-full" style="display: none;">' + content + '</div>' +
-				'<button class="expand-btn" onclick="toggleMessageContent(this)">Show more ▼</button>' +
-				'</div>';
+			// Create wrapper
+			const expandableDiv = document.createElement('div');
+			expandableDiv.className = 'content-expandable';
+
+			// Create truncated div
+			const truncatedDiv = document.createElement('div');
+			truncatedDiv.className = 'content-truncated';
+			truncatedDiv.innerHTML = displayContent + '...';
+
+			// Create full content div
+			const fullDiv = document.createElement('div');
+			fullDiv.className = 'content-full';
+			fullDiv.style.display = 'none';
+			fullDiv.innerHTML = content;
+
+			// Create expand button
+			const expandBtn = document.createElement('button');
+			expandBtn.className = 'expand-btn';
+			expandBtn.textContent = 'Show more ▼';
+			expandBtn.onclick = function() { toggleMessageContent(this); };
+
+			// Assemble
+			expandableDiv.appendChild(truncatedDiv);
+			expandableDiv.appendChild(fullDiv);
+			expandableDiv.appendChild(expandBtn);
+			contentDiv.appendChild(expandableDiv);
 		} else {
 			contentDiv.innerHTML = content;
 		}
@@ -2073,6 +2094,11 @@ function toggleMessageContent(button) {
 	const truncated = expandableDiv.querySelector('.content-truncated');
 	const full = expandableDiv.querySelector('.content-full');
 
+	if (!truncated || !full) {
+		console.error('toggleMessageContent: Could not find content divs');
+		return;
+	}
+
 	if (full.style.display === 'none') {
 		truncated.style.display = 'none';
 		full.style.display = 'block';
@@ -2120,8 +2146,9 @@ function formatTimestamp(isoString) {
 	if (date.toDateString() === now.toDateString()) {
 		return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 	}
-	// Yesterday or older
-	return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+	// Yesterday or older - include time
+	return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
+	       date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
 
 function escapeHtml(text) {
@@ -2351,14 +2378,14 @@ window.addEventListener('message', event => {
 			
 		case 'userInput':
 			if (message.data.trim()) {
-				addMessage(parseSimpleMarkdown(message.data), 'user');
+				addMessage(parseSimpleMarkdown(message.data), 'user', null, message.timestamp);
 			}
 			break;
 
 		case 'agentResponse':
 			if (message.data.trim()) {
-				// Pass agent info to addMessage if available
-				addMessage(parseSimpleMarkdown(message.data), 'claude', message.agent || null);
+				// Pass agent info and timestamp to addMessage if available
+				addMessage(parseSimpleMarkdown(message.data), 'claude', message.agent || null, message.timestamp);
 			}
 			updateStatusWithTotals();
 			hideAgentStatus(); // Hide status spinner after response

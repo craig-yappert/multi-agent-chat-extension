@@ -5,16 +5,20 @@ Technical architecture and system design documentation.
 
 ## Current Documents
 
-- `INTER_AGENT_COMM.md` - Inter-agent communication system design
-- `ARCHITECTURE_REDESIGN.md` - Architecture evolution notes
-- `per-project-settings-implemented.md` - Per-project settings implementation
+- `INTER_AGENT_COMM.md` - Inter-agent communication system design (✅ Up to date as of v1.13.0)
 
-## Removed/Obsolete
+## Archived
 
-- ~~`MCP_ARCHITECTURE.md`~~ - Deleted (MCP infrastructure removed in v1.11.0)
+Historical architecture documents moved to `docs/archive/architecture/`:
+- `ARCHITECTURE_REDESIGN.md` - Performance redesign ideas (pre-MCP removal)
+- `per-project-settings-implemented.md` - Per-project settings implementation notes
+
+## Deleted
+
+- ~~`MCP_ARCHITECTURE.md`~~ - MCP infrastructure removed in v1.11.0
 
 ## Note
-Some architecture docs may be outdated. See `docs/DOCUMENTATION_AUDIT_2025_09_30.md` for status.
+For comprehensive architecture overview, see top-level documentation consolidation in progress.
 
 ## Key Principles
 

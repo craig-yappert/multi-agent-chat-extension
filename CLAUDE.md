@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Multi Agent Chat is a VS Code extension that provides a collaborative AI team interface with specialized agents (Architect, Coder, Executor, Reviewer, Documenter, Coordinator, and Team) for software development tasks.
 
-**Current Version:** 1.11.0 (Major Cleanup Release)
+**Current Version:** 1.13.0 (External Resources & Inter-Agent Polish)
 
 ## Essential Commands
 
@@ -29,7 +29,7 @@ Multi Agent Chat is a VS Code extension that provides a collaborative AI team in
 - `Ctrl+Shift+P` → "Initialize Multi Agent Chat Project" - Create .machat folder
 - `Ctrl+Shift+P` → "Migrate Conversations to Project" - Move to local storage
 
-## Architecture Overview (v1.11.0)
+## Architecture Overview (v1.13.0)
 
 ### Core Components
 
@@ -42,9 +42,8 @@ Multi Agent Chat is a VS Code extension that provides a collaborative AI team in
 **Provider System** (`src/providers.ts`)
 - ClaudeProvider: Direct Claude CLI integration
 - OpenAIProvider: Fallback to Claude (not yet implemented)
-- MCPProvider: Pass-through to Claude
 - MultiProvider: Team coordination
-- **Legacy providers removed in v1.11.0**
+- **All MCP references removed in v1.13.0**
 
 **Settings Management** (`src/settings/SettingsManager.ts`)
 - Hierarchical settings: VS Code → Global → Project → Workspace
@@ -62,8 +61,10 @@ Multi Agent Chat is a VS Code extension that provides a collaborative AI team in
 - Context scoping to prevent cross-project bleeding
 
 **Communication Hub** (`src/agentCommunication.ts`)
-- Inter-agent communication system
+- Inter-agent communication system with @mention support
 - Message broadcasting and routing between agents
+- Loop prevention (max depth 3, max 50 messages per conversation)
+- Live inter-agent message display in UI
 - Context sharing for collaborative responses
 
 **Performance Optimization** (`src/performanceOptimizer.ts`)
@@ -72,30 +73,44 @@ Multi Agent Chat is a VS Code extension that provides a collaborative AI team in
 - Quick team mode (3 agents instead of 6)
 - Configurable agent timeouts
 
-**UI Components** (`src/webview/`)
-- Webview-based chat interface
+**UI Components** (`resources/webview/`)
+- External webview resources (index.html, script.js, styles.css)
 - Agent selector for switching between specialists
 - Markdown rendering with syntax highlighting
-- Settings panel (partially implemented)
+- Live inter-agent message display
+- Float button for detachable chat window
+- File attachment capability
+- STOP button to kill all running processes
 
 ## Project Structure
 
 ```
 multi-agent-chat-extension/
 ├── src/
-│   ├── settings/          # Settings management
-│   ├── conversations/     # Conversation storage
-│   ├── context/          # Project context
-│   ├── commands/         # Migration commands
-│   ├── agents.ts         # Agent definitions
-│   ├── providers.ts      # AI providers (cleaned)
-│   ├── extension.ts      # Main extension
-│   └── webview/         # UI components
-├── .machat/              # Project-local storage (in user projects)
-│   ├── config.json       # Project settings
-│   ├── conversations/    # Local conversations
-│   └── context/         # Agent memory
-└── package.json          # Extension manifest
+│   ├── settings/              # Settings management
+│   ├── conversations/         # Conversation storage
+│   ├── context/              # Project context
+│   ├── commands/             # Migration commands
+│   ├── config/               # Model configurations
+│   ├── ui/                   # Settings UI panel
+│   ├── agents.ts             # Agent definitions
+│   ├── providers.ts          # AI providers
+│   ├── extension.ts          # Main extension controller
+│   ├── agentCommunication.ts # Inter-agent messaging hub
+│   ├── agentMessageParser.ts # @mention parser
+│   ├── performanceOptimizer.ts # Caching & optimization
+│   └── requestManager.ts     # Request queue management
+├── resources/
+│   └── webview/              # External UI resources
+│       ├── index.html        # HTML template
+│       ├── script.js         # UI logic (~6000 lines)
+│       └── styles.css        # Styling (~2500 lines)
+├── .machat/                  # Project-local storage (in user projects)
+│   ├── config.json           # Project settings
+│   ├── conversations/        # Local conversations
+│   └── context/             # Agent memory
+├── out/                      # Compiled JavaScript (generated)
+└── package.json              # Extension manifest
 ```
 
 ## Key Configuration Settings
@@ -128,26 +143,40 @@ The extension uses `multiAgentChat.*` settings (unified in v1.11.0):
 - `multiAgentChat.performance.quickTeamMode` - Use 3 agents
 - `multiAgentChat.performance.agentTimeout` - Timeout per agent
 
-## Recent Changes (v1.11.0)
+## Recent Changes
 
-### Removed
-- Entire MCP server infrastructure
-- WSL support and configuration
-- 8 unused provider files
-- 7 MCP-related commands
-- ~30KB of legacy code
+### v1.13.0 (2025-09-30)
 
-### Added
-- Per-project settings architecture
+**External Resources Refactor:**
+- Extracted webview UI to `resources/webview/` external files
+- Deleted template literal files (script.ts, ui.ts, uiStyles.ts)
+- Removed 7,964 lines of template literal code
+- Clean separation: HTML, CSS, JavaScript
+
+**Inter-Agent Communication Polish:**
+- Live inter-agent message display (transparent communication)
+- Fixed message display order (ack → execution → summary)
+- Loop prevention for acknowledgments
+- Timestamp persistence and formatting
+- STOP button kills all running Claude CLI processes
+
+**Documentation Cleanup:**
+- Removed all MCP server references from docs
+- Updated architecture diagrams to 100% accuracy
+- Concept-focused CODE_FLOWS.md (maintainable)
+- Archived 4 implemented proposals
+
+### v1.11.0 (2025-09-19)
+
+**MCP Infrastructure Removed:**
+- Simplified to direct Claude CLI calls
+- Removed ~50 lines of MCP references
+- Deleted 8 unused provider files
+
+**Per-Project Settings:**
+- `.machat/` folder structure
+- Hierarchical settings system
 - Project-local conversation storage
-- Settings hierarchy management
-- Migration commands
-
-### Fixed
-- Unified branding (claudeCodeChat → multiAgentChat)
-- Command ID consistency
-- TypeScript compilation errors
-- Package size (1.5MB → 1.3MB)
 
 ## Development Notes
 
@@ -162,20 +191,32 @@ The extension uses `multiAgentChat.*` settings (unified in v1.11.0):
 
 1. Clear all conversations: `Ctrl+Shift+P` → "Clear All Conversation History"
 2. Test each agent individually
-3. Test team coordination
-4. Verify project settings isolation
-5. Test conversation migration
+3. Test inter-agent communication with @mentions
+4. Test team coordination (Quick vs Full mode)
+5. Verify project settings isolation
+6. Test conversation migration
+7. Test STOP button kills all processes
+8. Test floating window detachment
 
 ## Known Issues
 
 - Settings UI only shows API Keys section (other sections not rendering)
-- Some performance settings not fully wired up
+- Some performance settings may need verification (requestManager, cache effectiveness)
 
 ## Contributing
 
 When adding new features:
 1. Follow existing architecture patterns
-2. Update relevant documentation
+2. Update relevant documentation (especially if files/structure changes)
 3. Test with both global and project settings
 4. Ensure backward compatibility
-5. Update CHANGELOG.md
+5. Verify documentation accuracy (see `docs/internal/CONSOLIDATION_PLAN.md`)
+
+## Documentation
+
+See `docs/` for comprehensive documentation:
+- **START_HERE.md** - Learning path for understanding the codebase
+- **ARCHITECTURE_DIAGRAM.md** - System architecture with diagrams
+- **CODE_FLOWS.md** - Conceptual flow documentation
+- **QUICK_REFERENCE.md** - Developer cheat sheet
+- **proposals/** - Active feature proposals (3 active, 4 archived)

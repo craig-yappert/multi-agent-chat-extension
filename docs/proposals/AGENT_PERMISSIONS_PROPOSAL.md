@@ -1,217 +1,453 @@
-# Agent Permissions Model Proposal: From Prevention to Trust with Verification
+# Agent Permissions Model Proposal (v2): Pragmatic Layered Approach
+
+**Status:** Proposal (v1.16.0)
+**Created:** 2025-09-30
+**Priority:** High
+**Complexity:** Medium
+**Estimated Effort:** 6-8 hours
+
+---
 
 ## Executive Summary
 
-This proposal outlines a fundamental shift in how Multi Agent Chat handles agent permissions, moving from a restrictive prevention-based model to a trust-with-verification model that better reflects real-world team dynamics and improves efficiency.
+This proposal outlines a **pragmatic, layered permissions system** for Multi Agent Chat that:
+
+1. **Inherits from Claude Code** when used together (primary use case)
+2. **Adopts Claude Agent SDK patterns** for standalone mode
+3. **Provides sensible fallback defaults** when neither is available
+4. **Avoids duplicate permission UX** - leverage what users already understand
+
+**Key Insight:** Don't reinvent permissions. Leverage existing systems and patterns.
+
+---
 
 ## Problem Statement
 
-### Current Issues
-1. **Token Inefficiency**: Agents spend tokens describing what they *would* do rather than doing it
-2. **Artificial Bottlenecks**: Simple operations require multi-agent coordination (e.g., Documenter → Executor → File)
-3. **Context Loss**: Information degrades when passed between agents unnecessarily
-4. **Unrealistic Workflow**: Real teams don't require permission for routine tasks within their domain
-5. **User Frustration**: Constant permission prompts for obvious operations
+### Current State
+- ❌ Multi Agent Chat has **no permission system**
+- ❌ Unclear what agents can/cannot do
+- ❌ No alignment with Claude Code (when used together)
+- ❌ No guidance for standalone users
 
-### Philosophical Contradiction
-- Regular applications have broad filesystem access by default
-- We trust IDEs, compilers, and build tools implicitly
-- Yet we restrict our own agents at the task level
-- This suggests we're solving the wrong problem
+### Reality Check
+- ✅ **Most users will run Multi Agent Chat + Claude Code together**
+- ✅ Claude Code already handles file operations, tool permissions, etc.
+- ✅ Claude Agent SDK has a proven permission model we can adopt
+- ✅ Don't make users configure permissions twice
 
-## Proposed Solution: Trust with Verification
+---
 
-### Core Principle
-**"We're not protecting against malicious agents (they're our tools), we're protecting against mistakes."**
+## Proposed Solution: Three-Tier Permission Strategy
 
-### Key Components
+### Tier 1: Inherit from Claude Code (Primary)
 
-#### 1. Domain-Based Default Permissions
-Each agent gets automatic access within their natural domain:
+**When:** Claude Code extension is detected in VS Code
 
+**How:** Read Claude Code's permission settings and apply them
+
+**Example:**
 ```typescript
-interface AgentDomain {
-  agent: string;
-  allowedPaths: string[];      // Paths they can write without permission
-  allowedPatterns: string[];    // File patterns they own
-  warningPaths: string[];       // Paths that trigger warnings but not blocks
-  blockedPaths: string[];       // System/critical paths always blocked
-}
+// Detect Claude Code extension
+const claudeCode = vscode.extensions.getExtension('anthropic.claude-code');
 
-const agentDomains: AgentDomain[] = [
-  {
-    agent: 'documenter',
-    allowedPaths: ['/docs', '/README.md', '/.machat/docs'],
-    allowedPatterns: ['*.md', '*.txt', '*.rst'],
-    warningPaths: ['/src'],  // Can write but logged prominently
-    blockedPaths: ['/.git', '/node_modules']
-  },
-  {
-    agent: 'coder',
-    allowedPaths: ['/src', '/lib', '/test'],
-    allowedPatterns: ['*.ts', '*.js', '*.jsx', '*.tsx', '*.py', '*.java'],
-    warningPaths: ['/docs'],
-    blockedPaths: ['/.git', '/node_modules', '/.env*']
-  },
-  // ... etc
-];
-```
+if (claudeCode) {
+    // Inherit permission settings from Claude Code
+    const claudeCodeSettings = vscode.workspace.getConfiguration('claude');
 
-#### 2. Comprehensive Audit System
+    this.permissionMode = claudeCodeSettings.get('permissionMode', 'default');
+    this.allowedTools = claudeCodeSettings.get('allowedTools', []);
+    this.disallowedTools = claudeCodeSettings.get('disallowedTools', []);
 
-Replace permission requests with detailed logging:
-
-```typescript
-interface AuditEntry {
-  timestamp: Date;
-  agent: string;
-  action: 'create' | 'modify' | 'delete' | 'rename';
-  filepath: string;
-  contentHash?: string;
-  contentPreview?: string;  // First 200 chars
-  gitDiff?: string;         // For modifications
-  context: {
-    userRequest: string;    // Original user message
-    agentPlan?: string;     // What agent said it would do
-    interAgentChain?: string[]; // Who asked this agent to do this
-  };
+    // Use Claude Code's permission flow
+    this.useClaudeCodePermissions = true;
 }
 ```
 
-#### 3. Automatic Safety Mechanisms
+**Benefits:**
+- ✅ No duplicate configuration
+- ✅ Consistent UX across both extensions
+- ✅ Users already understand Claude Code's permission model
+- ✅ Automatic alignment with user's trust preferences
 
-##### Backup Points
-- Auto-commit before agent operations begin
-- Snapshot after significant changes
-- Easy rollback command: "undo last agent changes"
+---
 
-##### Smart Warnings (not blocks)
-- Writing outside typical domain
-- Modifying files not recently discussed
-- Deleting non-empty directories
-- Overwriting without reading first
+### Tier 2: Claude Agent SDK Pattern (Standalone)
 
-##### Project-Aware Behaviors
-- Respect `.gitignore` patterns
-- Understand build vs source directories
-- Follow project conventions (detected or configured)
+**When:** Claude Code is NOT detected
 
-#### 4. Progressive Trust Levels
+**How:** Implement Claude Agent SDK's permission model
 
-Users can configure their comfort level:
-
+**Permission Modes** (from Claude Agent SDK):
 ```typescript
-enum TrustLevel {
-  PARANOID = 0,    // Current behavior - ask for everything
-  CAUTIOUS = 1,    // Ask for cross-domain operations only
-  BALANCED = 2,    // Default - domain-based auto-approval
-  TRUSTING = 3,    // Ask only for deletions
-  YOLO = 4         // Full auto - audit only
+enum PermissionMode {
+    DEFAULT = 'default',           // Standard permission checks
+    ACCEPT_EDITS = 'acceptEdits',  // Auto-approve file edits
+    BYPASS = 'bypassPermissions'   // Bypass all checks (YOLO mode)
 }
 ```
 
-## Implementation Approach
+**Permission Flow** (from Agent SDK):
+1. **PreToolUse Hook** - Before tool execution
+2. **Permission Rules** - Static allow/deny rules
+3. **Permission Mode Check** - Apply mode (default, acceptEdits, bypass)
+4. **`canUseTool` Callback** - Dynamic runtime permission logic
+5. **PostToolUse Hook** - After tool execution (logging, audit)
 
-### Phase 1: Foundation (Week 1-2)
-1. Implement audit logging system
-2. Create domain configuration structure
-3. Add backup point creation
-
-### Phase 2: Domain Permissions (Week 2-3)
-1. Define default domains per agent
-2. Implement path/pattern matching
-3. Add warning system (non-blocking)
-
-### Phase 3: Safety Features (Week 3-4)
-1. Git integration for diffs
-2. Rollback mechanism
-3. Project convention detection
-
-### Phase 4: User Control (Week 4-5)
-1. Trust level configuration
-2. Audit log viewer UI
-3. Undo/rollback commands
-
-## Benefits
-
-### Efficiency Gains
-- **50-70% reduction** in token usage for file operations
-- **Faster task completion** - no permission round-trips
-- **Better context preservation** - agents complete their own tasks
-
-### User Experience
-- **Fewer interruptions** - work flows naturally
-- **Better visibility** - see what was done, not what might be done
-- **Easy recovery** - undo is simpler than prevention
-
-### Development Benefits
-- **Simpler agent prompts** - no need to explain file operations
-- **More realistic testing** - agents behave like real tools
-- **Clearer responsibilities** - each agent owns their domain
-
-## Risk Mitigation
-
-### Potential Risks and Mitigations
-
-| Risk | Mitigation |
-|------|------------|
-| Accidental file deletion | Automatic backups, easy rollback |
-| Writing to wrong location | Domain warnings, audit trail |
-| Overwriting important files | Git diff before changes, snapshot points |
-| Security credential exposure | Blocked paths include .env*, keys, etc |
-| Build artifact corruption | Separate source vs build detection |
-
-## Success Metrics
-
-1. **Token Usage**: Measure reduction in tokens spent on permission negotiation
-2. **Task Completion Time**: Track end-to-end time for common operations
-3. **User Interruptions**: Count permission prompts per session
-4. **Recovery Events**: Track how often rollback is needed (expect < 1%)
-5. **User Satisfaction**: Survey on workflow improvements
-
-## Migration Path
-
-### For Existing Users
-1. Default to CAUTIOUS trust level initially
-2. Show audit log prominently in first sessions
-3. Provide easy toggle to revert to old behavior
-4. Gradual education through tooltips/suggestions
-
-### Configuration Migration
+**Configuration:**
 ```json
 {
-  "multiAgentChat.permissions.trustLevel": "BALANCED",
-  "multiAgentChat.permissions.auditLog": true,
-  "multiAgentChat.permissions.autoBackup": true,
-  "multiAgentChat.permissions.domainWarnings": true,
-  "multiAgentChat.permissions.customDomains": {
+  "multiAgentChat.permissions.mode": "default",
+  "multiAgentChat.permissions.allowedTools": ["read_file", "list_files"],
+  "multiAgentChat.permissions.disallowedTools": ["exec_command"],
+  "multiAgentChat.permissions.hooks.enabled": true
+}
+```
+
+**Implementation:**
+```typescript
+class PermissionManager {
+    private mode: PermissionMode = PermissionMode.DEFAULT;
+    private allowedTools: Set<string> = new Set();
+    private disallowedTools: Set<string> = new Set();
+    private hooks: PermissionHooks = {};
+
+    async canUseTool(
+        toolName: string,
+        input: any,
+        context: ToolContext
+    ): Promise<PermissionResult> {
+        // 1. PreToolUse hooks
+        await this.runPreToolUseHooks(toolName, input);
+
+        // 2. Check explicit deny rules
+        if (this.disallowedTools.has(toolName)) {
+            return { allowed: false, reason: 'Tool explicitly disallowed' };
+        }
+
+        // 3. Check permission mode
+        if (this.mode === PermissionMode.BYPASS) {
+            return { allowed: true };
+        }
+
+        // 4. Check explicit allow rules
+        if (this.allowedTools.has(toolName)) {
+            return { allowed: true };
+        }
+
+        // 5. Default mode - ask user
+        if (this.mode === PermissionMode.DEFAULT) {
+            return await this.askUser(toolName, input, context);
+        }
+
+        // 6. AcceptEdits mode - auto-approve file edits
+        if (this.mode === PermissionMode.ACCEPT_EDITS && this.isFileEdit(toolName)) {
+            return { allowed: true };
+        }
+
+        // 7. Fall through to deny
+        return { allowed: false, reason: 'No permission rule matched' };
+    }
+
+    private async askUser(
+        toolName: string,
+        input: any,
+        context: ToolContext
+    ): Promise<PermissionResult> {
+        // Show VS Code prompt
+        const choice = await vscode.window.showWarningMessage(
+            `Agent wants to ${toolName}`,
+            { modal: true, detail: JSON.stringify(input, null, 2) },
+            'Allow Once',
+            'Always Allow',
+            'Deny'
+        );
+
+        if (choice === 'Always Allow') {
+            this.allowedTools.add(toolName);
+        }
+
+        return { allowed: choice !== 'Deny' };
+    }
+
+    private isFileEdit(toolName: string): boolean {
+        return ['write_file', 'edit_file', 'create_file'].includes(toolName);
+    }
+
+    private async runPreToolUseHooks(toolName: string, input: any): Promise<void> {
+        // Run registered hooks for logging, auditing, etc.
+        for (const hook of this.hooks.preToolUse || []) {
+            await hook({ toolName, input });
+        }
+    }
+}
+```
+
+**Benefits:**
+- ✅ Follows proven Agent SDK patterns
+- ✅ Familiar to Claude developers
+- ✅ Granular control (modes, rules, hooks, callbacks)
+- ✅ Extensible for future needs
+
+---
+
+### Tier 3: Fallback Defaults (Safety)
+
+**When:** Neither Claude Code nor explicit configuration is available
+
+**How:** Use conservative defaults
+
+**Default Settings:**
+```typescript
+const FALLBACK_DEFAULTS = {
+    permissionMode: PermissionMode.DEFAULT,  // Always ask
+    allowedTools: [
+        'read_file',      // Safe - read only
+        'list_files',     // Safe - read only
+        'search_files'    // Safe - read only
+    ],
+    disallowedTools: [
+        'exec_command',   // Dangerous
+        'delete_file',    // Requires confirmation
+        'shell_exec'      // Dangerous
+    ],
+    requireConfirmation: [
+        'write_file',     // Ask before writing
+        'edit_file',      // Ask before editing
+        'create_file'     // Ask before creating
+    ]
+};
+```
+
+**User Notification:**
+```
+⚠️ Multi Agent Chat is using default permission settings.
+   Consider configuring permissions or installing Claude Code for better control.
+
+   [Configure Permissions] [Install Claude Code] [Dismiss]
+```
+
+**Benefits:**
+- ✅ Safe defaults - nothing dangerous without asking
+- ✅ Clear user notification
+- ✅ Encourages proper configuration
+
+---
+
+## Implementation Plan
+
+### Phase 1: Detection & Inheritance (2 hours)
+
+**Tasks:**
+1. Detect Claude Code extension
+2. Read Claude Code permission settings
+3. Inherit and apply to Multi Agent Chat
+4. Test compatibility
+
+**Files:**
+- New: `src/permissions/PermissionDetector.ts`
+- Update: `src/extension.ts` (initialization)
+
+---
+
+### Phase 2: Agent SDK Pattern Implementation (3 hours)
+
+**Tasks:**
+1. Create `PermissionManager` class
+2. Implement permission modes (default, acceptEdits, bypass)
+3. Implement tool allow/deny rules
+4. Add `canUseTool` callback support
+5. Add hook system (PreToolUse, PostToolUse)
+
+**Files:**
+- New: `src/permissions/PermissionManager.ts`
+- New: `src/permissions/PermissionHooks.ts`
+- New: `src/permissions/types.ts`
+
+---
+
+### Phase 3: UI & Configuration (2 hours)
+
+**Tasks:**
+1. Add permission settings to `multiAgentChat.*` config
+2. Create permission prompt UI (VS Code modals)
+3. Add "Always Allow" / "Always Deny" persistence
+4. Show current permission mode in status bar
+
+**Files:**
+- Update: `package.json` (contribution points)
+- Update: `src/ui/SettingsPanel.ts`
+- New: `src/permissions/PermissionUI.ts`
+
+---
+
+### Phase 4: Testing & Documentation (1 hour)
+
+**Tasks:**
+1. Test with Claude Code installed
+2. Test without Claude Code
+3. Test permission flows (allow, deny, modes)
+4. Document permission configuration
+5. Update README.md
+
+---
+
+## Configuration Examples
+
+### For Users WITH Claude Code
+
+**No configuration needed!** Inherits from Claude Code automatically.
+
+Optional override:
+```json
+{
+  "multiAgentChat.permissions.inheritFromClaudeCode": true  // default
+}
+```
+
+---
+
+### For Users WITHOUT Claude Code
+
+**Basic Setup:**
+```json
+{
+  "multiAgentChat.permissions.mode": "acceptEdits",
+  "multiAgentChat.permissions.allowedTools": [
+    "read_file",
+    "write_file",
+    "list_files"
+  ],
+  "multiAgentChat.permissions.disallowedTools": [
+    "exec_command",
+    "shell_exec"
+  ]
+}
+```
+
+**Power User (YOLO Mode):**
+```json
+{
+  "multiAgentChat.permissions.mode": "bypassPermissions"
+}
+```
+
+**Paranoid Mode:**
+```json
+{
+  "multiAgentChat.permissions.mode": "default",  // Ask for everything
+  "multiAgentChat.permissions.allowedTools": [],
+  "multiAgentChat.permissions.requireConfirmation": ["*"]
+}
+```
+
+---
+
+### Per-Project Permissions
+
+**File:** `.machat/permissions.json`
+
+```json
+{
+  "mode": "acceptEdits",
+  "allowedPaths": [
+    "/src",
+    "/docs"
+  ],
+  "blockedPaths": [
+    "/.env",
+    "/secrets",
+    "/.git"
+  ],
+  "customRules": {
+    "documenter": {
+      "allowedTools": ["write_file", "read_file"],
+      "allowedPatterns": ["*.md", "*.txt"],
+      "blockedPaths": ["/src"]
+    },
     "coder": {
-      "additionalPaths": ["/scripts", "/tools"]
+      "allowedTools": ["write_file", "read_file", "edit_file"],
+      "allowedPatterns": ["*.ts", "*.js", "*.tsx"],
+      "blockedPaths": ["/docs"]
     }
   }
 }
 ```
 
-## Open Questions
+---
 
-1. Should domain permissions be project-configurable via `.machat/permissions.json`?
-2. How long should audit logs be retained? (Suggest: 30 days or 1000 entries)
-3. Should there be a "sudo mode" for temporary elevation?
-4. How do we handle multi-workspace scenarios?
-5. Should certain operations always require confirmation regardless of trust level?
+## Benefits Summary
 
-## Next Steps
+### For Users
+- ✅ **With Claude Code:** Zero configuration, inherits settings
+- ✅ **Without Claude Code:** Proven Agent SDK patterns
+- ✅ **Flexibility:** Global, project, or agent-specific permissions
+- ✅ **Safety:** Conservative defaults, clear prompts
 
-1. **Gather Feedback**: Review proposal with team
-2. **Prototype**: Build minimal audit system to test concept
-3. **User Research**: Survey users on current pain points
-4. **Design Review**: Create UI mockups for audit viewer
-5. **Implementation**: Follow phased approach above
+### For Developers
+- ✅ **Don't Reinvent:** Leverage existing patterns
+- ✅ **Consistency:** Aligns with Anthropic's Agent SDK
+- ✅ **Extensible:** Hooks and callbacks for custom logic
+- ✅ **Simple:** 3-tier fallback is easy to understand
 
-## Conclusion
-
-This shift from prevention to verification aligns the agent system with how real development teams work. By trusting agents within their domains while maintaining comprehensive audit trails and easy recovery mechanisms, we can dramatically improve efficiency without sacrificing safety. The key insight is that we're building tools, not adversaries, and our permission model should reflect that reality.
+### For Extension
+- ✅ **Better UX:** No duplicate permission prompts
+- ✅ **Safer:** Clear permission model
+- ✅ **Maintainable:** Follows standard patterns
+- ✅ **Future-Proof:** Based on Agent SDK
 
 ---
 
-*Proposal prepared for post-inter-agent communication implementation review*
+## Risks & Mitigations
+
+### Risk 1: Claude Code Changes Permission Schema
+**Mitigation:** Version detection, fallback to Agent SDK pattern
+
+### Risk 2: Users Confused by Three Tiers
+**Mitigation:** Auto-detect and apply best tier, show clear status
+
+### Risk 3: Permission Prompts Annoy Users
+**Mitigation:** "Always Allow" option, preset modes (acceptEdits, bypass)
+
+---
+
+## Success Metrics
+
+1. **Adoption:** % of users with Claude Code who inherit settings (target: >90%)
+2. **Configuration:** % of standalone users who configure permissions (target: >50%)
+3. **User Satisfaction:** Survey on permission UX (target: 4/5 stars)
+4. **Security:** Zero reports of unwanted file operations
+
+---
+
+## Open Questions
+
+1. Should we support importing/exporting permission profiles?
+2. Should certain dangerous operations always ask, even in YOLO mode?
+3. How to handle multi-workspace scenarios?
+4. Should we build a permission audit log viewer?
+
+---
+
+## Recommendation
+
+**Implement for v1.16.0 after Model Configuration (v1.15.0)**
+
+**Why This Order:**
+1. Models are more foundational (affects every request)
+2. Permissions can leverage model config patterns
+3. Models easier to implement (4-5 hours vs 6-8 hours)
+4. Both use similar JSON config patterns
+
+**Roadmap:**
+- ✅ v1.14.0 - Documentation Cleanup
+- 🔄 v1.15.0 - External Model Configuration
+- 📋 v1.16.0 - Permission System (this proposal)
+- 📋 v1.17.0 - Settings UI Improvements
+- 📋 v1.18.0 - Diff Viewer (nice-to-have)
+
+---
+
+*Proposal by: Craig Yappert (with Claude Code assistance)*
+*Informed by: Claude Agent SDK permission patterns*
+*Target Version: 1.16.0*
+*Estimated Effort: 6-8 hours*

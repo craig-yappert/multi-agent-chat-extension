@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as util from 'util';
 import * as path from 'path';
-import getHtml from './ui';
 import { AgentManager } from './agents';
 import { ProviderManager } from './providers';
 import { AgentCommunicationHub } from './agentCommunication';
@@ -2860,11 +2859,9 @@ class ClaudeChatProvider {
 	}
 
 	private _getHtmlForWebview(): string {
-		// Get the webview instance
 		const webview = this._webview || this._panel?.webview;
 		if (!webview) {
-			// Fallback to old method if no webview available yet
-			return getHtml(vscode.env?.isTelemetryEnabled);
+			throw new Error('Webview not initialized');
 		}
 
 		// Load external resources
@@ -2884,27 +2881,11 @@ class ClaudeChatProvider {
 
 		// Load HTML template
 		const htmlPath = vscode.Uri.joinPath(this._extensionUri, 'resources', 'webview', 'index.html');
-		let html: string;
-
-		try {
-			// Try to read the file synchronously
-			const fs = require('fs');
-			html = fs.readFileSync(htmlPath.fsPath, 'utf-8');
-		} catch (error) {
-			console.error('Failed to load external HTML, falling back to embedded version:', error);
-			// Fallback to the old embedded version
-			return getHtml(vscode.env?.isTelemetryEnabled);
-		}
-
-		// Replace placeholders with actual URIs
-		html = html.replace(/\${scriptUri}/g, scriptUri.toString());
-		html = html.replace(/\${styleUri}/g, styleUri.toString());
-		html = html.replace(/\${cspSource}/g, webview.cspSource);
-
-		// Add telemetry parameter to script
-		if (vscode.env?.isTelemetryEnabled) {
-			html = html.replace('script.js', 'script.js?telemetry=true');
-		}
+		const fs = require('fs');
+		const html = fs.readFileSync(htmlPath.fsPath, 'utf-8')
+			.replace(/\${scriptUri}/g, scriptUri.toString())
+			.replace(/\${styleUri}/g, styleUri.toString())
+			.replace(/\${cspSource}/g, webview.cspSource);
 
 		return html;
 	}

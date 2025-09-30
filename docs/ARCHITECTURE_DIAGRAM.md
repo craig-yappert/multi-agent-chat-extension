@@ -1,4 +1,5 @@
 # Multi Agent Chat - Architecture Overview
+
 **Last Updated:** 2025-09-30 (v1.13.0)
 **Status:** ✅ Accurate as of current codebase
 
@@ -229,11 +230,11 @@ stateDiagram-v2
     ExecutingMultiple --> CollectingResponses: Gather responses
     CollectingResponses --> Executing: Continue
 
-    Executing --> Streaming: Receive chunks (if enabled)
-    Streaming --> Executing: More chunks
     Executing --> Responding: Complete response
     Responding --> Saving: ConversationManager.save()
     Saving --> Ready: Update UI
+
+    note right of Executing: Streaming enabled: chunks sent in real-time
 
     Ready --> SettingsView: Open settings
     SettingsView --> Ready: Close settings
@@ -251,13 +252,17 @@ stateDiagram-v2
 ## Key Design Patterns
 
 ### 1. **Singleton Pattern**
+
 Used for managers that should have single instances:
+
 - `SettingsManager.getInstance()`
 - `ConversationManager.getInstance()`
 - `ProjectContextManager.getInstance()`
 
 ### 2. **Factory Pattern**
+
 `ProviderManager` creates appropriate provider instances based on agent configuration:
+
 ```typescript
 getProvider(agentConfig: AgentConfig): AIProvider {
     switch (agentConfig.provider) {
@@ -269,17 +274,21 @@ getProvider(agentConfig: AgentConfig): AIProvider {
 ```
 
 ### 3. **Observer Pattern**
+
 - Settings change notifications trigger re-initialization
 - Message streaming uses callbacks for real-time updates:
+
 ```typescript
 onStreamCallback?: (chunk: string, agentId: string) => void
 ```
 
 ### 4. **Strategy Pattern**
+
 - Different providers implement `AIProvider` interface
 - Each agent has a `provider` field determining routing strategy
 
 ### 5. **Mediator Pattern**
+
 - `AgentCommunicationHub` mediates all inter-agent communication
 - Prevents loops, tracks conversations, manages queue
 
@@ -360,24 +369,30 @@ Project Root/
 ## Key Architecture Changes (History)
 
 ### v1.13.0 (2025-09-30)
+
 ✅ **External Resources Refactor**
+
 - Moved webview UI to `resources/webview/` external files
 - Eliminated template literal hell (7,964 lines removed)
 - Clean separation: HTML, CSS, JavaScript
 
 ✅ **Inter-Agent Communication Polish**
+
 - Live message display (transparent communication)
 - Loop prevention for acknowledgments
 - Message display order (ack → execution → summary)
 - Timestamp persistence and formatting
 
 ### v1.11.0 (2025-09-19)
+
 ✅ **MCP Infrastructure Removed**
+
 - Deleted MCP WebSocket server
 - Simplified to direct Claude CLI calls
 - Removed ~50 lines of MCP references
 
 ✅ **Per-Project Settings**
+
 - `.machat/` folder structure
 - Hierarchical settings system
 - Project-local conversation storage

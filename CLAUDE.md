@@ -28,6 +28,7 @@ Multi Agent Chat is a VS Code extension that provides a collaborative AI team in
 - `Ctrl+Shift+P` → "Clear All Conversation History" - Reset conversations
 - `Ctrl+Shift+P` → "Initialize Multi Agent Chat Project" - Create .machat folder
 - `Ctrl+Shift+P` → "Migrate Conversations to Project" - Move to local storage
+- `Ctrl+Shift+P` → "Manage API Keys" - **NEW v1.15.1** - Secure API key management
 - `Ctrl+Shift+P` → "Open Models Configuration" - Edit project model list
 - `Ctrl+Shift+P` → "Open Agents Configuration" - Edit project agent definitions
 - `Ctrl+Shift+P` → "Reset Models to Defaults" - Restore bundled model list
@@ -42,11 +43,20 @@ Multi Agent Chat is a VS Code extension that provides a collaborative AI team in
 - External model configuration from JSON files
 - External agent configuration with smart merging
 - Two-tier loading: defaults → project overrides
-- `defaults/models.json` - Bundled model definitions (11+ models including Claude Sonnet 4.5)
+- `defaults/models.json` - Bundled model definitions (28+ models across 6 providers)
 - `defaults/agents.json` - Bundled agent definitions (7 agents)
 - `.machat/models.json` - Project-specific model list (optional)
 - `.machat/agents.json` - Project-specific agent customization (optional)
 - Dynamic reload without extension restart
+
+**API Key Manager** (`src/settings/ApiKeyManager.ts`) **NEW in v1.15.1**
+- Secure API key storage using VS Code SecretStorage API
+- Encrypted, OS-level credential storage (never in plain text)
+- Automatic migration from old settings.json storage
+- Interactive setup command: `Ctrl+Shift+P` → "Manage API Keys"
+- Per-user storage (never committed to git)
+- Support for Claude and OpenAI API keys
+- **Settings UI removed** - use Command Palette for key management
 
 **Agent System** (`src/agents.ts`)
 - 7 specialized agents with unique roles and capabilities
@@ -139,9 +149,11 @@ multi-agent-chat-extension/
 
 The extension uses `multiAgentChat.*` settings (unified in v1.11.0):
 
-### API Keys
-- `multiAgentChat.apiKeys.claude` - Claude API key
-- `multiAgentChat.apiKeys.openai` - OpenAI API key (optional)
+### API Keys (v1.15.1+)
+**NEW:** API keys are now stored in VS Code SecretStorage (encrypted, secure)
+- Use Command Palette → `Multi Agent Chat: Manage API Keys` to configure
+- Old settings (`multiAgentChat.apiKeys.*`) are DEPRECATED but auto-migrated
+- Never stored in project files or committed to git
 
 ### Global Settings
 - `multiAgentChat.defaultModel` - Default AI model
@@ -246,7 +258,7 @@ The extension uses `multiAgentChat.*` settings (unified in v1.11.0):
 
 ## Known Issues
 
-- Settings UI only shows API Keys section (other sections not rendering)
+- **RESOLVED in v1.15.1:** Settings UI removed - use Command Palette for API key management
 - Some performance settings may need verification (requestManager, cache effectiveness)
 
 ## Contributing

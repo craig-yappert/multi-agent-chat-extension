@@ -3042,64 +3042,31 @@ function parseSimpleMarkdown(markdown) {
 	return html;
 }
 
-// Settings functions
+// Settings functions - REMOVED (use Command Palette → 'Manage API Keys')
+// Settings UI removed in v1.15.1 - API keys now stored in SecretStorage for security
+// Use Command Palette → 'Multi Agent Chat: Manage API Keys' for secure key management
+//
+// Legacy functions kept as no-ops for backward compatibility
 window.toggleSettings = function() {
-	const settingsDiv = document.getElementById('settingsPanel');
-	const chatContainer = document.getElementById('chatContainer');
-	const historyDiv = document.getElementById('conversationHistory');
-
-	if (settingsDiv.style.display === 'none') {
-		sendStats('Settings opened');
-		// Load current settings
-		loadSettingsPanel();
-		// Show settings
-		settingsDiv.style.display = 'block';
-		chatContainer.style.display = 'none';
-		historyDiv.style.display = 'none';
-	} else {
-		// Hide settings
-		settingsDiv.style.display = 'none';
-		chatContainer.style.display = 'flex';
-	}
+	console.log('[Settings] Settings UI removed. Use Command Palette → "Manage API Keys"');
 }
 
 function loadSettingsPanel() {
-	vscode.postMessage({ type: 'loadSettings' });
+	console.log('[Settings] Settings UI removed. Use Command Palette → "Manage API Keys"');
 }
 
 function displaySettings(data) {
-	const settingsContent = document.getElementById('settingsContent');
-	if (settingsContent) {
-		if (data && data.html) {
-			settingsContent.innerHTML = data.html;
-
-			// Add the script to handle settings interactions
-			if (data.script) {
-				const scriptElement = document.createElement('script');
-				scriptElement.textContent = data.script;
-				document.body.appendChild(scriptElement);
-			}
-		} else {
-			console.error('No settings HTML received');
-			settingsContent.innerHTML = '<div style="padding: 20px; text-align: center;">Error loading settings. Please try again.</div>';
-		}
-	} else {
-		console.error('Settings content element not found');
-	}
+	console.log('[Settings] Settings UI removed. Use Command Palette → "Manage API Keys"');
 }
 
 function handleSettingsSaved(data) {
-	if (data.success) {
-		// Close settings panel
-		toggleSettings();
-	}
+	console.log('[Settings] Settings UI removed. Use Command Palette → "Manage API Keys"');
 }
 
 // Conversation history functions
 window.toggleConversationHistory = function() {
 	const historyDiv = document.getElementById('conversationHistory');
 	const chatContainer = document.getElementById('chatContainer');
-	const settingsDiv = document.getElementById('settingsPanel');
 
 	if (historyDiv.style.display === 'none') {
 		sendStats('History opened');
@@ -3107,7 +3074,6 @@ window.toggleConversationHistory = function() {
 		requestConversationList();
 		historyDiv.style.display = 'block';
 		chatContainer.style.display = 'none';
-		settingsDiv.style.display = 'none';
 	} else {
 		// Hide conversation history
 		historyDiv.style.display = 'none';

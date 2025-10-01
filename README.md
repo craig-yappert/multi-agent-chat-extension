@@ -165,7 +165,13 @@ Your project management specialist who:
    - Download the latest `.vsix` file from releases
    - Install via Command Palette: `Extensions: Install from VSIX...`
 
-3. **Open Multi Agent Chat**
+3. **Setup API Keys** ✨ NEW in v1.15.1
+   - Use Command Palette: `Ctrl+Shift+P` → `Multi Agent Chat: Manage API Keys`
+   - Enter your Claude API key (get one at [console.anthropic.com](https://console.anthropic.com/))
+   - Optionally enter OpenAI API key
+   - Keys are stored **securely** in VS Code's encrypted SecretStorage
+
+4. **Open Multi Agent Chat**
    - Press `Ctrl+Shift+C` (or `Cmd+Shift+C` on Mac)
    - Or click the Multi Agent Chat icon in the activity bar
    - Or use Command Palette: `Multi Agent Chat: Open Chat`
@@ -234,14 +240,22 @@ Initialize project-local settings and conversation storage:
    - `conversations/` - Local conversation history
    - `context/` - Agent memory for this project
 
+### API Key Management ✨ NEW in v1.15.1
+
+**Secure, encrypted storage** via VS Code SecretStorage:
+- Command: `Ctrl+Shift+P` → `Multi Agent Chat: Manage API Keys`
+- Keys never stored in plain text or committed to git
+- Automatic migration from old settings
+- Per-user, OS-level encryption
+
 ### Settings Configuration
 
 Configure via VS Code settings (`multiAgentChat.*`):
-- API keys (Claude, OpenAI)
 - Default agent and model
 - Inter-agent communication settings
 - Performance options (caching, streaming, quick team mode)
 - Permission policies
+- ⚠️ **Note:** API key settings deprecated - use `Manage API Keys` command instead
 
 ---
 

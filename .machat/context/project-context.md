@@ -4,7 +4,7 @@
 
 Multi Agent Chat is a VS Code extension providing a collaborative AI team interface with 7 specialized agents (Team, Architect, Coder, Executor, Reviewer, Documenter, Coordinator) for software development tasks.
 
-**Current Version:** 1.15.0 (External Configuration - Models & Agents - 2025-10-01)
+**Current Version:** 1.15.1 (Secure API Key Storage - 2025-10-01)
 
 **Repository:** https://github.com/craig-yappert/multi-agent-chat-extension
 
@@ -18,8 +18,17 @@ Multi Agent Chat is a VS Code extension providing a collaborative AI team interf
    - Two-tier loading: bundled defaults → project overrides
    - Smart merging for agent customization
    - Dynamic reload without restart
+   - 28+ models across 6 providers (Claude, OpenAI, Google, xAI, Meta, Local)
 
-2. **Agent System** (`src/agents.ts`)
+2. **API Key Manager** (`src/settings/ApiKeyManager.ts`) **NEW in v1.15.1**
+   - Secure storage using VS Code SecretStorage API
+   - Encrypted, OS-level credential storage
+   - Automatic migration from old plain-text settings
+   - Command: `Manage API Keys` for interactive setup
+   - Never stored in project files or git
+   - Settings UI removed (JSON + Command Palette approach)
+
+3. **Agent System** (`src/agents.ts`)
    - 7 specialized agents with unique roles
    - Team agent coordinates multi-agent collaboration
    - Agent memory persists per project in `.machat/context/`
@@ -129,20 +138,24 @@ multi-agent-chat-extension/
 4. **External Resources:** UI changes go in `resources/webview/`, not template literals
 5. **Commit Messages:** Use conventional commits with Claude Code attribution
 
-## Current Focus (v1.15.0)
+## Current Focus (v1.15.1)
 
 ### Just Completed ✅ (2025-10-01)
-- ✅ External Model Configuration (Phase 1)
-  - `defaults/models.json` with 11+ models including Claude Sonnet 4.5
-  - Project overrides in `.machat/models.json`
-  - ConfigurationRegistry dynamic loading
-  - VS Code commands (Open/Reset/Reload Models)
-- ✅ External Agent Configuration (Phase 2)
-  - `defaults/agents.json` with all 7 agents
-  - Project overrides in `.machat/agents.json`
-  - Smart merging (override, extend, disable agents)
-  - VS Code commands (Open/Reset Agents)
-- ✅ Version bumped to 1.15.0
+- ✅ **v1.15.1 - Secure API Key Storage**
+  - Implemented `ApiKeyManager` with VS Code SecretStorage API
+  - Encrypted, OS-level credential storage (never plain text)
+  - Automatic migration from old settings.json
+  - Interactive setup command: `Manage API Keys`
+  - Settings UI completely removed (JSON-first approach)
+  - Finer-grained `.machat/.gitignore` template
+  - Documentation updated for SecretStorage
+
+- ✅ **v1.15.0 - External Configuration** (earlier today)
+  - `defaults/models.json` with 28+ models (6 providers)
+  - `defaults/agents.json` with 7 configurable agents
+  - ConfigurationRegistry with two-tier loading
+  - Project overrides in `.machat/models.json` & `.machat/agents.json`
+  - Smart merging and dynamic reload
 
 ### Next Priorities
 

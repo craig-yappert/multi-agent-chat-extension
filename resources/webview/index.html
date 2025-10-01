@@ -46,12 +46,7 @@
 					<path d="M12 7v5l4 2"/>
 				</svg>
 			</button>
-			<button class="toolbar-btn" id="settingsBtn" onclick="toggleSettings()" title="Settings">
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<circle cx="12" cy="12" r="3"/>
-					<path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
-				</svg>
-			</button>
+			<!-- Settings button removed - use Command Palette → 'Manage API Keys' for secure key management -->
 
 			<div class="toolbar-divider"></div>
 
@@ -90,17 +85,7 @@
 		</div>
 	</div>
 
-	<div id="settingsPanel" class="settings-panel" style="display: none;">
-		<div class="settings-header">
-			<h3>⚙️ Settings</h3>
-			<button class="btn" onclick="toggleSettings()">✕ Close</button>
-		</div>
-		<div id="settingsContent" class="settings-content">
-			<div class="settings-loading" style="text-align: center; padding: 40px; color: var(--vscode-descriptionForeground);">
-				Loading settings...
-			</div>
-		</div>
-	</div>
+	<!-- Settings panel removed - use Command Palette → 'Manage API Keys' for secure key management -->
 
 	<div class="chat-container" id="chatContainer">
 		<div class="messages" id="messages"></div>

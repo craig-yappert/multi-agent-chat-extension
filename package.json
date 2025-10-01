@@ -2,7 +2,7 @@
   "name": "multi-agent-chat",
   "displayName": "Multi Agent Chat",
   "description": "Collaborative Multi-Agent AI Chat Interface for VS Code",
-  "version": "1.15.0",
+  "version": "1.15.1",
   "publisher": "craig-yappert",
   "author": "Craig Yappert",
   "repository": {
@@ -102,6 +102,11 @@
         "command": "multiAgentChat.resetAgentsToDefaults",
         "title": "Reset Agents to Defaults",
         "category": "Multi Agent Chat"
+      },
+      {
+        "command": "multiAgentChat.manageApiKeys",
+        "title": "Manage API Keys",
+        "category": "Multi Agent Chat"
       }
     ],
     "keybindings": [
@@ -178,15 +183,15 @@
           "multiAgentChat.apiKeys.claude": {
             "type": "string",
             "default": "",
-            "description": "Claude API key for agent interactions",
-            "markdownDescription": "Your Anthropic Claude API key. Get one at [console.anthropic.com](https://console.anthropic.com/)",
+            "deprecationMessage": "⚠️ DEPRECATED: API keys are now stored securely. Use 'Manage API Keys' command instead.",
+            "markdownDescription": "**⚠️ DEPRECATED:** API keys are now stored in SecretStorage for security. Use Command Palette → `Multi Agent Chat: Manage API Keys` instead. Old keys here will be migrated automatically.",
             "order": 1
           },
           "multiAgentChat.apiKeys.openai": {
             "type": "string",
             "default": "",
-            "description": "OpenAI API key (optional, for GPT models)",
-            "markdownDescription": "Your OpenAI API key. Get one at [platform.openai.com](https://platform.openai.com/)",
+            "deprecationMessage": "⚠️ DEPRECATED: API keys are now stored securely. Use 'Manage API Keys' command instead.",
+            "markdownDescription": "**⚠️ DEPRECATED:** API keys are now stored in SecretStorage for security. Use Command Palette → `Multi Agent Chat: Manage API Keys` instead. Old keys here will be migrated automatically.",
             "order": 2
           }
         }

@@ -6,6 +6,7 @@ import { AgentManager } from './agents';
 import { ProviderManager } from './providers';
 import { AgentCommunicationHub } from './agentCommunication';
 import { SettingsManager } from './settings/SettingsManager';
+import { ApiKeyManager } from './settings/ApiKeyManager';
 import { ConversationManager, ConversationIndex } from './conversations/ConversationManager';
 import { ProjectContextManager } from './context/ProjectContextManager';
 import { MigrationCommands } from './commands/MigrationCommands';
@@ -19,6 +20,16 @@ export async function activate(context: vscode.ExtensionContext) {
 	// Initialize Settings Manager
 	const settingsManager = SettingsManager.getInstance(context);
 	await settingsManager.initialize();
+
+	// Initialize API Key Manager and perform migration
+	const apiKeyManager = ApiKeyManager.getInstance(context);
+	const migrated = await apiKeyManager.migrateFromSettings();
+	if (migrated) {
+		const skipPrompt = context.globalState.get('multiAgentChat.skipMigrationPrompt', false);
+		if (!skipPrompt) {
+			await apiKeyManager.promptToClearOldSettings();
+		}
+	}
 
 	// Initialize Conversation Manager
 	const conversationManager = ConversationManager.getInstance(context, settingsManager);
@@ -103,6 +114,11 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
+	// API Key Management Command
+	const manageApiKeysDisposable = vscode.commands.registerCommand('multiAgentChat.manageApiKeys', async () => {
+		await apiKeyManager.setupApiKeys();
+	});
+
 	// Register webview view provider for sidebar chat (using shared provider instance)
 	const webviewProvider = new ClaudeChatWebviewProvider(context.extensionUri, context, provider);
 	vscode.window.registerWebviewViewProvider('multiAgentChat.chat', webviewProvider);
@@ -123,6 +139,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		reloadConfigsDisposable,
 		openAgentsConfigDisposable,
 		resetAgentsDisposable,
+		manageApiKeysDisposable,
 		statusBarItem
 	);
 	console.log('Multi Agent Chat extension activation completed successfully!');

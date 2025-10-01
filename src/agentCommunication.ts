@@ -48,6 +48,7 @@ export class AgentCommunicationHub {
 	private isProcessing: boolean = false;
 	private maxConcurrentAgents: number = 3;
 	private activeAgents: Set<string> = new Set();
+	private agentTimeout: number = 60000; // Default 60 seconds for complex responses
 
 	// Message loop prevention
 	private maxMessagesPerConversation: number = 10;
@@ -73,6 +74,9 @@ export class AgentCommunicationHub {
 		// Reduced limits for testing to prevent token consumption
 		this.maxMessagesPerConversation = config.get<number>('interAgentComm.maxMessagesPerConversation', 5);
 		this.maxConversationDepth = config.get<number>('interAgentComm.maxConversationDepth', 3);
+		// Load agent timeout from config (default 60 seconds for complex architectural responses)
+		this.agentTimeout = config.get<number>('performance.agentTimeout', 60000);
+		console.log(`[AgentComm] Configured timeout: ${this.agentTimeout}ms`);
 	}
 
 	async sendMessageBetweenAgents(
@@ -223,7 +227,7 @@ export class AgentCommunicationHub {
 			this.processMessageQueue();
 		}
 
-		return await this.waitForResponse(agentMessage.id);
+		return await this.waitForResponse(agentMessage.id, this.agentTimeout);
 	}
 
 	async broadcastToAgents(
@@ -509,19 +513,26 @@ Please provide your response based on the request above.
 		}
 	}
 
-	private async waitForResponse(messageId: string, timeout: number = 30000): Promise<string> {
+	private async waitForResponse(messageId: string, timeout: number = 60000): Promise<string> {
 		const existingResponse = this.responseStore.get(messageId);
 		if (existingResponse) {
 			return existingResponse;
 		}
 
+		console.log(`[AgentComm] Waiting for response to ${messageId} with timeout ${timeout}ms`);
+		const startTime = Date.now();
+
 		return new Promise((resolve, reject) => {
 			const timer = setTimeout(() => {
+				const elapsedTime = Date.now() - startTime;
+				console.error(`[AgentComm] ⏱️ TIMEOUT after ${elapsedTime}ms waiting for response to message ${messageId}`);
 				this.responseWaiters.delete(messageId);
-				reject(new Error(`Timeout waiting for response to message ${messageId}`));
+				reject(new Error(`Timeout waiting for response to message ${messageId} (waited ${elapsedTime}ms, timeout was ${timeout}ms)`));
 			}, timeout);
 
 			this.responseWaiters.set(messageId, (response: string) => {
+				const elapsedTime = Date.now() - startTime;
+				console.log(`[AgentComm] ✅ Received response to ${messageId} after ${elapsedTime}ms`);
 				clearTimeout(timer);
 				resolve(response);
 			});

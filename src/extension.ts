@@ -358,6 +358,7 @@ class ClaudeChatProvider {
 			return;
 		}
 
+		console.log('📱 [PANEL LIFECYCLE] Creating new webview panel');
 		this._panel = vscode.window.createWebviewPanel(
 			'multiAgentChat',  // Changed ID to avoid conflicts
 			'Multi Agent Chat',
@@ -375,7 +376,10 @@ class ClaudeChatProvider {
 
 		this._panel.webview.html = this._getHtmlForWebview();
 
-		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+		this._panel.onDidDispose(() => {
+			console.log('📱 [PANEL LIFECYCLE] Panel disposed - webview no longer available');
+			this.dispose();
+		}, null, this._disposables);
 
 		// Add view state change handler to detect when panel is restored
 		this._panel.onDidChangeViewState((e) => {
@@ -413,10 +417,18 @@ class ClaudeChatProvider {
 	}
 
 	private _postMessage(message: any) {
+		const messageType = message.type || 'unknown';
+		const messagePreview = message.data ? JSON.stringify(message.data).substring(0, 100) : 'no data';
+
 		if (this._panel && this._panel.webview) {
+			console.log(`[_postMessage] Sending ${messageType} to PANEL webview: ${messagePreview}...`);
 			this._panel.webview.postMessage(message);
 		} else if (this._webview) {
+			console.log(`[_postMessage] Sending ${messageType} to SIDEBAR webview: ${messagePreview}...`);
 			this._webview.postMessage(message);
+		} else {
+			console.error(`[_postMessage] NO WEBVIEW AVAILABLE to send ${messageType}!`);
+			console.error(`[_postMessage] Message data: ${messagePreview}...`);
 		}
 	}
 
@@ -605,7 +617,8 @@ class ClaudeChatProvider {
 	public showInWebview(webview: vscode.Webview, webviewView?: vscode.WebviewView) {
 		// Close main panel if it's open
 		if (this._panel) {
-			console.log('Closing main panel because sidebar is opening');
+			console.log('⚠️ [WEBVIEW SWITCH] Closing main panel because sidebar is opening');
+			console.log('⚠️ [WEBVIEW SWITCH] Any messages in flight to panel will be lost!');
 			this._panel.dispose();
 			this._panel = undefined;
 		}

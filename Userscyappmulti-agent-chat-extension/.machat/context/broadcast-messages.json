@@ -1,0 +1,8 @@
+[
+  {
+    "from": "Coordinator",
+    "to": "broadcast",
+    "content": "Testing broadcast communication pathway - all agents please acknowledge receipt",
+    "timestamp": "2025-10-01T20:20:30.494Z"
+  }
+]

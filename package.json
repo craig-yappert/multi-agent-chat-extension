@@ -351,10 +351,10 @@
           },
           "multiAgentChat.performance.agentTimeout": {
             "type": "number",
-            "default": 12000,
-            "minimum": 3000,
-            "maximum": 30000,
-            "description": "Timeout per agent in milliseconds (default: 12 seconds)",
+            "default": 60000,
+            "minimum": 10000,
+            "maximum": 120000,
+            "description": "Timeout per agent in milliseconds (default: 60 seconds, increase for complex architectural responses)",
             "order": 16
           }
         }

@@ -121,11 +121,19 @@ Your project management specialist who:
 - Shared context between agents
 - Per-project conversation storage (`.machat/` folder)
 
-### ⚙️ **Advanced Configuration**
+### ⚙️ **Advanced Configuration** ✨ NEW in v1.15.0
 
+- **External Model Configuration** - Edit models in `.machat/models.json`
+  - 11+ models including Claude Sonnet 4.5
+  - Add/remove models without rebuilding extension
+  - Project-specific model lists
+- **External Agent Configuration** - Customize agents in `.machat/agents.json`
+  - Modify agent capabilities, models, and prompts
+  - Add custom agents (e.g., "Data Analyst", "Video Editor")
+  - Disable agents not needed for your project
+  - Smart merging with defaults
 - Hierarchical settings: Global → Project → Workspace
 - Project-specific settings in `.machat/config.json`
-- Customizable settings per agent
 - Performance optimizations (caching, streaming, quick team mode)
 - YOLO mode for power users
 

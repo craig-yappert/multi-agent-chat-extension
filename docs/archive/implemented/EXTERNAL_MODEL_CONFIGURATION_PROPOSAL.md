@@ -1,9 +1,25 @@
 # External Model Configuration Proposal
 
-**Status:** Proposal (v1.15.0)
+**Status:** ✅ IMPLEMENTED (v1.15.0)
 **Created:** 2025-09-30
+**Implemented:** 2025-10-01
 **Priority:** High
 **Complexity:** Low-Medium
+
+---
+
+## Implementation Note
+
+**IMPLEMENTED** in v1.15.0 (2025-10-01)
+
+This proposal was successfully implemented with the following:
+- ✅ `defaults/models.json` with 11+ models including Claude Sonnet 4.5
+- ✅ Project-specific `.machat/models.json` override
+- ✅ `ConfigurationRegistry` class for dynamic loading
+- ✅ VS Code commands for managing model configs
+- ✅ **BONUS:** Agent configuration also externalized in same release
+
+Combined with agent externalization for complete configuration flexibility.
 
 ---
 

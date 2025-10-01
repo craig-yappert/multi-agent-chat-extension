@@ -55,6 +55,54 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
+	// Model Configuration Commands
+	const { ConfigurationRegistry } = require('./config/ConfigurationRegistry');
+
+	const openModelsConfigDisposable = vscode.commands.registerCommand('multiAgentChat.openModelsConfig', async () => {
+		const registry = ConfigurationRegistry.getInstance(context);
+		await registry.openModelsConfig();
+	});
+
+	const resetModelsDisposable = vscode.commands.registerCommand('multiAgentChat.resetModelsToDefaults', async () => {
+		const answer = await vscode.window.showWarningMessage(
+			'Reset project models to defaults? This will overwrite .machat/models.json',
+			'Yes, Reset',
+			'Cancel'
+		);
+
+		if (answer === 'Yes, Reset') {
+			const registry = ConfigurationRegistry.getInstance(context);
+			await registry.resetProjectModels();
+			vscode.window.showInformationMessage('Models reset to defaults. Restart extension to reload.');
+		}
+	});
+
+	const reloadConfigsDisposable = vscode.commands.registerCommand('multiAgentChat.reloadConfigs', async () => {
+		const registry = ConfigurationRegistry.getInstance(context);
+		await registry.reloadModels();
+		vscode.window.showInformationMessage('Model configurations reloaded from disk.');
+	});
+
+	// Agent Configuration Commands
+	const openAgentsConfigDisposable = vscode.commands.registerCommand('multiAgentChat.openAgentsConfig', async () => {
+		const registry = ConfigurationRegistry.getInstance(context);
+		await registry.openAgentsConfig();
+	});
+
+	const resetAgentsDisposable = vscode.commands.registerCommand('multiAgentChat.resetAgentsToDefaults', async () => {
+		const answer = await vscode.window.showWarningMessage(
+			'Reset project agents to defaults? This will overwrite .machat/agents.json',
+			'Yes, Reset',
+			'Cancel'
+		);
+
+		if (answer === 'Yes, Reset') {
+			const registry = ConfigurationRegistry.getInstance(context);
+			await registry.resetProjectAgents();
+			vscode.window.showInformationMessage('Agents reset to defaults. Restart extension to reload.');
+		}
+	});
+
 	// Register webview view provider for sidebar chat (using shared provider instance)
 	const webviewProvider = new ClaudeChatWebviewProvider(context.extensionUri, context, provider);
 	vscode.window.registerWebviewViewProvider('multiAgentChat.chat', webviewProvider);
@@ -70,6 +118,11 @@ export async function activate(context: vscode.ExtensionContext) {
 		disposable,
 		loadConversationDisposable,
 		clearConversationsDisposable,
+		openModelsConfigDisposable,
+		resetModelsDisposable,
+		reloadConfigsDisposable,
+		openAgentsConfigDisposable,
+		resetAgentsDisposable,
 		statusBarItem
 	);
 	console.log('Multi Agent Chat extension activation completed successfully!');

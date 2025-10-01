@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { AgentConfig, defaultAgents } from '../agents';
-import { MODEL_CONFIGS, DEFAULT_MODELS } from '../config/models';
+import { MODEL_CONFIGS, DEFAULT_MODELS, getAllModelConfigs } from '../config/models';
+import { ConfigurationRegistry } from '../config/ConfigurationRegistry';
 
 export interface AgentSettings {
     model: string;
@@ -36,7 +37,7 @@ export class SettingsPanel {
         this._onSettingsChanged = onSettingsChanged;
     }
 
-    public getHtml(): string {
+    public async getHtml(): Promise<string> {
         try {
             const settings = this.loadSettings();
             const hasProjectSettings = this.hasProjectConfig();
@@ -63,7 +64,7 @@ export class SettingsPanel {
 
             // Agent Definitions Section
             try {
-                html += this.renderAgentDefinitionsSection(settings, hasProjectSettings);
+                html += await this.renderAgentDefinitionsSection(settings, hasProjectSettings);
             } catch (error) {
                 console.error('Error rendering agent definitions:', error);
                 html += '<div class="settings-section"><p>Error loading agent definitions: ' + error + '</p></div>';
@@ -134,7 +135,7 @@ export class SettingsPanel {
         `;
     }
 
-    private renderAgentDefinitionsSection(settings: SettingsData, hasProjectSettings: boolean): string {
+    private async renderAgentDefinitionsSection(settings: SettingsData, hasProjectSettings: boolean): Promise<string> {
         // Check if defaultAgents is available
         if (!defaultAgents || !Array.isArray(defaultAgents)) {
             console.error('defaultAgents is not available or not an array:', defaultAgents);
@@ -187,7 +188,7 @@ export class SettingsPanel {
             html += '<div class="config-row">';
             html += '<label>Model:</label>';
             html += '<select id="model-' + agent.id + '">';
-            html += this.getModelOptions(config.provider, config.model);
+            html += await this.getModelOptions(config.provider, config.model);
             html += '</select>';
             html += '</div>';
 
@@ -235,14 +236,39 @@ export class SettingsPanel {
         }
     }
 
-    private getModelOptions(provider: string, selectedModel: string): string {
-        const providerModels = MODEL_CONFIGS[provider] || MODEL_CONFIGS.claude;
+    private async getModelOptions(provider: string, selectedModel: string): Promise<string> {
+        // Load models from registry
+        const registry = ConfigurationRegistry.getInstance(this._context);
 
-        return providerModels.map(model =>
-            `<option value="${model.value}" ${model.value === selectedModel ? 'selected' : ''}>
-                ${model.label}
-            </option>`
-        ).join('');
+        try {
+            await registry.loadModels();
+            const providerModels = registry.getModelsForProvider(provider);
+
+            if (providerModels.length === 0) {
+                // Fallback to legacy if no models found
+                const legacyModels = MODEL_CONFIGS[provider] || MODEL_CONFIGS.claude;
+                return legacyModels.map(model =>
+                    `<option value="${model.value}" ${model.value === selectedModel ? 'selected' : ''}>
+                        ${model.label}
+                    </option>`
+                ).join('');
+            }
+
+            return providerModels.map(model =>
+                `<option value="${model.id}" ${model.id === selectedModel ? 'selected' : ''}>
+                    ${model.displayName}
+                </option>`
+            ).join('');
+        } catch (error) {
+            console.error('[SettingsPanel] Error loading models from registry:', error);
+            // Fallback to legacy configs
+            const providerModels = MODEL_CONFIGS[provider] || MODEL_CONFIGS.claude;
+            return providerModels.map(model =>
+                `<option value="${model.value}" ${model.value === selectedModel ? 'selected' : ''}>
+                    ${model.label}
+                </option>`
+            ).join('');
+        }
     }
 
     private getDefaultAgentSettings(agent: AgentConfig): AgentSettings {

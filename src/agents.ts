@@ -100,6 +100,39 @@ export const defaultAgents: AgentConfig[] = [
 export class AgentManager {
 	private agents: AgentConfig[] = [...defaultAgents];
 
+	/**
+	 * Load agents from external configuration registry
+	 * @param context VS Code extension context
+	 */
+	async loadFromRegistry(context: any): Promise<void> {
+		try {
+			const { ConfigurationRegistry } = require('./config/ConfigurationRegistry');
+			const registry = ConfigurationRegistry.getInstance(context);
+			await registry.loadAgents();
+			const activeAgents = registry.getActiveAgents();
+
+			// Convert AgentDefinition to AgentConfig format
+			this.agents = activeAgents.map((def: any) => ({
+				id: def.id,
+				name: def.name,
+				role: def.role,
+				description: def.description,
+				icon: def.icon,
+				color: def.color,
+				capabilities: def.capabilities,
+				provider: def.provider as any,
+				model: def.model,
+				specializations: def.specializations
+			}));
+
+			console.log('[AgentManager] Loaded', this.agents.length, 'agents from registry');
+		} catch (error) {
+			console.error('[AgentManager] Error loading agents from registry:', error);
+			console.log('[AgentManager] Using default agent definitions');
+			// Keep default agents on error
+		}
+	}
+
 	getAgent(id: string): AgentConfig | undefined {
 		return this.agents.find(agent => agent.id === id);
 	}

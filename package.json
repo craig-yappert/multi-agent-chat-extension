@@ -2,7 +2,7 @@
   "name": "multi-agent-chat",
   "displayName": "Multi Agent Chat",
   "description": "Collaborative Multi-Agent AI Chat Interface for VS Code",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "publisher": "craig-yappert",
   "author": "Craig Yappert",
   "repository": {
@@ -76,6 +76,31 @@
       {
         "command": "multiAgentChat.showMigrationStatus",
         "title": "Show Migration Status",
+        "category": "Multi Agent Chat"
+      },
+      {
+        "command": "multiAgentChat.openModelsConfig",
+        "title": "Open Models Configuration",
+        "category": "Multi Agent Chat"
+      },
+      {
+        "command": "multiAgentChat.resetModelsToDefaults",
+        "title": "Reset Models to Defaults",
+        "category": "Multi Agent Chat"
+      },
+      {
+        "command": "multiAgentChat.reloadConfigs",
+        "title": "Reload Model Configurations",
+        "category": "Multi Agent Chat"
+      },
+      {
+        "command": "multiAgentChat.openAgentsConfig",
+        "title": "Open Agents Configuration",
+        "category": "Multi Agent Chat"
+      },
+      {
+        "command": "multiAgentChat.resetAgentsToDefaults",
+        "title": "Reset Agents to Defaults",
         "category": "Multi Agent Chat"
       }
     ],

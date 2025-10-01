@@ -8,46 +8,33 @@
 
 ### 🔥 High Priority
 
+#### [Agent Permissions System](AGENT_PERMISSIONS_PROPOSAL.md)
+**Status:** Planned for v1.16.0
+**Complexity:** Medium
+
+Proposes 3-tier permission strategy:
+1. **Tier 1:** Inherit from Claude Code (when installed) - zero config
+2. **Tier 2:** Claude Agent SDK patterns (standalone mode)
+3. **Tier 3:** Fallback defaults (safety net)
+
+**Estimated Effort:** 6-8 hours
+
+---
+
+### ⚖️ Medium Priority (Deferred)
+
 #### [Claude Code Parity Features](CLAUDE_CODE_PARITY_FEATURES.md)
-**Status:** Planned for v1.15.0+
+**Status:** Deferred to v1.18.0+
 **Complexity:** High
 
 Proposes three major features to match Claude Code's developer experience:
-1. **Real-time Diff Viewer** - Preview file changes before accepting
-2. **Checkpoint System** - Save snapshots and rollback changes
-3. **Workflow Hooks** - Automation triggers for common patterns
+1. **Real-time Diff Viewer** - Preview file changes before accepting (8-10 hours)
+2. **Checkpoint System** - Save snapshots and rollback changes (4-5 hours)
+3. **Workflow Hooks** - Automation triggers for common patterns (3-4 hours)
 
-**Next Steps:** Break into phases, implement diff viewer first
+**Decision:** Focus on externalization first, evaluate these features after v1.17.0
 
----
-
-### ⚖️ Medium Priority
-
-#### [Agent Permissions Redesign](AGENT_PERMISSIONS_PROPOSAL.md)
-**Status:** Planned for v1.16.0+
-**Complexity:** Medium
-
-Proposes trust-with-verification permission model:
-- Domain-based default permissions
-- Rollback capability instead of prevention
-- Reduces permission friction while maintaining safety
-
-**Dependencies:** Should follow diff viewer implementation
-
----
-
-### 🌟 Low Priority
-
-#### [Dynamic Model Discovery](DYNAMIC_MODEL_DISCOVERY_PROPOSAL.md)
-**Status:** Future enhancement
-**Complexity:** Medium
-
-Proposes auto-discovery of available AI models:
-- Query providers for available models
-- Dynamic model selection UI
-- Reduce manual model configuration
-
-**Note:** Deferred until core features are stable. AI model landscape is too volatile for this to be high value currently.
+**Total Effort:** 15-20 hours
 
 ---
 
@@ -55,6 +42,8 @@ Proposes auto-discovery of available AI models:
 
 Implemented proposals have been moved to `docs/archive/implemented/`:
 
+- ✅ **External Model Configuration** (v1.15.0) - JSON-based model definitions with project overrides
+- ✅ **External Agent Configuration** (v1.15.0) - JSON-based agent definitions with smart merging
 - ✅ **External Resources Refactor** (v1.13.0) - Extracted webview to external files
 - ✅ **Inter-Agent UX Polish** (v1.13.0) - Live inter-agent message display
 - ✅ **Floating Chat UI** (v1.12.0) - Detachable chat window
@@ -75,4 +64,4 @@ Use existing proposals as templates.
 
 ---
 
-*Last Updated: 2025-09-30 (v1.13.0)*
+*Last Updated: 2025-10-01 (v1.15.0)*

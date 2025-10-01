@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Multi Agent Chat is a VS Code extension that provides a collaborative AI team interface with specialized agents (Architect, Coder, Executor, Reviewer, Documenter, Coordinator, and Team) for software development tasks.
 
-**Current Version:** 1.13.0 (External Resources & Inter-Agent Polish)
+**Current Version:** 1.15.0 (External Configuration - Models & Agents)
 
 ## Essential Commands
 
@@ -28,16 +28,38 @@ Multi Agent Chat is a VS Code extension that provides a collaborative AI team in
 - `Ctrl+Shift+P` → "Clear All Conversation History" - Reset conversations
 - `Ctrl+Shift+P` → "Initialize Multi Agent Chat Project" - Create .machat folder
 - `Ctrl+Shift+P` → "Migrate Conversations to Project" - Move to local storage
+- `Ctrl+Shift+P` → "Open Models Configuration" - Edit project model list
+- `Ctrl+Shift+P` → "Open Agents Configuration" - Edit project agent definitions
+- `Ctrl+Shift+P` → "Reset Models to Defaults" - Restore bundled model list
+- `Ctrl+Shift+P` → "Reset Agents to Defaults" - Restore bundled agent definitions
+- `Ctrl+Shift+P` → "Reload Model Configurations" - Refresh configs without restart
 
-## Architecture Overview (v1.13.0)
+## Architecture Overview (v1.15.0)
 
 ### Core Components
+
+**Configuration Registry** (`src/config/ConfigurationRegistry.ts`) **NEW in v1.15.0**
+- External model configuration from JSON files
+- External agent configuration with smart merging
+- Two-tier loading: defaults → project overrides
+- `defaults/models.json` - Bundled model definitions (11+ models including Claude Sonnet 4.5)
+- `defaults/agents.json` - Bundled agent definitions (7 agents)
+- `.machat/models.json` - Project-specific model list (optional)
+- `.machat/agents.json` - Project-specific agent customization (optional)
+- Dynamic reload without extension restart
 
 **Agent System** (`src/agents.ts`)
 - 7 specialized agents with unique roles and capabilities
 - Team agent coordinates multi-agent collaboration
-- Each agent configured with provider, model, and specializations
+- **NEW:** Agents loaded from JSON via ConfigurationRegistry
+- Each agent configurable: provider, model, specializations, system prompt
 - Agent memory persists across sessions
+
+**Model Configuration** (`src/config/models.ts`)
+- **NEW:** Dynamic model loading from registry
+- Support for Claude, OpenAI, and local models
+- Project-specific model selection
+- Fallback to legacy configs for safety
 
 **Provider System** (`src/providers.ts`)
 - ClaudeProvider: Direct Claude CLI integration
@@ -144,6 +166,30 @@ The extension uses `multiAgentChat.*` settings (unified in v1.11.0):
 - `multiAgentChat.performance.agentTimeout` - Timeout per agent
 
 ## Recent Changes
+
+### v1.15.0 (2025-10-01) - External Configuration
+
+**External Model Configuration:**
+- Model definitions moved to JSON (`defaults/models.json`)
+- Project-specific model overrides (`.machat/models.json`)
+- 11+ models including **Claude Sonnet 4.5** ⭐
+- ConfigurationRegistry for dynamic loading
+- Commands: Open Models Config, Reset Models, Reload Configs
+- No rebuild needed to add new models
+
+**External Agent Configuration:**
+- Agent definitions moved to JSON (`defaults/agents.json`)
+- Project-specific agent overrides with smart merging (`.machat/agents.json`)
+- Customize agents per project type (models, prompts, capabilities)
+- Add custom agents (e.g., "Data Analyst", "Creative Director")
+- Disable agents per project
+- Commands: Open Agents Config, Reset Agents
+
+**Benefits:**
+- JSON-first approach (edit in VS Code with syntax highlighting)
+- Git-friendly configuration (track changes, share with team)
+- Project-specific AI configurations
+- No Settings UI code needed (VS Code is the UI)
 
 ### v1.13.0 (2025-09-30)
 

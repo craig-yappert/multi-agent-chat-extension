@@ -4,7 +4,7 @@
 
 Multi Agent Chat is a VS Code extension providing a collaborative AI team interface with 7 specialized agents (Team, Architect, Coder, Executor, Reviewer, Documenter, Coordinator) for software development tasks.
 
-**Current Version:** 1.14.0 (Documentation Cleanup Release - 2025-09-30)
+**Current Version:** 1.15.0 (External Configuration - Models & Agents - 2025-10-01)
 
 **Repository:** https://github.com/craig-yappert/multi-agent-chat-extension
 
@@ -12,23 +12,37 @@ Multi Agent Chat is a VS Code extension providing a collaborative AI team interf
 
 ### Core Components
 
-1. **Agent System** (`src/agents.ts`)
+1. **Configuration Registry** (`src/config/ConfigurationRegistry.ts`) **NEW in v1.15.0**
+   - External model configuration: `defaults/models.json` → `.machat/models.json`
+   - External agent configuration: `defaults/agents.json` → `.machat/agents.json`
+   - Two-tier loading: bundled defaults → project overrides
+   - Smart merging for agent customization
+   - Dynamic reload without restart
+
+2. **Agent System** (`src/agents.ts`)
    - 7 specialized agents with unique roles
    - Team agent coordinates multi-agent collaboration
    - Agent memory persists per project in `.machat/context/`
+   - Agents loaded from JSON via ConfigurationRegistry
 
-2. **Provider System** (`src/providers.ts`)
+3. **Model Configuration** (`src/config/models.ts`)
+   - Dynamic model loading from registry
+   - 11+ models including Claude Sonnet 4.5
+   - Project-specific model lists
+   - Fallback to legacy configs
+
+4. **Provider System** (`src/providers.ts`)
    - ClaudeProvider: Direct Claude CLI integration
    - MultiProvider: Team coordination
    - OpenAIProvider: Fallback (not fully implemented)
 
-3. **Inter-Agent Communication** (`src/agentCommunication.ts`)
+5. **Inter-Agent Communication** (`src/agentCommunication.ts`)
    - AgentCommunicationHub: Routes messages between agents
    - AgentMessageParser: Extracts @mentions from responses
    - Loop prevention (max depth 3, max 50 messages)
    - Live message display in UI
 
-4. **UI Components** (`resources/webview/`)
+6. **UI Components** (`resources/webview/`)
    - External resources: index.html, script.js, styles.css
    - Floating window support
    - STOP button for process management
@@ -115,21 +129,22 @@ multi-agent-chat-extension/
 4. **External Resources:** UI changes go in `resources/webview/`, not template literals
 5. **Commit Messages:** Use conventional commits with Claude Code attribution
 
-## Current Focus (v1.14.0)
+## Current Focus (v1.15.0)
 
-### Just Completed
-- ✅ Documentation cleanup and accuracy updates
-- ✅ Removed all MCP server references
-- ✅ Archived implemented proposals
-- ✅ Version bumped to 1.14.0
+### Just Completed ✅ (2025-10-01)
+- ✅ External Model Configuration (Phase 1)
+  - `defaults/models.json` with 11+ models including Claude Sonnet 4.5
+  - Project overrides in `.machat/models.json`
+  - ConfigurationRegistry dynamic loading
+  - VS Code commands (Open/Reset/Reload Models)
+- ✅ External Agent Configuration (Phase 2)
+  - `defaults/agents.json` with all 7 agents
+  - Project overrides in `.machat/agents.json`
+  - Smart merging (override, extend, disable agents)
+  - VS Code commands (Open/Reset Agents)
+- ✅ Version bumped to 1.15.0
 
 ### Next Priorities
-
-**v1.15.0 - External Model Configuration** (4-5 hours)
-- Move model definitions from code to JSON
-- Bundled `defaults/models.json` + project `.machat/models.json`
-- Add Claude Sonnet 4.5 and latest models
-- Users can edit models without extension rebuild
 
 **v1.16.0 - Permission System** (6-8 hours)
 - Tier 1: Inherit from Claude Code (when installed)
@@ -138,12 +153,14 @@ multi-agent-chat-extension/
 - Per-project `.machat/permissions.json`
 
 **v1.17.0 - Settings UI Improvements**
-- Fix non-rendering settings sections
-- Better model selection UI
-- Permission configuration UI
+- Optional: Build UI for model/agent selection
+- Decision: JSON-first approach may eliminate need for Settings UI
+- Re-evaluate after user feedback
 
 ### Deferred
 - Diff Viewer (moved to v1.18.0+)
+- Checkpoint/Rollback System (moved to v1.18.0+)
+- Workflow Hooks (moved to v1.18.0+)
 - Dynamic Model Discovery (low priority)
 
 ## Known Issues
@@ -154,6 +171,14 @@ multi-agent-chat-extension/
 4. **OpenAIProvider:** Declared but not fully implemented (falls back to Claude)
 
 ## Recent Major Changes
+
+### v1.15.0 (2025-10-01)
+- External model configuration (`defaults/models.json` + `.machat/models.json`)
+- External agent configuration (`defaults/agents.json` + `.machat/agents.json`)
+- ConfigurationRegistry for dynamic loading
+- 11+ models including Claude Sonnet 4.5
+- Project-specific AI configurations
+- No rebuild needed for model/agent changes
 
 ### v1.13.0 (2025-09-30)
 - External resources refactor (removed 7,964 lines of template literals)

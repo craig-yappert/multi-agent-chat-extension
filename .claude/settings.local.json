@@ -24,7 +24,8 @@
       "WebSearch",
       "Bash(code:*)",
       "Bash(cat:*)",
-      "Bash(del srcscript.ts srcui.ts srcuiStyles.ts)"
+      "Bash(del srcscript.ts srcui.ts srcuiStyles.ts)",
+      "Bash(git mv:*)"
     ],
     "deny": []
   },

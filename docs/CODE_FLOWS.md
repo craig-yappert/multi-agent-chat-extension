@@ -1,4 +1,5 @@
 # Multi Agent Chat - Code Flow Documentation
+
 **Last Updated:** 2025-09-30 (v1.13.0)
 **Status:** ✅ Accurate - focuses on concepts, not specific line numbers
 
@@ -7,6 +8,7 @@
 This document explains how code flows through the Multi Agent Chat extension for core scenarios. Flows are presented conceptually to remain accurate as code evolves.
 
 ## Table of Contents
+
 1. [Extension Initiation](#1-extension-initiation)
 2. [Settings Change](#2-settings-change)
 3. [Single Agent Communication](#3-single-agent-communication)
@@ -38,7 +40,7 @@ graph TD
     M --> N[Extension Ready]
 ```
 
-### Key Components Initialized:
+### Key Components Initialized
 
 | Component | Purpose | Storage Location |
 |-----------|---------|------------------|
@@ -51,7 +53,8 @@ graph TD
 | **ProviderManager** | Initialize AI providers | In-memory |
 | **AgentCommunicationHub** | Set up inter-agent messaging | In-memory |
 
-### Files Involved:
+### Files Involved
+
 - `src/extension.ts` - Main activation function
 - `src/settings/SettingsManager.ts` - Settings singleton
 - `src/conversations/ConversationManager.ts` - Conversation persistence
@@ -78,14 +81,16 @@ graph TD
     I --> J[Update runtime behavior]
 ```
 
-### Settings Hierarchy (lowest to highest precedence):
+### Settings Hierarchy (lowest to highest precedence)
+
 1. Default values in code
 2. VS Code global settings (`settings.json`)
 3. Global extension settings
 4. Project settings (`.machat/config.json`)
 5. Workspace settings (`.vscode/settings.json`)
 
-### Example Settings Flow:
+### Example Settings Flow
+
 ```typescript
 // User changes: multiAgentChat.agents.enableInterCommunication = false
 // → SettingsManager reloads all layers
@@ -132,12 +137,14 @@ sequenceDiagram
     Webview->>User: Display response
 ```
 
-### Key Decision Points:
+### Key Decision Points
+
 1. **Cache Check**: If identical request within 5 minutes, return cached response
 2. **Streaming**: If enabled, send chunks to UI in real-time
 3. **Context**: Include conversation history and project context
 
-### Files Involved:
+### Files Involved
+
 - `resources/webview/script.js` - UI logic
 - `src/extension.ts` - ClaudeChatProvider message handling
 - `src/agents.ts` - Agent registry
@@ -181,14 +188,17 @@ sequenceDiagram
     Coord->>User: All responses visible in UI
 ```
 
-### Loop Prevention:
+### Loop Prevention
+
 The AgentCommunicationHub prevents infinite loops by:
+
 1. Tracking conversation depth (max 3 levels)
 2. Limiting messages per conversation (max 50)
 3. Blocking simple acknowledgment responses (< 100 chars)
 4. Setting `isInterAgentResponse: true` flag to prevent nested @mentions
 
-### Message Flow Example:
+### Message Flow Example
+
 ```
 User: "@coordinator ask @architect about database design"
   → Coordinator receives message
@@ -199,7 +209,8 @@ User: "@coordinator ask @architect about database design"
   → Coordinator doesn't trigger new @mentions (isInterAgentResponse flag)
 ```
 
-### Files Involved:
+### Files Involved
+
 - `src/agentMessageParser.ts` - Extract @mentions from responses
 - `src/agentCommunication.ts` - Route messages, prevent loops
 - `src/providers.ts` - Execute agent requests
@@ -242,12 +253,14 @@ sequenceDiagram
     Team-->>User: Unified team answer
 ```
 
-### Team Mode Optimization:
+### Team Mode Optimization
+
 - **Quick Team Mode** (default): Selects 3 most relevant agents
 - **Full Team Mode**: Queries all 6 specialized agents
 - Configured via: `multiAgentChat.performance.quickTeamMode`
 
-### Agent Selection Strategy:
+### Agent Selection Strategy
+
 ```typescript
 // MultiProvider analyzes request and selects:
 // - Keywords match (e.g., "code" → Coder)
@@ -255,7 +268,8 @@ sequenceDiagram
 // - Task type (e.g., review → Reviewer)
 ```
 
-### Files Involved:
+### Files Involved
+
 - `src/providers.ts` - MultiProvider coordination
 - `src/performanceOptimizer.ts` - OptimizedMultiProvider
 - `src/agentCommunication.ts` - Message broadcasting
@@ -292,7 +306,8 @@ graph TD
     Q --> R[Replay messages to UI]
 ```
 
-### Storage Structure:
+### Storage Structure
+
 ```
 .machat/
 ├── conversations/
@@ -302,7 +317,8 @@ graph TD
     └── project-context.json          # Agent memories
 ```
 
-### Conversation File Format:
+### Conversation File Format
+
 ```json
 {
   "id": "conv_abc123",
@@ -324,7 +340,8 @@ graph TD
 }
 ```
 
-### Files Involved:
+### Files Involved
+
 - `src/conversations/ConversationManager.ts` - Save/load/index
 - `src/context/ProjectContextManager.ts` - Agent memory
 - `src/extension.ts` - Trigger saves on message completion
@@ -348,7 +365,8 @@ graph TD
     I --> J[Update UI: Ready state]
 ```
 
-### Process Tracking:
+### Process Tracking
+
 ```typescript
 // ClaudeProvider maintains activeProcesses Set
 private activeProcesses: Set<cp.ChildProcess> = new Set();
@@ -362,7 +380,8 @@ this.activeProcesses.forEach(p => p.kill());
 this.activeProcesses.clear();
 ```
 
-### Files Involved:
+### Files Involved
+
 - `resources/webview/script.js` - STOP button UI
 - `src/extension.ts` - Message routing
 - `src/providers.ts` - Process management
@@ -372,6 +391,7 @@ this.activeProcesses.clear();
 ## Common Patterns & Practices
 
 ### 1. Message Passing (Extension ↔ Webview)
+
 ```typescript
 // Webview → Extension
 vscode.postMessage({ type: 'sendMessage', data: userInput });
@@ -381,6 +401,7 @@ webview.postMessage({ type: 'agentResponse', data: response, agent: {...} });
 ```
 
 ### 2. Singleton Managers
+
 ```typescript
 // Always use getInstance() for managers
 const settingsManager = SettingsManager.getInstance(context);
@@ -389,6 +410,7 @@ const contextManager = ProjectContextManager.getInstance(context, settingsManage
 ```
 
 ### 3. Provider Routing
+
 ```typescript
 // ProviderManager routes based on agent config
 const provider = providerManager.getProvider(agentConfig);
@@ -396,13 +418,16 @@ const provider = providerManager.getProvider(agentConfig);
 ```
 
 ### 4. Context Building
+
 Every AI request includes:
+
 - Conversation history (last N messages)
 - Agent-specific context
 - Project context (if `.machat/` exists)
 - User's current file/selection (if relevant)
 
 ### 5. Error Handling
+
 ```typescript
 // Always wrap AI calls in try/catch
 try {
@@ -420,13 +445,17 @@ try {
 ## Debugging Tips
 
 ### 1. Extension Output Channel
+
 View detailed logs:
+
 1. Open Output panel (View → Output)
 2. Select "Multi-Agent Communication" from dropdown
 3. See message routing, agent selection, errors
 
 ### 2. Message Flow Logging
+
 Look for these console logs:
+
 ```
 [ClaudeProvider] Using direct Claude CLI for architect
 [AgentCommunicationHub] Broadcasting to 3 agents
@@ -435,7 +464,9 @@ Look for these console logs:
 ```
 
 ### 3. Conversation Files
+
 Inspect actual conversation data:
+
 ```bash
 cat .machat/conversations/2025-09-30_*.json
 cat .machat/conversations/index.json
@@ -443,7 +474,9 @@ cat .machat/context/project-context.json
 ```
 
 ### 4. Settings Hierarchy
+
 Check effective settings:
+
 ```typescript
 // In extension.ts
 const config = vscode.workspace.getConfiguration('multiAgentChat');
@@ -455,17 +488,20 @@ console.log('Effective settings:', config);
 ## Architecture Evolution
 
 ### v1.13.0 (2025-09-30)
+
 - ✅ Inter-agent communication polish (@mentions fully working)
 - ✅ External resources (webview in `resources/webview/`)
 - ✅ Loop prevention for inter-agent messages
 - ✅ STOP button kills all processes immediately
 
 ### v1.11.0 (2025-09-19)
+
 - ✅ MCP infrastructure removed (simplified to direct Claude CLI)
 - ✅ Per-project settings (`.machat/config.json`)
 - ✅ Project-local conversation storage
 
 ### Pre-v1.11.0
+
 - ❌ MCP WebSocket server (removed - was complex, not needed)
 - ❌ Template literal webview (removed - maintenance nightmare)
 

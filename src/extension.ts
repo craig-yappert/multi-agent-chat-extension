@@ -266,6 +266,12 @@ class ClaudeChatProvider {
 		// Resume session from latest conversation
 		const latestConversation = this._getLatestConversation();
 		this._currentSessionId = latestConversation?.sessionId;
+
+		// If no existing conversation, create a new session ID
+		if (!this._currentSessionId) {
+			this._currentSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+			console.log('[Session] Created new session ID in constructor:', this._currentSessionId);
+		}
 	}
 
 	public show(column: vscode.ViewColumn | vscode.Uri = vscode.ViewColumn.Beside) {
@@ -315,6 +321,12 @@ class ClaudeChatProvider {
 		// Resume session from latest conversation
 		const latestConversation = this._getLatestConversation();
 		this._currentSessionId = latestConversation?.sessionId;
+
+		// If no existing conversation, create a new session ID
+		if (!this._currentSessionId) {
+			this._currentSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+			console.log('[Session] Created new session ID:', this._currentSessionId);
+		}
 
 		// Load latest conversation history if available
 		if (latestConversation) {
@@ -2082,8 +2094,18 @@ class ClaudeChatProvider {
 	}
 
 	private async _saveCurrentConversation(): Promise<void> {
-		if (this._currentConversation.length === 0) { return; }
-		if (!this._currentSessionId) { return; }
+		console.log('[ConversationSave] Starting save process...');
+		console.log('[ConversationSave] Current conversation length:', this._currentConversation.length);
+		console.log('[ConversationSave] Current session ID:', this._currentSessionId);
+
+		if (this._currentConversation.length === 0) {
+			console.log('[ConversationSave] Skipping: No messages in conversation');
+			return;
+		}
+		if (!this._currentSessionId) {
+			console.log('[ConversationSave] Skipping: No session ID');
+			return;
+		}
 
 		try {
 			// Create filename from first user message and timestamp

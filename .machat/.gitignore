@@ -1,0 +1,13 @@
+# API Keys (never commit)
+config.json
+
+# Conversations (may contain sensitive data)
+conversations/
+
+# Agent memory (may contain project secrets)
+context/agent-memory.json
+
+# Allow these to be shared
+!agents/
+!context/project-context.md
+!context/knowledge-base/

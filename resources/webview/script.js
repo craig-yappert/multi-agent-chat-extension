@@ -2073,22 +2073,6 @@ function displayInterAgentMessage(data) {
 	scrollToBottomIfNeeded(messagesDiv, shouldScroll);
 }
 
-window.toggleInterAgentMessage = function(button, encodedContent) {
-	const contentDiv = button.parentElement;
-	const messageText = contentDiv.querySelector('.message-text');
-	const fullContent = atob(encodedContent);
-
-	if (messageText.classList.contains('truncated')) {
-		messageText.textContent = fullContent;
-		messageText.classList.remove('truncated');
-		button.textContent = 'Show less';
-	} else {
-		messageText.textContent = fullContent.substring(0, 500) + '...';
-		messageText.classList.add('truncated');
-		button.textContent = 'Show more';
-	}
-}
-
 function toggleMessageContent(button) {
 	const expandableDiv = button.parentElement;
 	const truncated = expandableDiv.querySelector('.content-truncated');

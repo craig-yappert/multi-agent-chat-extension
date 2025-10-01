@@ -156,18 +156,153 @@
         }
       ]
     },
-    "local": {
-      "displayName": "Local Models",
+    "google": {
+      "displayName": "Google Gemini",
       "models": [
         {
-          "id": "llama-2",
-          "displayName": "Llama 2",
-          "description": "Meta's open source LLM",
-          "contextWindow": 4096,
-          "maxOutput": 2048,
-          "capabilities": ["text", "code"],
-          "tags": ["open-source", "local"]
+          "id": "gemini-2.5-pro",
+          "displayName": "Gemini 2.5 Pro",
+          "description": "Most powerful model with adaptive thinking",
+          "contextWindow": 1000000,
+          "maxOutput": 8192,
+          "capabilities": ["text", "vision", "code", "audio"],
+          "tags": ["latest", "powerful", "multimodal"],
+          "pricing": {
+            "input": 0.00125,
+            "output": 0.005
+          }
         },
+        {
+          "id": "gemini-2.5-flash",
+          "displayName": "Gemini 2.5 Flash",
+          "description": "Best price-performance with well-rounded capabilities",
+          "contextWindow": 1000000,
+          "maxOutput": 8192,
+          "capabilities": ["text", "vision", "code", "audio"],
+          "tags": ["recommended", "fast"],
+          "pricing": {
+            "input": 0.000075,
+            "output": 0.0003
+          }
+        },
+        {
+          "id": "gemini-2.5-flash-lite",
+          "displayName": "Gemini 2.5 Flash Lite",
+          "description": "Most cost effective for high throughput tasks",
+          "contextWindow": 1000000,
+          "maxOutput": 8192,
+          "capabilities": ["text", "vision", "code"],
+          "tags": ["affordable", "fast"],
+          "pricing": {
+            "input": 0.000025,
+            "output": 0.0001
+          }
+        },
+        {
+          "id": "gemini-2.0-flash",
+          "displayName": "Gemini 2.0 Flash",
+          "description": "Multimodal with next generation features",
+          "contextWindow": 1000000,
+          "maxOutput": 8192,
+          "capabilities": ["text", "vision", "code", "audio"],
+          "tags": ["stable"]
+        }
+      ]
+    },
+    "xai": {
+      "displayName": "xAI Grok",
+      "models": [
+        {
+          "id": "grok-4",
+          "displayName": "Grok 4",
+          "description": "Most intelligent model with real-time search",
+          "contextWindow": 256000,
+          "maxOutput": 32000,
+          "capabilities": ["text", "code", "search"],
+          "tags": ["latest", "powerful", "real-time"]
+        },
+        {
+          "id": "grok-4-fast-reasoning",
+          "displayName": "Grok 4 Fast (Reasoning)",
+          "description": "Frontier-level reasoning with 2M token context",
+          "contextWindow": 2000000,
+          "maxOutput": 32000,
+          "capabilities": ["text", "code", "reasoning"],
+          "tags": ["fast", "reasoning", "large-context"]
+        },
+        {
+          "id": "grok-4-fast-non-reasoning",
+          "displayName": "Grok 4 Fast (Non-Reasoning)",
+          "description": "Cost-efficient fast model with 2M context",
+          "contextWindow": 2000000,
+          "maxOutput": 32000,
+          "capabilities": ["text", "code"],
+          "tags": ["fast", "affordable", "large-context"]
+        },
+        {
+          "id": "grok-3",
+          "displayName": "Grok 3",
+          "description": "Previous generation flagship model",
+          "contextWindow": 128000,
+          "maxOutput": 16000,
+          "capabilities": ["text", "code"],
+          "tags": ["stable"]
+        },
+        {
+          "id": "grok-beta",
+          "displayName": "Grok Beta",
+          "description": "Original Grok model with extended context",
+          "contextWindow": 128000,
+          "maxOutput": 16000,
+          "capabilities": ["text", "code"],
+          "tags": ["legacy"]
+        }
+      ]
+    },
+    "meta": {
+      "displayName": "Meta Llama",
+      "models": [
+        {
+          "id": "llama-3.3-70b",
+          "displayName": "Llama 3.3 70B",
+          "description": "Latest multilingual instruction-tuned model",
+          "contextWindow": 128000,
+          "maxOutput": 4096,
+          "capabilities": ["text", "code"],
+          "tags": ["latest", "multilingual", "open-source"]
+        },
+        {
+          "id": "llama-3.1-405b",
+          "displayName": "Llama 3.1 405B",
+          "description": "Largest and most capable Llama model",
+          "contextWindow": 128000,
+          "maxOutput": 4096,
+          "capabilities": ["text", "code"],
+          "tags": ["powerful", "open-source"]
+        },
+        {
+          "id": "llama-3.1-70b",
+          "displayName": "Llama 3.1 70B",
+          "description": "Balanced performance and efficiency",
+          "contextWindow": 128000,
+          "maxOutput": 4096,
+          "capabilities": ["text", "code"],
+          "tags": ["recommended", "open-source"]
+        },
+        {
+          "id": "llama-3.1-8b",
+          "displayName": "Llama 3.1 8B",
+          "description": "Fast and efficient for simple tasks",
+          "contextWindow": 128000,
+          "maxOutput": 4096,
+          "capabilities": ["text", "code"],
+          "tags": ["fast", "affordable", "open-source"]
+        }
+      ]
+    },
+    "local": {
+      "displayName": "Local/Custom Models",
+      "models": [
         {
           "id": "mistral",
           "displayName": "Mistral",

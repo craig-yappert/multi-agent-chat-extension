@@ -46,6 +46,7 @@ export class AgentCommunicationHub {
 	private workflows: Map<string, AgentWorkflow> = new Map();
 	private messageQueue: AgentMessage[] = [];
 	private isProcessing: boolean = false;
+	private isStopped: boolean = false; // Emergency stop flag
 	private maxConcurrentAgents: number = 3;
 	private activeAgents: Set<string> = new Set();
 	private agentTimeout: number = 60000; // Default 60 seconds for complex responses
@@ -89,6 +90,12 @@ export class AgentCommunicationHub {
 		// Enhanced debug logging
 		console.log(`\n[Send Message] ${fromAgent} >> ${toAgent} (${type})`);
 		console.log(`[Send Message] Content: "${message.substring(0, 100)}${message.length > 100 ? '...' : ''}"`);
+
+		// CHECK EMERGENCY STOP: Block all new messages if stopped
+		if (this.isStopped) {
+			console.log(`[Emergency Stop] Blocking message from ${fromAgent} to ${toAgent} - system is stopped`);
+			return '[System: All agent communication has been stopped by emergency stop]';
+		}
 
 		// PREVENT RESPONSE LOOPS: Block simple acknowledgment responses to prevent cascading
 		// Only check responses, not initial requests
@@ -462,7 +469,10 @@ Please provide your response based on the request above.
 				toAgent,
 				{
 					...message.context,
-					isInterAgentResponse: true  // Flag to prevent recursive parsing
+					// Remove onPartialResponse from original context to prevent wrong agent display
+					onPartialResponse: undefined,
+					// Allow response parsing for secondary @mentions
+					// Loop prevention handled by: message limits, depth limits, acknowledgment detection
 				}
 			);
 			console.log(`[Process Response] Got response from ${message.to}: "${response.substring(0, 100)}${response.length > 100 ? '...' : ''}"`);
@@ -555,12 +565,18 @@ Please provide your response based on the request above.
 		console.log('Clearing message queue - Emergency stop');
 		this.messageQueue = [];
 		this.isProcessing = false;
+		this.isStopped = true; // Set emergency stop flag to block new messages
 		this.activeAgents.clear();
 		this.conversationMessageCount.clear();
 		this.messageChainDepth.clear();
 		this.conversationParticipants.clear();
 		this.conversations.clear();
 		this.workflows.clear();
+	}
+
+	resetStopFlag(): void {
+		console.log('Resetting emergency stop flag - Ready for new messages');
+		this.isStopped = false;
 	}
 
 	setStatusCallback(callback: (status: string, fromAgent?: string, toAgent?: string, messageContent?: string) => void): void {

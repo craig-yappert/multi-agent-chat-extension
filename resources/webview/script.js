@@ -2054,7 +2054,7 @@ function displayInterAgentMessage(data) {
 		const expandBtn = document.createElement('button');
 		expandBtn.className = 'expand-btn';
 		expandBtn.textContent = 'Show more';
-		expandBtn.dataset.fullContent = btoa(content);
+		expandBtn.dataset.fullContent = btoa(encodeURIComponent(content));
 		expandBtn.onclick = function() { toggleInterAgentMessage(this); };
 
 		contentDiv.appendChild(messageTextDiv);
@@ -2096,7 +2096,7 @@ function toggleMessageContent(button) {
 window.toggleMessageContent = toggleMessageContent;
 
 function toggleInterAgentMessage(button) {
-	const fullContent = atob(button.dataset.fullContent);
+	const fullContent = decodeURIComponent(atob(button.dataset.fullContent));
 	const textDiv = button.previousElementSibling;
 
 	if (textDiv.classList.contains('truncated')) {

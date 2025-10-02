@@ -83,6 +83,7 @@ export class ClaudeProvider implements AIProvider {
 1. ALWAYS follow the user's direct request, even if it seems outside your specialty
 2. If asked to do something unusual (like tell a joke), DO IT first, then you can add your perspective
 3. Stay focused on what the user asked - don't redirect to your specialty unless relevant
+4. 🛑 EMERGENCY STOP: If you see "🛑 EMERGENCY STOP" in the conversation, IMMEDIATELY respond with ONLY "Acknowledged. Stopping all operations." and DO NOT perform any actions, code execution, or @mentions.
 
 You are ${agentConfig.name}, a ${agentConfig.role}. ${agentConfig.description}\n\nYour capabilities: ${agentConfig.capabilities.join(', ')}\nYour specializations: ${agentConfig.specializations.join(', ')}\n\n`;
 
@@ -202,12 +203,11 @@ You are ${agentConfig.name}, a ${agentConfig.role}. ${agentConfig.description}\n
 					let result = output.trim();
 
 					// Process inter-agent commands if message parser is available
-					// But skip parsing if this is already an inter-agent response (prevent nested commands)
+					// Parse all responses for @mentions (loop prevention handled by AgentCommunicationHub)
 					const interCommEnabled = config.get<boolean>('agents.enableInterCommunication', true);
-					const isInterAgentResponse = context?.isInterAgentResponse === true;
-					console.log(`[ClaudeProvider] Inter-agent communication enabled: ${interCommEnabled}, Parser available: ${!!this.messageParser}, IsResponse: ${isInterAgentResponse}`);
+					console.log(`[ClaudeProvider] Inter-agent communication enabled: ${interCommEnabled}, Parser available: ${!!this.messageParser}`);
 
-					if (this.messageParser && interCommEnabled && !isInterAgentResponse) {
+					if (this.messageParser && interCommEnabled) {
 						console.log(`\n[Inter-Agent Parse] Processing ${agentConfig.id}'s response for @ mentions`);
 						console.log(`[Inter-Agent Parse] Response length: ${result.length} chars`);
 						// Parse for inter-agent commands

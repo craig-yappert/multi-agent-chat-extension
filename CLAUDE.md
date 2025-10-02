@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Multi Agent Chat is a VS Code extension that provides a collaborative AI team interface with specialized agents (Architect, Coder, Executor, Reviewer, Documenter, Coordinator, and Team) for software development tasks.
 
-**Current Version:** 1.15.0 (External Configuration - Models & Agents)
+**Current Version:** 1.15.2 (Inter-Agent Collaboration Fixes)
 
 ## Essential Commands
 
@@ -178,6 +178,50 @@ The extension uses `multiAgentChat.*` settings (unified in v1.11.0):
 - `multiAgentChat.performance.agentTimeout` - Timeout per agent
 
 ## Recent Changes
+
+### v1.15.2 (2025-10-02) - Inter-Agent Collaboration Fixes
+
+**True Multi-Agent Collaboration Working:**
+- Fixed secondary @mentions not being routed to agents
+- Removed `isInterAgentResponse` flag that blocked response parsing
+- Agents now parse ALL responses for @mentions (loop prevention via depth/message limits)
+- Successful 3-5 agent collaborative discussions with natural conversation flow
+
+**Critical Bug Fixes:**
+
+**Bug #1: Wrong Agent Display in Main Chat**
+- **Issue**: Agent responses displaying with wrong icon/name (e.g., Architect showing as Coordinator)
+- **Cause**: Inter-agent responses inherited `onPartialResponse` callback from original requester
+- **Fix**: Strip `onPartialResponse` from inter-agent message context (`agentCommunication.ts:473`)
+- **Result**: Inter-agent responses now only appear in inter-agent panel with correct attribution
+
+**Bug #2: Emergency Stop Ineffective**
+- **Issue**: STOP button didn't halt agents - required 2-3 presses, agents kept chatting
+- **Cause**: Cleared message queue but didn't block NEW messages from being queued
+- **Fix**: Added `isStopped` flag to block all new inter-agent messages after emergency stop
+- **Result**: Emergency stop now immediately halts all agent communication
+
+**Enhanced Emergency Stop:**
+- Visible stop message injected into chat: "🛑 EMERGENCY STOP - HALT ALL OPERATIONS IMMEDIATELY"
+- System confirmation: "⚠️ Emergency stop activated - All agent operations halted"
+- Agents trained to recognize stop command in their system prompts
+- Triple kill switch: process kill + queue clear + stop flag + visible message
+
+**Unicode Support:**
+- Fixed `btoa()` encoding error with Unicode characters (arrows, em-dashes) in inter-agent messages
+- Added `encodeURIComponent()` wrapper for proper Unicode handling in message truncation
+
+**Key Insights from Testing:**
+- Initial message quality and framing significantly impacts agent behavior
+- Coordinator's "CRITICAL RULES" messaging effectively sets conversation tone
+- Agents naturally engage in multi-round discussions when properly configured
+- Message ordering issue identified (display by completion time vs request time)
+
+**Files Modified:**
+- `src/agentCommunication.ts` - Emergency stop flag, onPartialResponse removal, message blocking
+- `src/extension.ts` - Reset stop flag on new messages, inject visible stop messages
+- `src/providers.ts` - Always parse responses for @mentions, emergency stop training
+- `resources/webview/script.js` - Unicode encoding fix for message truncation
 
 ### v1.15.0 (2025-10-01) - External Configuration
 

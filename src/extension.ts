@@ -741,6 +741,11 @@ class ClaudeChatProvider {
 		const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
 		const cwd = workspaceFolder ? workspaceFolder.uri.fsPath : process.cwd();
 
+		// Reset emergency stop flag when user sends a new message
+		if (this._communicationHub) {
+			this._communicationHub.resetStopFlag();
+		}
+
 		// Show original user input in chat
 		this._sendAndSaveMessage({
 			type: 'userInput',
@@ -2499,6 +2504,18 @@ class ClaudeChatProvider {
 
 		// Set emergency stop flag
 		this._isProcessing = false;
+
+		// Inject visible STOP message into chat so agents see it in their context
+		this._sendAndSaveMessage({
+			type: 'userInput',
+			data: '🛑 EMERGENCY STOP - HALT ALL OPERATIONS IMMEDIATELY'
+		});
+
+		// Send urgent system message to UI
+		this._sendAndSaveMessage({
+			type: 'agentResponse',
+			data: '⚠️ Emergency stop activated - All agent operations halted'
+		});
 
 		// Kill all active provider processes FIRST
 		if (this._providerManager) {

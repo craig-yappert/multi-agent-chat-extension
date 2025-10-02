@@ -25,7 +25,13 @@
       "Bash(code:*)",
       "Bash(cat:*)",
       "Bash(del srcscript.ts srcui.ts srcuiStyles.ts)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(claude --version)",
+      "Bash(claude auth status)",
+      "WebFetch(domain:code.visualstudio.com)",
+      "Bash(del:*)",
+      "Bash(cmd /c del:*)",
+      "Bash(cmd /c:*)"
     ],
     "deny": []
   },

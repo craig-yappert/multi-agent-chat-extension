@@ -416,6 +416,47 @@ For project-specific agent behavior, you can add custom prompts as **Markdown fi
 - Hierarchical settings system
 - Project-local conversation storage
 
+## Next Priorities
+
+### 1. Team Communications Model Improvements
+**Status:** In Planning
+**Focus Areas:**
+- Review @team functionality after v1.16.1 fixes
+- Improve team response synthesis vs concatenation
+- Optimize token usage for team broadcasts
+- Consider graduated team modes (quick vs full collaboration)
+
+### 2. Agent Permission System 🔐
+**Status:** Designed, Ready for Implementation
+**Reference Documents:**
+- `docs/proposals/VSCODE_PERMISSION_INTEGRATION_PROPOSAL.md` (detailed design)
+- `docs/proposals/AGENT_PERMISSIONS_PROPOSAL.md` (precursor)
+
+**Key Concepts:**
+- **Graduated Trust Levels:** Automatic → Approved → Consent → Forbidden
+- **VS Code Integration:** Ride VS Code's security coattails (workspace trust, etc.)
+- **Agent Capability Profiles:** Per-agent restrictions (documenter can't run git)
+- **Prevents Consent Fatigue:** Smart defaults based on risk level
+
+**Implementation Phases:**
+1. Workspace trust + basic file operation checks
+2. Per-agent capability profiles
+3. Advanced consent workflows
+
+**Why Important:**
+- Prevents dangerous agent actions
+- Professional security model
+- Better UX than "approve everything"
+- Complements multi-provider system
+
+### 3. Provider System Testing (Ongoing)
+**Status:** v1.16.0 shipped, needs real-world testing
+**Test Priorities:**
+- Verify VS Code LM API with GitHub Copilot
+- Test direct HTTP providers (OpenAI, Google, xAI)
+- Validate provider fallback chains
+- Monitor performance and token usage
+
 ## Development Notes
 
 - TypeScript strict mode enabled

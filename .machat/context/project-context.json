@@ -1,10 +1,10 @@
 {
   "projectName": "multi-agent-chat-extension",
-  "lastUpdated": "2025-10-01T21:06:16.538Z",
+  "lastUpdated": "2025-10-02T19:28:05.650Z",
   "agentMemory": {
     "Architect": {
       "agentName": "Architect",
-      "lastUpdated": "2025-09-30T00:47:03.824Z",
+      "lastUpdated": "2025-10-02T00:46:39.417Z",
       "conversations": []
     },
     "Executor": {
@@ -14,7 +14,7 @@
     },
     "Team": {
       "agentName": "Team",
-      "lastUpdated": "2025-09-30T17:48:27.243Z",
+      "lastUpdated": "2025-10-02T00:46:39.417Z",
       "conversations": []
     },
     "team": {
@@ -55,12 +55,12 @@
     },
     "Documenter": {
       "agentName": "Documenter",
-      "lastUpdated": "2025-09-30T00:47:03.824Z",
+      "lastUpdated": "2025-10-02T00:46:39.417Z",
       "conversations": []
     },
     "Coder": {
       "agentName": "Coder",
-      "lastUpdated": "2025-09-30T00:47:03.824Z",
+      "lastUpdated": "2025-10-02T00:46:39.417Z",
       "conversations": []
     },
     "coder": {
@@ -93,25 +93,35 @@
     },
     "coordinator": {
       "agentName": "coordinator",
-      "lastUpdated": "2025-10-01T21:01:36.949Z",
+      "lastUpdated": "2025-10-02T19:28:05.650Z",
       "conversations": [
         {
           "role": "user",
-          "content": "@coordinator ok first loved the way you attempted to organize the team .. it looks like we have some parsing issues with secondary agent references and inparticular Archtect's reposnse getting into the UI .. but this does show that we are getting very close to a mutli-agent multi-round collaboration flow"
+          "content": "@coordinator ... we decided to back out of the error mentions issue and simple absorb them rather than developing a complex analyze and forward model .. we may come back to it at a later date .. for the time being I think we are good and at least messages are not hitting the token pocket book too hard"
         },
         {
           "role": "assistant",
-          "content": ""
+          "content": "Acknowledged. Backing out of the error mentions forwarding feature is a good pragmatic decision. The simpler approach of absorbing error messages instead of building a complex analyze-and-forward model makes sense, especially given:\n\n1. **Token cost considerations** - You've got that under control now\n2. **Complexity vs. value tradeoff** - Can always revisit later if needed\n3. **Current state** - Messages aren't causing excessive token consumption anymore\n\nThe door's open to revisit the feature in the future if requirements change. For now, you've got a working solution that's cost-effective.\n\nIs there anything else you need help with, or are we good to wrap up this session?"
+        },
+        {
+          "role": "user",
+          "content": "@coordinator .. not at this time .. after lunch we will come back and focus on team communications model .. I still think it needs work are we get rid of it and just rely on you as the more intelligent router"
+        },
+        {
+          "role": "assistant",
+          "content": "Understood. We'll revisit the team communications model after lunch to determine:\n\n1. **Keep and improve** - Enhance the current team broadcast system\n2. **Remove entirely** - Rely solely on me (Coordinator) for intelligent routing\n\nI'm ready to help evaluate the trade-offs when you're back. The current team model has overhead, but offers parallel processing. As a router, I can be more strategic but create a serial bottleneck.\n\nEnjoy your lunch - I'll be here when you're ready to tackle this decision."
         }
       ]
     },
     "Coordinator": {
       "agentName": "Coordinator",
-      "lastUpdated": "2025-10-01T21:06:16.538Z",
+      "lastUpdated": "2025-10-02T19:28:05.650Z",
       "conversations": []
     }
   },
   "projectDocs": [],
   "knowledgeBase": {},
-  "customPrompts": {}
+  "customPrompts": {
+    "README": "# Custom Agent Prompts\r\n\r\nThis folder allows you to add **project-specific instructions** to agents using Markdown files.\r\n\r\n## How It Works\r\n\r\nEach agent gets:\r\n1. **System Prompt** (from `agents.json`) - Core role and behavior\r\n2. **+** **Custom Prompt** (from this folder) - Your project-specific instructions\r\n3. **=** Final context with both!\r\n\r\n## Usage\r\n\r\nCreate a file named `<agent-id>.md` in this folder:\r\n\r\n- `architect.md` - Architecture and design standards\r\n- `coder.md` - Coding standards and patterns\r\n- `executor.md` - Execution and deployment procedures\r\n- `reviewer.md` - Review criteria and quality standards\r\n- `documenter.md` - Documentation style and requirements\r\n- `coordinator.md` - Project workflow and delegation rules\r\n- `team.md` - Team collaboration guidelines\r\n\r\n## Example: `coder.md`\r\n\r\n```markdown\r\n# Project Coding Standards\r\n\r\n## TypeScript Requirements\r\n- Always use strict mode\r\n- Prefer `interface` over `type` for object shapes\r\n- Use explicit return types on public functions\r\n\r\n## Testing\r\n- Write Jest tests for all new functions\r\n- Aim for 80%+ code coverage\r\n\r\n## Style Guide\r\n- Follow the project's ESLint config\r\n- Max line length: 100 characters\r\n- Use meaningful variable names\r\n```\r\n\r\n## Benefits\r\n\r\n✅ **Richer formatting** - Headers, lists, code blocks, emphasis\r\n✅ **No JSON escaping** - Write natural text without `\\n` and `\\\"`\r\n✅ **Git-friendly** - Easy to track changes and collaborate\r\n✅ **Layered approach** - General behavior + project customization\r\n✅ **Optional** - Only add files for agents you want to customize\r\n\r\n## Tips\r\n\r\n- Keep prompts focused and actionable\r\n- Use headers to organize sections\r\n- Include examples when helpful\r\n- Update as your project evolves\r\n- Commit to git to share with team\r\n"
+  }
 }

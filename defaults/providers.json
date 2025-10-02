@@ -1,0 +1,156 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-10-01",
+  "description": "Provider configurations for Multi Agent Chat - defines how to connect to different LLM providers",
+  "providerTypes": {
+    "cli": {
+      "description": "Uses local CLI tool (e.g., claude command)",
+      "requiresApiKey": false,
+      "requiresInstallation": true
+    },
+    "vscode-lm": {
+      "description": "Uses VS Code Language Model API (Copilot, Continue.dev, etc.)",
+      "requiresApiKey": false,
+      "requiresExtension": true
+    },
+    "http": {
+      "description": "Direct HTTP API calls to provider",
+      "requiresApiKey": true,
+      "requiresInstallation": false
+    }
+  },
+  "providers": {
+    "claude-cli": {
+      "type": "cli",
+      "displayName": "Claude CLI (Anthropic)",
+      "vendor": "anthropic",
+      "description": "Uses the Claude CLI tool - requires 'claude' command to be installed and authenticated",
+      "command": "claude",
+      "documentation": "https://docs.anthropic.com/en/docs/cli",
+      "supports": [
+        "claude-sonnet-4-5-20250929",
+        "claude-3-5-sonnet-20241022",
+        "claude-3-5-sonnet-latest",
+        "claude-3-5-haiku-20241022",
+        "claude-3-opus-latest",
+        "claude-3-haiku-20240307"
+      ]
+    },
+    "vscode-lm": {
+      "type": "vscode-lm",
+      "displayName": "VS Code Language Models",
+      "vendor": "vscode",
+      "description": "Uses models provided by VS Code extensions (GitHub Copilot, Continue.dev, etc.)",
+      "documentation": "https://code.visualstudio.com/api/extension-guides/language-model",
+      "supports": ["*"],
+      "dynamicDiscovery": true,
+      "note": "Available models depend on installed extensions. Requires user consent dialog."
+    },
+    "openai": {
+      "type": "http",
+      "displayName": "OpenAI",
+      "vendor": "openai",
+      "description": "Direct API calls to OpenAI",
+      "baseUrl": "https://api.openai.com/v1",
+      "chatEndpoint": "/chat/completions",
+      "authHeader": "Authorization",
+      "authFormat": "Bearer {apiKey}",
+      "requestFormat": "openai-chat",
+      "responseFormat": "openai-chat",
+      "documentation": "https://platform.openai.com/docs/api-reference",
+      "supports": [
+        "gpt-4o",
+        "gpt-4o-mini",
+        "gpt-4-turbo-preview",
+        "gpt-4",
+        "gpt-3.5-turbo",
+        "o1-preview",
+        "o1-mini"
+      ]
+    },
+    "google": {
+      "type": "http",
+      "displayName": "Google Gemini",
+      "vendor": "google",
+      "description": "Direct API calls to Google Gemini",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "chatEndpoint": "/models/{model}:generateContent",
+      "authMethod": "query",
+      "authParam": "key",
+      "requestFormat": "google-gemini",
+      "responseFormat": "google-gemini",
+      "documentation": "https://ai.google.dev/api/rest",
+      "supports": [
+        "gemini-2.5-pro",
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-2.0-flash",
+        "gemini-1.5-pro",
+        "gemini-1.5-flash"
+      ]
+    },
+    "xai": {
+      "type": "http",
+      "displayName": "xAI Grok",
+      "vendor": "xai",
+      "description": "Direct API calls to xAI Grok (OpenAI-compatible)",
+      "baseUrl": "https://api.x.ai/v1",
+      "chatEndpoint": "/chat/completions",
+      "authHeader": "Authorization",
+      "authFormat": "Bearer {apiKey}",
+      "requestFormat": "openai-chat",
+      "responseFormat": "openai-chat",
+      "documentation": "https://docs.x.ai/api",
+      "supports": [
+        "grok-4",
+        "grok-4-fast-reasoning",
+        "grok-4-fast-non-reasoning",
+        "grok-3",
+        "grok-beta"
+      ]
+    },
+    "anthropic": {
+      "type": "http",
+      "displayName": "Anthropic API",
+      "vendor": "anthropic",
+      "description": "Direct HTTP API calls to Anthropic (alternative to CLI)",
+      "baseUrl": "https://api.anthropic.com/v1",
+      "chatEndpoint": "/messages",
+      "authHeader": "x-api-key",
+      "authFormat": "{apiKey}",
+      "requestFormat": "anthropic-messages",
+      "responseFormat": "anthropic-messages",
+      "documentation": "https://docs.anthropic.com/en/api/messages",
+      "supports": [
+        "claude-sonnet-4-5-20250929",
+        "claude-3-5-sonnet-20241022",
+        "claude-3-5-sonnet-latest",
+        "claude-3-5-haiku-20241022",
+        "claude-3-opus-latest",
+        "claude-3-haiku-20240307"
+      ]
+    }
+  },
+  "preferences": {
+    "claude-cli": {
+      "description": "Prefer Claude CLI (for Claude Max subscribers)",
+      "priority": ["claude-cli", "anthropic", "vscode-lm", "openai", "google", "xai"]
+    },
+    "auto": {
+      "description": "Auto-detect best available provider (community-friendly)",
+      "priority": ["vscode-lm", "claude-cli", "openai", "google", "xai", "anthropic"]
+    },
+    "vscode-lm": {
+      "description": "Only use VS Code Language Model API",
+      "priority": ["vscode-lm"]
+    },
+    "direct-api": {
+      "description": "Only use direct HTTP APIs (requires API keys)",
+      "priority": ["openai", "google", "xai", "anthropic"]
+    }
+  },
+  "defaults": {
+    "preference": "claude-cli",
+    "fallbackBehavior": "nextInPriority"
+  }
+}

@@ -71,11 +71,15 @@ Multi Agent Chat is a VS Code extension that provides a collaborative AI team in
 - Project-specific model selection
 - Fallback to legacy configs for safety
 
-**Provider System** (`src/providers.ts`)
-- ClaudeProvider: Direct Claude CLI integration
-- OpenAIProvider: Fallback to Claude (not yet implemented)
-- MultiProvider: Team coordination
-- **All MCP references removed in v1.13.0**
+**Provider System** (`src/providers/`) **NEW in v1.16.0**
+- **3-Tier Architecture:** VS Code LM API → Direct HTTP → CLI fallback
+- **ProviderRegistry:** Configurable provider selection based on user preference
+- **VSCodeLMProvider:** Uses VS Code Language Model API (Copilot, Continue.dev, etc.)
+- **HttpProvider:** Base class for direct API providers (OpenAI, Google, xAI)
+- **ClaudeProvider:** Direct Claude CLI integration (legacy, still supported)
+- **MultiProvider:** Team coordination
+- **Provider Preference Setting:** User-configurable priority (claude-cli, auto, vscode-lm, direct-api)
+- **See:** [Provider Setup Guide](docs/USER_GUIDE_PROVIDERS.md) | [Developer Guide](docs/ADDING_PROVIDERS.md)
 
 **Settings Management** (`src/settings/SettingsManager.ts`)
 - Hierarchical settings: VS Code → Global → Project → Workspace
@@ -125,18 +129,31 @@ multi-agent-chat-extension/
 │   ├── commands/             # Migration commands
 │   ├── config/               # Model configurations
 │   ├── ui/                   # Settings UI panel
+│   ├── providers/            # NEW v1.16.0 - Provider implementations
+│   │   ├── ProviderRegistry.ts    # Provider selection logic
+│   │   ├── VSCodeLMProvider.ts    # VS Code Language Model API
+│   │   ├── HttpProvider.ts        # Base HTTP provider
+│   │   ├── OpenAIHttpProvider.ts  # OpenAI & xAI
+│   │   └── GoogleHttpProvider.ts  # Google Gemini
 │   ├── agents.ts             # Agent definitions
-│   ├── providers.ts          # AI providers
+│   ├── providers.ts          # AI providers (legacy + manager)
 │   ├── extension.ts          # Main extension controller
 │   ├── agentCommunication.ts # Inter-agent messaging hub
 │   ├── agentMessageParser.ts # @mention parser
 │   ├── performanceOptimizer.ts # Caching & optimization
 │   └── requestManager.ts     # Request queue management
+├── defaults/                 # NEW v1.15.0 - External configs
+│   ├── models.json           # Model definitions
+│   ├── agents.json           # Agent definitions
+│   └── providers.json        # NEW v1.16.0 - Provider configs
 ├── resources/
 │   └── webview/              # External UI resources
 │       ├── index.html        # HTML template
 │       ├── script.js         # UI logic (~6000 lines)
 │       └── styles.css        # Styling (~2500 lines)
+├── docs/                     # Documentation
+│   ├── USER_GUIDE_PROVIDERS.md  # NEW v1.16.0 - Provider setup
+│   └── ADDING_PROVIDERS.md      # NEW v1.16.0 - Developer guide
 ├── .machat/                  # Project-local storage (in user projects)
 │   ├── config.json           # Project settings
 │   ├── conversations/        # Local conversations
@@ -158,6 +175,11 @@ The extension uses `multiAgentChat.*` settings (unified in v1.11.0):
 ### Global Settings
 - `multiAgentChat.defaultModel` - Default AI model
 - `multiAgentChat.defaultProvider` - Default provider
+- `multiAgentChat.providerPreference` - **NEW v1.16.0** - Provider selection strategy:
+  - `claude-cli`: Prefer Claude CLI (for Claude Max subscribers)
+  - `auto`: Auto-detect (VS Code LM → HTTP → CLI)
+  - `vscode-lm`: Only VS Code Language Model API
+  - `direct-api`: Only direct HTTP APIs
 - `multiAgentChat.permissions.yoloMode` - Auto-approve actions
 - `multiAgentChat.permissions.defaultPolicy` - Permission policy
 
@@ -178,6 +200,36 @@ The extension uses `multiAgentChat.*` settings (unified in v1.11.0):
 - `multiAgentChat.performance.agentTimeout` - Timeout per agent
 
 ## Recent Changes
+
+### v1.16.0 (2025-10-02) - Multi-Provider Support
+
+**3-Tier Provider Architecture:**
+- **VS Code Language Model API:** Use GitHub Copilot, Continue.dev, and other AI extensions
+- **Direct HTTP APIs:** OpenAI, Google Gemini, xAI Grok support
+- **Claude CLI:** Existing functionality preserved (default for backward compat)
+
+**Provider Preference Setting:**
+- `claude-cli` (default): Prefer Claude CLI for Max subscribers
+- `auto`: Community-friendly (tries VS Code models first)
+- `vscode-lm`: Only VS Code Language Model API
+- `direct-api`: Only direct HTTP APIs with user keys
+
+**New Components:**
+- `defaults/providers.json` - Provider API configurations
+- `src/providers/ProviderRegistry.ts` - Provider selection logic
+- `src/providers/VSCodeLMProvider.ts` - VS Code LM integration
+- `src/providers/HttpProvider.ts` - Base for HTTP providers
+- `src/providers/OpenAIHttpProvider.ts` - OpenAI & xAI (compatible)
+- `src/providers/GoogleHttpProvider.ts` - Google Gemini
+- `docs/USER_GUIDE_PROVIDERS.md` - User setup guide
+- `docs/ADDING_PROVIDERS.md` - Developer guide
+
+**Key Features:**
+- Zero API keys needed with GitHub Copilot
+- Ride the "coattails" of VS Code authentication
+- Backward compatible - existing setups unchanged
+- Easy to add new providers (often just JSON config)
+- Per-user provider preference configuration
 
 ### v1.15.2 (2025-10-02) - Inter-Agent Collaboration Fixes
 

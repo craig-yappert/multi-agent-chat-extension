@@ -4,6 +4,10 @@ import { AgentConfig } from './agents';
 import { AgentCommunicationHub } from './agentCommunication';
 import { StreamingClaudeProvider, OptimizedMultiProvider, ResponseCache } from './performanceOptimizer';
 import { AgentMessageParser } from './agentMessageParser';
+import { ProviderRegistry } from './providers/ProviderRegistry';
+import { VSCodeLMProvider } from './providers/VSCodeLMProvider';
+import { OpenAIHttpProvider } from './providers/OpenAIHttpProvider';
+import { GoogleHttpProvider } from './providers/GoogleHttpProvider';
 
 export interface AIProvider {
 	sendMessage(message: string, agentConfig: AgentConfig, context?: any): Promise<string>;
@@ -449,13 +453,21 @@ export class ProviderManager {
 	private multiProvider: MultiProvider;
 	private communicationHub?: AgentCommunicationHub;
 
+	// New provider system
+	private registry?: ProviderRegistry;
+	private vscodeLMProvider?: VSCodeLMProvider;
+	private httpProviders: Map<string, AIProvider> = new Map();
+	private context: vscode.ExtensionContext;
+
 	constructor(
 		context: vscode.ExtensionContext,
 		agentManager?: any,
 		communicationHub?: AgentCommunicationHub,
 		onStreamCallback?: (chunk: string, agentId: string) => void
 	) {
-		// Pass agentManager and communicationHub to ClaudeProvider for inter-agent messaging
+		this.context = context;
+
+		// Keep legacy providers for backward compatibility
 		this.claudeProvider = new ClaudeProvider(context, onStreamCallback, agentManager, communicationHub);
 		this.openaiProvider = new OpenAIProvider(this.claudeProvider);
 		this.communicationHub = communicationHub;
@@ -467,9 +479,106 @@ export class ProviderManager {
 			context,
 			onStreamCallback
 		);
+
+		// Initialize new provider system
+		this.initializeProviderRegistry(context);
 	}
 
-	getProvider(agentConfig: AgentConfig): AIProvider {
+	/**
+	 * Initialize the new provider registry system
+	 */
+	private async initializeProviderRegistry(context: vscode.ExtensionContext): Promise<void> {
+		try {
+			this.registry = ProviderRegistry.getInstance(context.extensionPath);
+			await this.registry.loadProviders();
+
+			// Initialize VS Code LM provider
+			this.vscodeLMProvider = new VSCodeLMProvider(context);
+
+			console.log('[ProviderManager] New provider system initialized');
+		} catch (error) {
+			console.error('[ProviderManager] Failed to initialize provider registry:', error);
+		}
+	}
+
+	/**
+	 * Get appropriate provider based on providerPreference setting
+	 */
+	async getProvider(agentConfig: AgentConfig): Promise<AIProvider> {
+		const config = vscode.workspace.getConfiguration('multiAgentChat');
+		const preference = config.get<string>('providerPreference', 'claude-cli');
+
+		console.log(`[ProviderManager] Provider preference: ${preference}, Agent: ${agentConfig.id}, Model: ${agentConfig.model}`);
+
+		// If registry not available, use legacy behavior
+		if (!this.registry) {
+			console.log('[ProviderManager] Registry not available, using legacy provider selection');
+			return this.getLegacyProvider(agentConfig);
+		}
+
+		// Try to select provider based on preference and model
+		const modelId = agentConfig.model || 'default';
+		const selection = await this.registry.selectProvider(modelId, preference);
+
+		if (!selection) {
+			console.log('[ProviderManager] No provider selected by registry, falling back to legacy');
+			return this.getLegacyProvider(agentConfig);
+		}
+
+		console.log(`[ProviderManager] Selected provider: ${selection.providerId}`);
+
+		// Return appropriate provider based on selection
+		switch (selection.providerId) {
+			case 'claude-cli':
+				return this.claudeProvider;
+
+			case 'vscode-lm':
+				if (!this.vscodeLMProvider) {
+					this.vscodeLMProvider = new VSCodeLMProvider(this.context);
+				}
+				return this.vscodeLMProvider;
+
+			case 'openai':
+			case 'xai':
+				return this.getHttpProvider(selection.providerId, selection.config);
+
+			case 'google':
+				return this.getHttpProvider(selection.providerId, selection.config);
+
+			case 'multi':
+				return this.multiProvider;
+
+			default:
+				console.log(`[ProviderManager] Unknown provider ${selection.providerId}, using legacy`);
+				return this.getLegacyProvider(agentConfig);
+		}
+	}
+
+	/**
+	 * Get or create HTTP provider instance
+	 */
+	private getHttpProvider(providerId: string, config: any): AIProvider {
+		if (!this.httpProviders.has(providerId)) {
+			// Create appropriate HTTP provider based on vendor
+			let provider: AIProvider;
+
+			if (config.vendor === 'google') {
+				provider = new GoogleHttpProvider(config, this.context);
+			} else {
+				// OpenAI, xAI, and other OpenAI-compatible providers
+				provider = new OpenAIHttpProvider(config, this.context);
+			}
+
+			this.httpProviders.set(providerId, provider);
+		}
+
+		return this.httpProviders.get(providerId)!;
+	}
+
+	/**
+	 * Legacy provider selection for backward compatibility
+	 */
+	private getLegacyProvider(agentConfig: AgentConfig): AIProvider {
 		switch (agentConfig.provider) {
 			case 'claude':
 				return this.claudeProvider;

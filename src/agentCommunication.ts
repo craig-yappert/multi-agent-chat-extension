@@ -298,7 +298,7 @@ export class AgentCommunicationHub {
 					throw new Error(`Agent ${step.agent} not found`);
 				}
 
-				const provider = this.providerManager.getProvider(agent);
+				const provider = await this.providerManager.getProvider(agent);
 				const response = await provider.sendMessage(
 					step.task,
 					agent,
@@ -443,7 +443,7 @@ Please coordinate their efforts and provide a cohesive solution.
 				);
 			}
 
-			const provider = this.providerManager.getProvider(toAgent);
+			const provider = await this.providerManager.getProvider(toAgent);
 			console.log(`[Process Message] Got provider for ${toAgent.id}:`, provider.constructor.name);
 
 			// Check if this is part of a user-initiated request chain

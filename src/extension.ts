@@ -889,7 +889,7 @@ class ClaudeChatProvider {
 
 		try {
 			// Get appropriate provider for this agent
-			const provider = this._providerManager.getProvider(agentConfig);
+			const provider = await this._providerManager.getProvider(agentConfig);
 
 			// Check if inter-agent communication is enabled
 			const config = vscode.workspace.getConfiguration('multiAgentChat');

@@ -223,6 +223,24 @@
             "description": "Default provider for all agents",
             "order": 4
           },
+          "multiAgentChat.providerPreference": {
+            "type": "string",
+            "enum": [
+              "claude-cli",
+              "auto",
+              "vscode-lm",
+              "direct-api"
+            ],
+            "default": "claude-cli",
+            "enumDescriptions": [
+              "Prefer Claude CLI (for Claude Max subscribers) - uses your subscription",
+              "Auto-detect best available provider (tries VS Code models first, community-friendly)",
+              "Only use VS Code Language Model API (Copilot, Continue.dev, etc.)",
+              "Only use direct HTTP APIs (requires API keys)"
+            ],
+            "markdownDescription": "**Provider Selection Strategy:**\n- `claude-cli`: Prefer Claude CLI (uses your Max subscription) ⭐ **Your current setting**\n- `auto`: Try VS Code models first (free via Copilot), then others\n- `vscode-lm`: Only use VS Code Language Model API\n- `direct-api`: Only use direct HTTP APIs with your keys\n\n💡 **Tip:** Change to `auto` to let others use free Copilot models",
+            "order": 4.5
+          },
           "multiAgentChat.permissions.yoloMode": {
             "type": "boolean",
             "default": false,

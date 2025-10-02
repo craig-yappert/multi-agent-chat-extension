@@ -283,7 +283,7 @@ class ClaudeChatProvider {
 	private _conversationIndex: ConversationIndex[] = [];
 	private _currentClaudeProcess: cp.ChildProcess | undefined;
 	private _selectedModel: string = 'default'; // Default model (backwards compatibility)
-	private _selectedAgent: string = 'team'; // Default agent
+	private _selectedAgent: string = 'coordinator'; // Default agent (changed from 'team' to avoid expensive fallback)
 	private _agentSettings: any = {}; // Agent-specific settings from UI
 	private _yoloMode: boolean = false; // YOLO mode for auto-approving permissions
 	private _isProcessing: boolean | undefined;
@@ -826,8 +826,42 @@ class ClaudeChatProvider {
 		// Parse @agent mentions in the message
 		const agentMentions = this._parseAgentMentions(message);
 
-		// Determine target agent based on workflow mode
-		let targetAgent = agentMentions.length > 0 ? agentMentions[0] : this._selectedAgent;
+		// Check for ANY @mention pattern (including invalid ones)
+		const anyMentionRegex = /@(\w+)/g;
+		const allMentions: string[] = [];
+		let match;
+		while ((match = anyMentionRegex.exec(message)) !== null) {
+			allMentions.push(match[1].toLowerCase());
+		}
+
+		// Validate all mentions are known agents
+		const validAgents = this._agentManager.getAllAgents().map(a => a.id);
+		const invalidMentions = allMentions.filter(m => !validAgents.includes(m));
+
+		// Determine target agent based on workflow mode and validation
+		let targetAgent: string;
+
+		if (invalidMentions.length > 0) {
+			// Found invalid @mentions - show error and block
+			const invalidList = invalidMentions.map(m => `@${m}`).join(', ');
+			const availableAgents = validAgents.map(a => `@${a}`).join(', ');
+
+			// Use _sendAndSaveMessage like Emergency stop does
+			this._sendAndSaveMessage({
+				type: 'system',
+				data: `⚠️ Unknown agent(s): ${invalidList}\n\nAvailable agents: ${availableAgents}`
+			});
+
+			this._isProcessing = false;
+			this._postMessage({
+				type: 'setProcessing',
+				data: false
+			});
+			return;
+		}
+
+		// Valid mentions or no mentions - use standard routing
+		targetAgent = agentMentions.length > 0 ? agentMentions[0] : this._selectedAgent;
 
 		// Override agent selection based on workflow mode
 		if (this._workflowMode !== 'auto' && agentMentions.length === 0) {
@@ -847,10 +881,32 @@ class ClaudeChatProvider {
 			}
 		}
 
-		// Get agent configuration for display
+		// Validate agent exists
 		const agentConfig = this._agentManager.getAgent(targetAgent);
-		const agentName = agentConfig ? agentConfig.name : targetAgent;
-		const agentIcon = agentConfig ? agentConfig.icon : '🤖';
+		if (!agentConfig) {
+			// Agent not found - show helpful error message
+			const availableAgents = this._agentManager.getAllAgents()
+				.map(a => `@${a.id}`)
+				.join(', ');
+
+			this._postMessage({
+				type: 'agentStatus',
+				data: {
+					message: `⚠️ Agent '@${targetAgent}' not found. Available agents: ${availableAgents}`,
+					agents: []
+				}
+			});
+
+			this._isProcessing = false;
+			this._postMessage({
+				type: 'setProcessing',
+				data: false
+			});
+			return;
+		}
+
+		const agentName = agentConfig.name;
+		const agentIcon = agentConfig.icon;
 
 		// Send initial status message based on workflow mode
 		let statusMessage = '';

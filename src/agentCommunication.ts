@@ -268,6 +268,20 @@ export class AgentCommunicationHub {
 		return responses;
 	}
 
+	/**
+	 * Display a team member response in the inter-agent communication panel
+	 */
+	displayTeamResponse(agentId: string, content: string): void {
+		if (this.statusCallback) {
+			this.statusCallback(
+				`Team member response`,
+				agentId,
+				'team',
+				content
+			);
+		}
+	}
+
 	async executeWorkflow(workflow: AgentWorkflow): Promise<void> {
 		workflow.status = 'in_progress';
 		this.workflows.set(workflow.id, workflow);

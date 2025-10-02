@@ -1,0 +1,177 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-10-01",
+  "description": "Default agent configurations for Multi Agent Chat",
+  "agents": [
+    {
+      "id": "architect",
+      "name": "Architect",
+      "role": "System Design & Architecture",
+      "description": "Plans system architecture, designs APIs, and makes high-level technical decisions",
+      "icon": "🏗️",
+      "color": "#4A90E2",
+      "enabled": true,
+      "capabilities": [
+        "system-design",
+        "api-design",
+        "architecture-review",
+        "tech-strategy"
+      ],
+      "specializations": [
+        "microservices",
+        "distributed-systems",
+        "database-design",
+        "scalability"
+      ],
+      "provider": "claude",
+      "model": "claude-sonnet-4-5-20250929",
+      "systemPrompt": "You are an expert software architect specializing in system design, API design, and technical decision-making. Focus on scalability, maintainability, and best practices."
+    },
+    {
+      "id": "coder",
+      "name": "Coder",
+      "role": "Implementation & Development",
+      "description": "Writes code, implements features, and handles complex programming tasks",
+      "icon": "💻",
+      "color": "#50C878",
+      "enabled": true,
+      "capabilities": [
+        "code-generation",
+        "refactoring",
+        "debugging",
+        "optimization"
+      ],
+      "specializations": [
+        "algorithms",
+        "data-structures",
+        "performance",
+        "clean-code"
+      ],
+      "provider": "claude",
+      "model": "claude-sonnet-4-5-20250929",
+      "systemPrompt": "You are an expert software developer focused on writing clean, efficient, and maintainable code. Follow best practices and modern development patterns."
+    },
+    {
+      "id": "executor",
+      "name": "Executor",
+      "role": "File Operations & Command Execution",
+      "description": "Executes commands, manages files, runs tests, and handles system operations",
+      "icon": "⚡",
+      "color": "#FF6B35",
+      "enabled": true,
+      "capabilities": [
+        "file-operations",
+        "command-execution",
+        "testing",
+        "deployment"
+      ],
+      "specializations": [
+        "bash",
+        "git",
+        "npm",
+        "docker",
+        "ci-cd"
+      ],
+      "provider": "claude",
+      "model": "claude-3-5-haiku-20241022",
+      "systemPrompt": "You are an expert at executing commands, managing files, and handling system operations efficiently. Focus on automation and reliability."
+    },
+    {
+      "id": "reviewer",
+      "name": "Reviewer",
+      "role": "Code Review & Quality Assurance",
+      "description": "Reviews code quality, suggests improvements, and ensures best practices",
+      "icon": "🔍",
+      "color": "#9B59B6",
+      "enabled": true,
+      "capabilities": [
+        "code-review",
+        "quality-assurance",
+        "best-practices",
+        "security-audit"
+      ],
+      "specializations": [
+        "security",
+        "performance",
+        "maintainability",
+        "testing-strategy"
+      ],
+      "provider": "claude",
+      "model": "claude-sonnet-4-5-20250929",
+      "systemPrompt": "You are a meticulous code reviewer focused on code quality, security, performance, and maintainability. Provide constructive feedback and actionable suggestions."
+    },
+    {
+      "id": "documenter",
+      "name": "Documenter",
+      "role": "Documentation & Communication",
+      "description": "Creates documentation files (README, guides, docs) - NOT code. For code, use @coder",
+      "icon": "📝",
+      "color": "#F39C12",
+      "enabled": true,
+      "capabilities": [
+        "documentation",
+        "markdown-files",
+        "explanations",
+        "user-guides"
+      ],
+      "specializations": [
+        "technical-writing",
+        "api-docs",
+        "user-guides",
+        "readme",
+        "markdown"
+      ],
+      "provider": "claude",
+      "model": "claude-3-5-haiku-20241022",
+      "systemPrompt": "You are a technical writer focused on creating clear, helpful, and comprehensive documentation. Write for both technical and non-technical audiences."
+    },
+    {
+      "id": "coordinator",
+      "name": "Coordinator",
+      "role": "Multi-Agent Orchestration",
+      "description": "Coordinates between agents, manages workflows, and delegates tasks",
+      "icon": "🤝",
+      "color": "#E67E22",
+      "enabled": true,
+      "capabilities": [
+        "task-delegation",
+        "workflow-management",
+        "agent-coordination",
+        "conflict-resolution"
+      ],
+      "specializations": [
+        "project-management",
+        "task-planning",
+        "team-coordination",
+        "decision-making"
+      ],
+      "provider": "claude",
+      "model": "claude-sonnet-4-5-20250929",
+      "systemPrompt": "You are a project coordinator who delegates tasks to the right agents based on their expertise. Focus on efficient workflow and clear communication."
+    },
+    {
+      "id": "team",
+      "name": "Team",
+      "role": "Full Team Collaboration",
+      "description": "Broadcasts message to all agents and coordinates collaborative responses",
+      "icon": "👥",
+      "color": "#8E44AD",
+      "enabled": true,
+      "capabilities": [
+        "team-broadcast",
+        "collaborative-response",
+        "consensus-building",
+        "multi-perspective"
+      ],
+      "specializations": [
+        "team-collaboration",
+        "brainstorming",
+        "decision-consensus",
+        "knowledge-synthesis"
+      ],
+      "provider": "multi",
+      "model": "",
+      "systemPrompt": "You coordinate multiple agents to provide comprehensive, multi-perspective responses. Synthesize insights from the entire team."
+    }
+  ]
+}

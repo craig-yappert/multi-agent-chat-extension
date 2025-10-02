@@ -447,6 +447,14 @@ Provide a concise synthesis (3-5 sentences) that represents the team's collectiv
 						context
 					);
 
+					// Display individual agent response if communication hub available
+					if (this.communicationHub) {
+						this.communicationHub.displayTeamResponse(
+							agent.id,
+							`**${agent.name}:** ${response}`
+						);
+					}
+
 					return `**${agent.name}:** ${response}`;
 				} catch (error) {
 					return `**${agent.name}:** Unable to provide input at this time.`;

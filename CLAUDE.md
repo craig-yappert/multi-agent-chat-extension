@@ -157,8 +157,12 @@ multi-agent-chat-extension/
 │   └── ADDING_PROVIDERS.md      # NEW v1.16.0 - Developer guide
 ├── .machat/                  # Project-local storage (in user projects)
 │   ├── config.json           # Project settings
+│   ├── models.json           # Project-specific models (optional)
+│   ├── agents.json           # Project-specific agent config (optional)
+│   ├── agents/
+│   │   └── agent-prompts/   # Custom agent prompts (Markdown)
 │   ├── conversations/        # Local conversations
-│   └── context/             # Agent memory
+│   └── context/             # Agent memory & knowledge base
 ├── out/                      # Compiled JavaScript (generated)
 └── package.json              # Extension manifest
 ```
@@ -188,6 +192,55 @@ The extension uses `multiAgentChat.*` settings (unified in v1.11.0):
 - `multiAgentChat.agents.defaultAgent` - Default agent to use
 - `multiAgentChat.agents.enableInterCommunication` - Agent collaboration
 - `multiAgentChat.agents.showInterCommunication` - Display agent chatter
+
+#### Custom Agent Prompts (Markdown-based)
+
+For project-specific agent behavior, you can add custom prompts as **Markdown files** instead of editing JSON:
+
+**Location:** `.machat/agents/agent-prompts/<agent-id>.md`
+
+**How it Works:**
+1. **System Prompt** (from `agents.json`): Defines core agent role and behavior
+2. **+** **Custom Prompt** (from `.md` file): Adds project-specific instructions
+3. **=** Final agent context with both general behavior and project tuning
+
+**Example: `.machat/agents/agent-prompts/coder.md`**
+```markdown
+# Project Coding Standards
+
+## TypeScript Requirements
+- Always use strict mode
+- Prefer `interface` over `type` for object shapes
+- Use explicit return types on public functions
+
+## Testing
+- Write Jest tests for all new functions
+- Aim for 80%+ code coverage
+- Use `describe` blocks to organize tests by feature
+
+## Style Guide
+- Follow the project's ESLint config
+- Max line length: 100 characters
+- Use meaningful variable names (no single letters except loop indices)
+```
+
+**Benefits:**
+- ✅ Richer formatting (headers, lists, code blocks)
+- ✅ No JSON escaping headaches
+- ✅ Git-friendly diffs
+- ✅ Easier to maintain multi-line instructions
+- ✅ Layered approach: core behavior + project customization
+
+**Available Agents:**
+- `architect.md` - Architecture and design standards
+- `coder.md` - Coding standards and patterns
+- `executor.md` - Execution and deployment procedures
+- `reviewer.md` - Review criteria and quality standards
+- `documenter.md` - Documentation style and requirements
+- `coordinator.md` - Project workflow and delegation rules
+- `team.md` - Team collaboration guidelines
+
+**Note:** These files are optional. If not present, agents use only their default system prompts.
 
 ### Project Settings
 - `multiAgentChat.project.useLocalStorage` - Use .machat folder

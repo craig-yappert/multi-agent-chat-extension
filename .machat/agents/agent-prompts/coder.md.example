@@ -1,0 +1,186 @@
+# Coder - Project-Specific Instructions
+
+> **Rename this file to `coder.md` to activate it!**
+>
+> This example shows how to customize the Coder agent for your project.
+
+## Language & Framework Standards
+
+### TypeScript Configuration
+- Always use **strict mode** (`strict: true` in tsconfig.json)
+- Prefer `interface` over `type` for object shapes
+- Use explicit return types on all exported functions
+- Enable `noImplicitAny` and `strictNullChecks`
+
+### React Patterns
+- Use functional components with hooks (no class components)
+- Prefer `const` arrow functions for component definitions
+- Use TypeScript generics for props: `FC<Props>`
+- Keep components under 200 lines (extract sub-components if larger)
+
+## Testing Requirements
+
+### Unit Tests
+- **Required** for all new functions and business logic
+- Use **Jest** as the test runner
+- Place tests in `__tests__/` folders or use `.test.ts` suffix
+- Aim for **80%+ code coverage**
+
+### Test Structure
+```typescript
+describe('FeatureName', () => {
+  describe('specificFunction', () => {
+    it('should handle normal case', () => {
+      // Test implementation
+    });
+
+    it('should handle edge case', () => {
+      // Test edge case
+    });
+  });
+});
+```
+
+## Code Style
+
+### Naming Conventions
+- **Components**: PascalCase (`UserProfile`, `SearchBar`)
+- **Functions**: camelCase (`getUserData`, `formatDate`)
+- **Constants**: SCREAMING_SNAKE_CASE (`API_BASE_URL`, `MAX_RETRIES`)
+- **Files**: kebab-case (`user-profile.tsx`, `api-client.ts`)
+
+### Formatting
+- **Max line length**: 100 characters
+- **Indentation**: 2 spaces (no tabs)
+- **Semicolons**: Always required
+- **Trailing commas**: Yes (for multi-line)
+- **Quotes**: Single quotes for strings, double for JSX attributes
+
+### Code Organization
+```typescript
+// 1. Imports (grouped by: external, internal, types)
+import React from 'react';
+import { UserService } from '@/services';
+import type { User } from '@/types';
+
+// 2. Type definitions
+interface Props {
+  userId: string;
+}
+
+// 3. Constants
+const DEFAULT_TIMEOUT = 5000;
+
+// 4. Component/function implementation
+export const UserProfile: FC<Props> = ({ userId }) => {
+  // Implementation
+};
+```
+
+## Error Handling
+
+### Always handle errors gracefully
+```typescript
+try {
+  const result = await apiCall();
+  return result;
+} catch (error) {
+  logger.error('Failed to fetch data', { error, context });
+  throw new AppError('User-friendly message', error);
+}
+```
+
+### Use custom error types
+- Create specific error classes that extend `Error`
+- Include relevant context in error messages
+- Log errors before throwing/rethrowing
+
+## Dependencies
+
+### Preferred Libraries
+- **HTTP Client**: axios (with interceptors)
+- **State Management**: Redux Toolkit (for global state)
+- **Forms**: React Hook Form + Zod validation
+- **Dates**: date-fns (not moment.js)
+- **Testing**: Jest + React Testing Library
+
+### Adding New Dependencies
+1. Check if existing library can solve the problem
+2. Verify package is actively maintained (recent commits)
+3. Review bundle size impact (use bundlephobia.com)
+4. Document reason in PR description
+
+## Performance Considerations
+
+- Memoize expensive computations with `useMemo`
+- Use `React.memo` for components that render frequently with same props
+- Lazy load routes and heavy components
+- Optimize images (use next/image or equivalent)
+- Avoid inline function definitions in JSX (extract to `useCallback`)
+
+## Documentation
+
+### Function Comments
+```typescript
+/**
+ * Fetches user profile data from the API
+ *
+ * @param userId - The unique identifier of the user
+ * @param options - Optional configuration for the request
+ * @returns Promise resolving to user profile data
+ * @throws {ApiError} When the API request fails
+ */
+async function getUserProfile(
+  userId: string,
+  options?: RequestOptions
+): Promise<UserProfile> {
+  // Implementation
+}
+```
+
+### Complex Logic
+- Add inline comments for non-obvious code
+- Explain **why**, not **what** (code shows what)
+- Include links to relevant tickets/docs
+
+## Git Workflow
+
+### Commit Messages
+```
+feat(auth): Add JWT token refresh logic
+fix(ui): Resolve button alignment in mobile view
+refactor(api): Extract common request logic
+test(users): Add edge case tests for user validation
+```
+
+### Branch Naming
+- `feature/short-description`
+- `bugfix/short-description`
+- `refactor/short-description`
+
+---
+
+## Custom Instructions for This Project
+
+> **Replace this section with your project-specific requirements!**
+
+This is a **VS Code extension** project, so:
+
+- Follow VS Code extension API best practices
+- Use `vscode` module types instead of generic types
+- Test commands in Extension Development Host (F5)
+- Keep extension activation time minimal
+- Use `ExtensionContext` for state persistence
+- Follow VS Code UX guidelines (don't overwhelm with notifications)
+
+### Project-Specific Files
+- **`src/extension.ts`**: Main entry point
+- **`src/providers.ts`**: AI provider implementations
+- **`src/agents.ts`**: Agent definitions and management
+- **`resources/webview/`**: UI components (HTML/CSS/JS)
+
+### Key Patterns
+- Use `_methodName` for private methods
+- Prefix interface callbacks with `on` (e.g., `onStreamCallback`)
+- Keep provider logic isolated in provider classes
+- Use event-based communication between extension and webview

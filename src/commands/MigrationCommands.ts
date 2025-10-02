@@ -82,13 +82,15 @@ export class MigrationCommands {
 Created (safe - won't overwrite existing):
 • .machat/models.json - AI model configurations
 • .machat/agents.json - Agent definitions
+• .machat/agents/agent-prompts/ - Custom agent prompts (Markdown)
 • .machat/config.json - Project settings
 • .machat/context/project-context.md - Project description
 
 Next steps:
 1. Customize models.json and agents.json for your project
-2. Describe your project in project-context.md
-3. Use "Update from Defaults" command to sync with latest defaults
+2. Add custom agent prompts in agents/agent-prompts/ (see README.md)
+3. Describe your project in project-context.md
+4. Use "Update from Defaults" command to sync with latest defaults
 
 💡 Tip: .machat/ files are git-friendly (except sensitive data)`;
 

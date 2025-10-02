@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Multi Agent Chat is a VS Code extension that provides a collaborative AI team interface with specialized agents (Architect, Coder, Executor, Reviewer, Documenter, Coordinator, and Team) for software development tasks.
 
-**Current Version:** 1.15.2 (Inter-Agent Collaboration Fixes)
+**Current Version:** 1.16.1 (Model Awareness & Safe Initialization)
 
 ## Essential Commands
 
@@ -33,6 +33,7 @@ Multi Agent Chat is a VS Code extension that provides a collaborative AI team in
 - `Ctrl+Shift+P` → "Open Agents Configuration" - Edit project agent definitions
 - `Ctrl+Shift+P` → "Reset Models to Defaults" - Restore bundled model list
 - `Ctrl+Shift+P` → "Reset Agents to Defaults" - Restore bundled agent definitions
+- `Ctrl+Shift+P` → "Update from Defaults" - **NEW v1.16.1** - Smart sync of models/agents from defaults
 - `Ctrl+Shift+P` → "Reload Model Configurations" - Refresh configs without restart
 
 ## Architecture Overview (v1.15.0)
@@ -200,6 +201,36 @@ The extension uses `multiAgentChat.*` settings (unified in v1.11.0):
 - `multiAgentChat.performance.agentTimeout` - Timeout per agent
 
 ## Recent Changes
+
+### v1.16.1 (2025-10-02) - Model Awareness & Safe Initialization
+
+**Enhanced Model Awareness:**
+- Agents now receive detailed model information in their system prompts
+- Display name + model ID: "You are using Claude Sonnet 4.5 (model: claude-sonnet-4-5-20250929)"
+- Model descriptions included for better context
+- ConfigurationRegistry integration with ProviderManager and ClaudeProvider
+- Fixed hardcoded fallback agents to use proper model IDs from defaults
+
+**Smart Initialization System:**
+- `initializeProject` and auto-initialization now copy models.json and agents.json
+- Safe by default: Only creates missing files, never overwrites existing
+- New "Update from Defaults" command for explicit sync operations
+- Smart picker shows relevant options based on what files exist
+- Clear messaging: "Create" vs "Update/Overwrite" labels
+- Git-friendly workflow for tracking configuration changes
+
+**Key Files Modified:**
+- `src/extension.ts` - AgentManager loads from registry, enhanced auto-init
+- `src/providers.ts` - Enhanced model awareness in agent prompts
+- `src/agents.ts` - Fixed fallback agents to use proper model IDs
+- `src/commands/MigrationCommands.ts` - Enhanced initialization with models/agents
+- `package.json` - Added "Update from Defaults" command
+
+**Benefits:**
+- Agents understand their capabilities better (model descriptions)
+- No accidental overwrites of customized configurations
+- Easy to sync with latest defaults when needed
+- Works seamlessly across all projects (bundled defaults + optional project overrides)
 
 ### v1.16.0 (2025-10-02) - Multi-Provider Support
 

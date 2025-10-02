@@ -162,7 +162,11 @@ export abstract class HttpProvider implements AIProvider {
     protected buildSystemPrompt(agentConfig: AgentConfig, context?: any): string {
         let prompt = `You are ${agentConfig.name}, a ${agentConfig.role}. ${agentConfig.description}\n\n`;
         prompt += `Your capabilities: ${agentConfig.capabilities.join(', ')}\n`;
-        prompt += `Your specializations: ${agentConfig.specializations.join(', ')}\n\n`;
+        prompt += `Your specializations: ${agentConfig.specializations.join(', ')}\n`;
+        if (agentConfig.model) {
+            prompt += `You are currently using the ${agentConfig.model} model.\n`;
+        }
+        prompt += `\n`;
 
         // Add inter-agent communication instructions if enabled
         const config = vscode.workspace.getConfiguration('multiAgentChat');

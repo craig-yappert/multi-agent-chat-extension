@@ -44,17 +44,25 @@ export class MigrationCommands {
             // Check if already initialized
             const machatPath = this.settingsManager.getMachatPath();
             if (machatPath) {
-                const answer = await vscode.window.showQuickPick(['Reinitialize', 'Cancel'], {
-                    placeHolder: '.machat folder already exists. Reinitialize?'
+                vscode.window.showInformationMessage(
+                    '.machat folder already exists! Use "Update from Defaults" to sync specific files.',
+                    'Update from Defaults'
+                ).then(selection => {
+                    if (selection === 'Update from Defaults') {
+                        vscode.commands.executeCommand('multiAgentChat.updateFromDefaults');
+                    }
                 });
-
-                if (answer !== 'Reinitialize') {
-                    return;
-                }
+                return;
             }
 
             // Create .machat structure
             await this.settingsManager.ensureMachatStructure();
+
+            // Initialize models and agents configuration
+            const { ConfigurationRegistry } = require('../config/ConfigurationRegistry');
+            const configRegistry = ConfigurationRegistry.getInstance(this.context);
+            await configRegistry.initializeProjectModels();
+            await configRegistry.initializeProjectAgents();
 
             // Create project context file
             await this.contextManager.createProjectContextFile();
@@ -69,23 +77,35 @@ export class MigrationCommands {
             }
 
             // Show success message with next steps
-            const message = `Multi Agent Chat project initialized!
+            const message = `✅ Multi Agent Chat project initialized!
+
+Created (safe - won't overwrite existing):
+• .machat/models.json - AI model configurations
+• .machat/agents.json - Agent definitions
+• .machat/config.json - Project settings
+• .machat/context/project-context.md - Project description
 
 Next steps:
-1. Edit .machat/context/project-context.md to describe your project
-2. Configure agents in .machat/config.json
-3. Add custom agent prompts in .machat/agents/agent-prompts/
+1. Customize models.json and agents.json for your project
+2. Describe your project in project-context.md
+3. Use "Update from Defaults" command to sync with latest defaults
 
-The .machat folder has been added to git (except sensitive data).`;
+💡 Tip: .machat/ files are git-friendly (except sensitive data)`;
 
-            vscode.window.showInformationMessage(message, 'Open Config', 'Open Context').then(selection => {
-                if (selection === 'Open Config') {
-                    const configPath = vscode.Uri.file(`${machatPath}/config.json`);
-                    vscode.workspace.openTextDocument(configPath).then(doc => {
+            vscode.window.showInformationMessage(message, 'Open Models', 'Open Agents', 'Open Context').then(selection => {
+                const newMachatPath = this.settingsManager.getMachatPath();
+                if (selection === 'Open Models') {
+                    const modelsPath = vscode.Uri.file(`${newMachatPath}/models.json`);
+                    vscode.workspace.openTextDocument(modelsPath).then(doc => {
+                        vscode.window.showTextDocument(doc);
+                    });
+                } else if (selection === 'Open Agents') {
+                    const agentsPath = vscode.Uri.file(`${newMachatPath}/agents.json`);
+                    vscode.workspace.openTextDocument(agentsPath).then(doc => {
                         vscode.window.showTextDocument(doc);
                     });
                 } else if (selection === 'Open Context') {
-                    const contextPath = vscode.Uri.file(`${machatPath}/context/project-context.md`);
+                    const contextPath = vscode.Uri.file(`${newMachatPath}/context/project-context.md`);
                     vscode.workspace.openTextDocument(contextPath).then(doc => {
                         vscode.window.showTextDocument(doc);
                     });

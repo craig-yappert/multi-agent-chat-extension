@@ -20,15 +20,18 @@ export class ClaudeProvider implements AIProvider {
 	private communicationHub?: AgentCommunicationHub;
 	private agentManager?: any;
 	private activeProcesses: Set<cp.ChildProcess> = new Set();
+	private configRegistry?: any; // ConfigurationRegistry for model awareness
 
 	constructor(
 		private context: vscode.ExtensionContext,
 		onStreamCallback?: (chunk: string, agentId: string) => void,
 		agentManager?: any,
-		communicationHub?: AgentCommunicationHub
+		communicationHub?: AgentCommunicationHub,
+		configRegistry?: any
 	) {
 		this.agentManager = agentManager;
 		this.communicationHub = communicationHub;
+		this.configRegistry = configRegistry;
 		if (agentManager && communicationHub) {
 			this.messageParser = new AgentMessageParser(agentManager, communicationHub);
 			console.log('[ClaudeProvider] AgentMessageParser created successfully');
@@ -89,7 +92,30 @@ export class ClaudeProvider implements AIProvider {
 3. Stay focused on what the user asked - don't redirect to your specialty unless relevant
 4. 🛑 EMERGENCY STOP: If you see "🛑 EMERGENCY STOP" in the conversation, IMMEDIATELY respond with ONLY "Acknowledged. Stopping all operations." and DO NOT perform any actions, code execution, or @mentions.
 
-You are ${agentConfig.name}, a ${agentConfig.role}. ${agentConfig.description}\n\nYour capabilities: ${agentConfig.capabilities.join(', ')}\nYour specializations: ${agentConfig.specializations.join(', ')}\n\n`;
+You are ${agentConfig.name}, a ${agentConfig.role}. ${agentConfig.description}\n\nYour capabilities: ${agentConfig.capabilities.join(', ')}\nYour specializations: ${agentConfig.specializations.join(', ')}\n`;
+
+		// Enhanced model awareness with display name
+		if (agentConfig.model && this.configRegistry) {
+			try {
+				const modelDef = this.configRegistry.getModelById(agentConfig.model);
+				if (modelDef) {
+					roleContext += `You are currently using ${modelDef.displayName} (model: ${modelDef.id}).\n`;
+					if (modelDef.description) {
+						roleContext += `Model description: ${modelDef.description}\n`;
+					}
+				} else {
+					// Fallback if model not found in registry
+					roleContext += `You are currently using the ${agentConfig.model} model.\n`;
+				}
+			} catch (error) {
+				// Fallback to simple model name if registry lookup fails
+				roleContext += `You are currently using the ${agentConfig.model} model.\n`;
+			}
+		} else if (agentConfig.model) {
+			// Fallback when no registry available
+			roleContext += `You are currently using the ${agentConfig.model} model.\n`;
+		}
+		roleContext += `\n`;
 
 		// Add inter-agent communication instructions if enabled
 		if (config.get<boolean>('agents.enableInterCommunication', true)) {
@@ -458,17 +484,20 @@ export class ProviderManager {
 	private vscodeLMProvider?: VSCodeLMProvider;
 	private httpProviders: Map<string, AIProvider> = new Map();
 	private context: vscode.ExtensionContext;
+	private configRegistry?: any; // ConfigurationRegistry for model awareness
 
 	constructor(
 		context: vscode.ExtensionContext,
 		agentManager?: any,
 		communicationHub?: AgentCommunicationHub,
-		onStreamCallback?: (chunk: string, agentId: string) => void
+		onStreamCallback?: (chunk: string, agentId: string) => void,
+		configRegistry?: any
 	) {
 		this.context = context;
+		this.configRegistry = configRegistry;
 
 		// Keep legacy providers for backward compatibility
-		this.claudeProvider = new ClaudeProvider(context, onStreamCallback, agentManager, communicationHub);
+		this.claudeProvider = new ClaudeProvider(context, onStreamCallback, agentManager, communicationHub, configRegistry);
 		this.openaiProvider = new OpenAIProvider(this.claudeProvider);
 		this.communicationHub = communicationHub;
 		this.multiProvider = new MultiProvider(

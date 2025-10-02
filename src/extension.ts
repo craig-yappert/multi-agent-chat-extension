@@ -114,6 +114,63 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
+	// Combined Update from Defaults Command
+	const updateFromDefaultsDisposable = vscode.commands.registerCommand('multiAgentChat.updateFromDefaults', async () => {
+		const registry = ConfigurationRegistry.getInstance(context);
+
+		// Check what exists
+		const hasModels = registry.hasProjectModels();
+		const hasAgents = registry.hasProjectAgents();
+
+		if (!hasModels && !hasAgents) {
+			const answer = await vscode.window.showInformationMessage(
+				'Initialize models.json and agents.json in .machat/?',
+				'Yes',
+				'Cancel'
+			);
+
+			if (answer === 'Yes') {
+				await registry.initializeProjectModels();
+				await registry.initializeProjectAgents();
+				vscode.window.showInformationMessage('Created models.json and agents.json from defaults.');
+			}
+		} else {
+			// Show options for what to update
+			const items = [];
+			if (hasModels) {
+				items.push({ label: 'Update models.json', description: 'Overwrite with latest defaults', value: 'models' });
+			} else {
+				items.push({ label: 'Create models.json', description: 'Copy from defaults', value: 'models-init' });
+			}
+			if (hasAgents) {
+				items.push({ label: 'Update agents.json', description: 'Overwrite with latest defaults', value: 'agents' });
+			} else {
+				items.push({ label: 'Create agents.json', description: 'Copy from defaults', value: 'agents-init' });
+			}
+			items.push({ label: 'Update Both', description: 'Overwrite all with latest defaults', value: 'both' });
+
+			const selected = await vscode.window.showQuickPick(items, {
+				placeHolder: 'Select what to update from defaults'
+			});
+
+			if (selected) {
+				if (selected.value === 'models' || selected.value === 'both') {
+					await registry.resetProjectModels();
+				}
+				if (selected.value === 'agents' || selected.value === 'both') {
+					await registry.resetProjectAgents();
+				}
+				if (selected.value === 'models-init') {
+					await registry.initializeProjectModels();
+				}
+				if (selected.value === 'agents-init') {
+					await registry.initializeProjectAgents();
+				}
+				vscode.window.showInformationMessage('Updated from defaults. Restart extension to reload.');
+			}
+		}
+	});
+
 	// API Key Management Command
 	const manageApiKeysDisposable = vscode.commands.registerCommand('multiAgentChat.manageApiKeys', async () => {
 		await apiKeyManager.setupApiKeys();
@@ -139,6 +196,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		reloadConfigsDisposable,
 		openAgentsConfigDisposable,
 		resetAgentsDisposable,
+		updateFromDefaultsDisposable,
 		manageApiKeysDisposable,
 		statusBarItem
 	);
@@ -250,6 +308,13 @@ class ClaudeChatProvider {
 		this._agentManager = new AgentManager();
 		this._outputChannel = vscode.window.createOutputChannel('Multi-Agent Communication');
 
+		// Load agents from ConfigurationRegistry (defaults + project overrides)
+		this._agentManager.loadFromRegistry(_context).then(() => {
+			console.log('[Extension] Agents loaded from registry');
+		}).catch(error => {
+			console.error('[Extension] Failed to load agents from registry:', error);
+		});
+
 		// Create streaming callback if needed
 		const streamCallback = (chunk: string, agentId: string) => {
 			// Send streaming chunks to UI if enabled
@@ -313,8 +378,12 @@ class ClaudeChatProvider {
 			}
 		);
 
+		// Get ConfigurationRegistry instance for model awareness
+		const { ConfigurationRegistry } = require('./config/ConfigurationRegistry');
+		const configRegistry = ConfigurationRegistry.getInstance(_context);
+
 		// Now create provider manager with the communication hub already available
-		this._providerManager = new ProviderManager(_context, this._agentManager, this._communicationHub, streamCallback);
+		this._providerManager = new ProviderManager(_context, this._agentManager, this._communicationHub, streamCallback, configRegistry);
 
 		// Update the communication hub with the provider manager reference
 		(this._communicationHub as any).providerManager = this._providerManager;
@@ -1650,14 +1719,39 @@ class ClaudeChatProvider {
 			if (projectRoot && !machatPath) {
 				// Project exists but no .machat folder - offer to initialize
 				const choice = await vscode.window.showInformationMessage(
-					'Initialize Multi Agent Chat for this project?',
+					'Initialize Multi Agent Chat for this project? This will create .machat/ with models.json, agents.json, and project context.',
 					'Yes', 'Later'
 				);
 
 				if (choice === 'Yes') {
 					await this._settingsManager.ensureMachatStructure();
+
+					// Initialize models and agents configuration
+					const { ConfigurationRegistry } = require('./config/ConfigurationRegistry');
+					const configRegistry = ConfigurationRegistry.getInstance(this._context);
+					await configRegistry.initializeProjectModels();
+					await configRegistry.initializeProjectAgents();
+
 					await this._contextManager.createProjectContextFile();
-					vscode.window.showInformationMessage('Multi Agent Chat initialized for this project');
+
+					vscode.window.showInformationMessage(
+						'Multi Agent Chat initialized! Created models.json, agents.json, and project context.',
+						'Open Models',
+						'Open Agents'
+					).then(selection => {
+						const newMachatPath = this._settingsManager.getMachatPath();
+						if (selection === 'Open Models' && newMachatPath) {
+							const modelsPath = vscode.Uri.file(`${newMachatPath}/models.json`);
+							vscode.workspace.openTextDocument(modelsPath).then(doc => {
+								vscode.window.showTextDocument(doc);
+							});
+						} else if (selection === 'Open Agents' && newMachatPath) {
+							const agentsPath = vscode.Uri.file(`${newMachatPath}/agents.json`);
+							vscode.workspace.openTextDocument(agentsPath).then(doc => {
+								vscode.window.showTextDocument(doc);
+							});
+						}
+					});
 				}
 			}
 

@@ -58,11 +58,8 @@ export class VSCodeLMProvider implements AIProvider {
             let result = '';
             for await (const chunk of response.text) {
                 result += chunk;
-
-                // Stream to UI if callback available
-                if (context?.onPartialResponse) {
-                    context.onPartialResponse(chunk);
-                }
+                // Note: Do NOT call onPartialResponse for each chunk - it creates separate messages
+                // The complete response is returned at the end
             }
 
             console.log(`[VSCodeLMProvider] Received response (${result.length} chars)`);
@@ -135,7 +132,11 @@ export class VSCodeLMProvider implements AIProvider {
     private buildSystemPrompt(agentConfig: AgentConfig, context?: any): string {
         let prompt = `You are ${agentConfig.name}, a ${agentConfig.role}. ${agentConfig.description}\n\n`;
         prompt += `Your capabilities: ${agentConfig.capabilities.join(', ')}\n`;
-        prompt += `Your specializations: ${agentConfig.specializations.join(', ')}\n\n`;
+        prompt += `Your specializations: ${agentConfig.specializations.join(', ')}\n`;
+        if (agentConfig.model) {
+            prompt += `You are currently using the ${agentConfig.model} model.\n`;
+        }
+        prompt += `\n`;
 
         // Add inter-agent communication instructions if enabled
         const config = vscode.workspace.getConfiguration('multiAgentChat');

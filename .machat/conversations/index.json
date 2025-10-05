@@ -1,11 +1,29 @@
 [
   {
     "filename": "2025-10-01_20-36_coordinator-i-would-like-your-help-in-orchestratin.json",
-    "timestamp": "2025-10-02T19:28:05.629Z",
-    "messageCount": 83,
+    "timestamp": "2025-10-03T03:30:30.696Z",
+    "messageCount": 114,
     "totalCost": 0,
     "sessionId": "session_1759350626141_4cv3jedv9",
     "topic": "New Idea Scenario",
+    "projectPath": "c:\\Users\\cyapp\\multi-agent-chat-extension"
+  },
+  {
+    "filename": "2025-10-03_03-32_coordinator-i-am-doing-a-quick-demo-for-my-wife-of.json",
+    "timestamp": "2025-10-05T19:11:41.529Z",
+    "messageCount": 146,
+    "totalCost": 0,
+    "sessionId": "session_1759462230702_dxe7aw3p1",
+    "topic": "Demo for my wife",
+    "projectPath": "c:\\Users\\cyapp\\multi-agent-chat-extension"
+  },
+  {
+    "filename": "2025-10-05_19-11_architect-please-review-the-architecture-of-this-p.json",
+    "timestamp": "2025-10-05T19:46:45.947Z",
+    "messageCount": 38,
+    "totalCost": 0,
+    "sessionId": "session_1759691501551_x2fq6ii1n",
+    "topic": "feature Review",
     "projectPath": "c:\\Users\\cyapp\\multi-agent-chat-extension"
   }
 ]

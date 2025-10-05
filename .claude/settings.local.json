@@ -31,7 +31,9 @@
       "WebFetch(domain:code.visualstudio.com)",
       "Bash(del:*)",
       "Bash(cmd /c del:*)",
-      "Bash(cmd /c:*)"
+      "Bash(cmd /c:*)",
+      "WebFetch(domain:devblogs.microsoft.com)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": []
   },

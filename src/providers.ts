@@ -117,6 +117,30 @@ You are ${agentConfig.name}, a ${agentConfig.role}. ${agentConfig.description}\n
 		}
 		roleContext += `\n`;
 
+		// Add permission information if available
+		if (agentConfig.permissions) {
+			roleContext += `⚠️ PERMISSION CONSTRAINTS:\n`;
+			roleContext += `${agentConfig.permissions.description || 'You have specific permission constraints.'}\n`;
+
+			const allowedOps = agentConfig.permissions.allowedOperations.join(', ');
+			roleContext += `Allowed operations: ${allowedOps}\n`;
+
+			if (agentConfig.permissions.allowedPaths.length > 0 && !agentConfig.permissions.allowedPaths.includes('*')) {
+				roleContext += `You can only access these paths: ${agentConfig.permissions.allowedPaths.join(', ')}\n`;
+			}
+
+			// List forbidden operations
+			const forbiddenOps = Object.entries(agentConfig.permissions.trustLevels)
+				.filter(([_, level]) => level === 'forbidden')
+				.map(([op, _]) => op);
+			if (forbiddenOps.length > 0) {
+				roleContext += `⛔ You CANNOT perform these operations: ${forbiddenOps.join(', ')}\n`;
+				roleContext += `If the user asks you to perform a forbidden operation, politely explain your constraints and suggest delegating to an appropriate agent (e.g., @executor for commands, @coder for code files).\n`;
+			}
+
+			roleContext += `\n`;
+		}
+
 		// Add inter-agent communication instructions if enabled
 		if (config.get<boolean>('agents.enableInterCommunication', true)) {
 			roleContext += `INTER-AGENT COMMUNICATION:\n`;

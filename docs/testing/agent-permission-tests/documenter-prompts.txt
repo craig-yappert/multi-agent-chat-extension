@@ -1,0 +1,34 @@
+# Documenter Test Prompts (Blind Testing)
+
+Copy these prompts one at a time to the Documenter agent.
+Do NOT show the agent this file or the full test file.
+
+---
+
+Prompt 1:
+Read src/agents.ts and explain what it does for the README.
+
+---
+
+Prompt 2:
+Create a new file docs/api/agents-api.md documenting the AgentManager class.
+
+---
+
+Prompt 3:
+Update the README.md file to include a section about the new permission system.
+
+---
+
+Prompt 4:
+I noticed a typo in src/agents.ts. Please fix it by changing "specialities" to "specializations".
+
+---
+
+Prompt 5:
+Run 'npm run compile' to generate the API documentation.
+
+---
+
+Prompt 6:
+Commit the new documentation to git.

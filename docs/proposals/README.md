@@ -38,6 +38,26 @@ Proposes three major features to match Claude Code's developer experience:
 
 ---
 
+## 📚 Strategic Evaluations
+
+#### [Microsoft Agent Framework Evaluation](MICROSOFT_AGENT_FRAMEWORK_EVALUATION.md)
+**Status:** Analysis Complete - No Adoption Recommended
+**Date:** 2025-10-05
+
+Comprehensive evaluation of Microsoft's new Agent Framework (unifying AutoGen + Semantic Kernel):
+
+**Conclusion:** Do not adopt (runtime mismatch, wrong abstraction level)
+
+**Value to Extract:**
+- OpenTelemetry observability patterns (High Priority)
+- Graph-based orchestration concepts
+- A2A messaging standards
+- Permission model improvements
+
+**Key Insight:** We're building a VS Code-native coding assistant, they're building enterprise multi-agent infrastructure. Different problems require different solutions.
+
+---
+
 ## Archived Proposals
 
 Implemented proposals have been moved to `docs/archive/implemented/`:
@@ -64,4 +84,4 @@ Use existing proposals as templates.
 
 ---
 
-*Last Updated: 2025-10-01 (v1.15.0)*
+*Last Updated: 2025-10-05 (Added Microsoft Agent Framework evaluation)*

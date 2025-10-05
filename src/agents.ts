@@ -1,3 +1,5 @@
+import { AgentPermissions } from './permissions';
+
 export interface AgentConfig {
 	id: string;
 	name: string;
@@ -9,6 +11,7 @@ export interface AgentConfig {
 	provider: 'claude' | 'openai' | 'local' | 'multi';
 	model?: string;
 	specializations: string[];
+	permissions?: AgentPermissions;  // Added in v1.17.0 for permission system
 }
 
 export const defaultAgents: AgentConfig[] = [
@@ -122,10 +125,11 @@ export class AgentManager {
 				capabilities: def.capabilities,
 				provider: def.provider as any,
 				model: def.model,
-				specializations: def.specializations
+				specializations: def.specializations,
+				permissions: def.permissions  // Include permissions from agent definition
 			}));
 
-			console.log('[AgentManager] Loaded', this.agents.length, 'agents from registry');
+			console.log('[AgentManager] Loaded', this.agents.length, 'agents from registry (with permissions)');
 		} catch (error) {
 			console.error('[AgentManager] Error loading agents from registry:', error);
 			console.log('[AgentManager] Using default agent definitions');
@@ -135,6 +139,10 @@ export class AgentManager {
 
 	getAgent(id: string): AgentConfig | undefined {
 		return this.agents.find(agent => agent.id === id);
+	}
+
+	getAgents(): AgentConfig[] {
+		return this.agents;
 	}
 
 	getAllAgents(): AgentConfig[] {

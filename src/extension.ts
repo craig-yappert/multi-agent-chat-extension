@@ -11,6 +11,7 @@ import { ConversationManager, ConversationIndex } from './conversations/Conversa
 import { ProjectContextManager } from './context/ProjectContextManager';
 import { MigrationCommands } from './commands/MigrationCommands';
 import { SettingsPanel } from './ui/SettingsPanel';
+import { PermissionEnforcer } from './permissions';
 
 const exec = util.promisify(cp.exec);
 
@@ -289,6 +290,7 @@ class ClaudeChatProvider {
 	private _isProcessing: boolean | undefined;
 	private _draftMessage: string = '';
 	private _agentManager: AgentManager;
+	private _permissionEnforcer: PermissionEnforcer;
 	private _providerManager: ProviderManager;
 	private _communicationHub: AgentCommunicationHub;
 	private _outputChannel: vscode.OutputChannel;
@@ -308,9 +310,27 @@ class ClaudeChatProvider {
 		this._agentManager = new AgentManager();
 		this._outputChannel = vscode.window.createOutputChannel('Multi-Agent Communication');
 
+		// Initialize Permission Enforcer
+		this._permissionEnforcer = new PermissionEnforcer({
+			checkWorkspaceTrust: true,
+			blockDangerousCommands: true,
+			logViolations: true
+		});
+
 		// Load agents from ConfigurationRegistry (defaults + project overrides)
 		this._agentManager.loadFromRegistry(_context).then(() => {
 			console.log('[Extension] Agents loaded from registry');
+
+			// Register agent permissions after agents are loaded
+			const agents = this._agentManager.getAgents();
+			agents.forEach((agent: any) => {
+				if (agent.permissions) {
+					this._permissionEnforcer.registerAgentPermissions(agent.id, agent.permissions);
+					console.log(`[Extension] Registered permissions for ${agent.id}`);
+				}
+			});
+
+			console.log(`[Extension] Permission enforcement initialized for ${agents.length} agents`);
 		}).catch(error => {
 			console.error('[Extension] Failed to load agents from registry:', error);
 		});

@@ -39,11 +39,60 @@ export class OperationExecutor {
 		const startTime = Date.now();
 
 		try {
-			// Check permissions first
+			// SECURITY: Resolve and validate paths BEFORE permission checks
+			let resolvedTarget = operation.target;
+
+			// For file operations, resolve path and validate workspace boundary
+			if (operation.type !== OperationType.COMMAND_EXECUTION &&
+			    operation.type !== OperationType.GIT_OPERATION) {
+
+				const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+
+				if (!workspaceFolder && !path.isAbsolute(operation.target)) {
+					throw new Error('No workspace folder open for relative paths');
+				}
+
+				// Resolve to absolute path to prevent traversal attacks
+				resolvedTarget = path.isAbsolute(operation.target)
+					? path.resolve(operation.target)  // Normalize absolute paths
+					: path.resolve(workspaceFolder!.uri.fsPath, operation.target);  // Resolve relative
+
+				// SECURITY: Validate workspace boundary to prevent path traversal
+				if (workspaceFolder) {
+					const workspaceRoot = path.resolve(workspaceFolder.uri.fsPath);
+					// Check if resolved path is within workspace (must start with workspace path + separator)
+					const isWithinWorkspace = resolvedTarget === workspaceRoot ||
+					                         resolvedTarget.startsWith(workspaceRoot + path.sep);
+
+					if (!isWithinWorkspace) {
+						const durationMs = Date.now() - startTime;
+						this.logger.logOperation({
+							agentId,
+							operationType: operation.type,
+							target: operation.target,
+							status: OperationStatus.DENIED,
+							durationMs,
+							permissionGranted: false,
+							denialReason: `Path traversal blocked: "${operation.target}" resolves to "${resolvedTarget}" (outside workspace)`,
+							sessionId
+						});
+
+						return {
+							success: false,
+							message: `🚫 Security: Path outside workspace blocked: ${operation.target}`,
+							error: 'Path resolves outside workspace boundary',
+							durationMs,
+							operation
+						};
+					}
+				}
+			}
+
+			// Check permissions with RESOLVED path (not raw input)
 			const permissionCheck = await this.permissionEnforcer.checkPermission(
 				agentId,
 				this.getPermissionTypeForOperation(operation.type),
-				operation.target
+				resolvedTarget  // Use resolved path for permission check
 			);
 
 			if (!permissionCheck.allowed) {
@@ -69,32 +118,35 @@ export class OperationExecutor {
 				};
 			}
 
-			// Execute based on operation type
+			// Update operation with resolved path for execution
+			const executionOperation = { ...operation, target: resolvedTarget };
+
+			// Execute based on operation type (using resolved paths)
 			let result: OperationResult;
-			switch (operation.type) {
+			switch (executionOperation.type) {
 				case OperationType.FILE_WRITE:
-					result = await this.executeFileWrite(operation as FileWriteOperation, agentId);
+					result = await this.executeFileWrite(executionOperation as FileWriteOperation, agentId);
 					break;
 
 				case OperationType.FILE_READ:
-					result = await this.executeFileRead(operation as FileReadOperation, agentId);
+					result = await this.executeFileRead(executionOperation as FileReadOperation, agentId);
 					break;
 
 				case OperationType.FILE_DELETE:
-					result = await this.executeFileDelete(operation as FileDeleteOperation, agentId);
+					result = await this.executeFileDelete(executionOperation as FileDeleteOperation, agentId);
 					break;
 
 				case OperationType.FILE_APPEND:
-					result = await this.executeFileAppend(operation as FileAppendOperation, agentId);
+					result = await this.executeFileAppend(executionOperation as FileAppendOperation, agentId);
 					break;
 
 				case OperationType.COMMAND_EXECUTION:
 				case OperationType.GIT_OPERATION:
-					result = await this.executeCommand(operation as CommandOperation, agentId);
+					result = await this.executeCommand(executionOperation as CommandOperation, agentId);
 					break;
 
 				default:
-					throw new Error(`Unsupported operation type: ${operation.type}`);
+					throw new Error(`Unsupported operation type: ${executionOperation.type}`);
 			}
 
 			// Log successful operation
@@ -142,23 +194,15 @@ export class OperationExecutor {
 
 	/**
 	 * Execute file write operation
+	 * Note: operation.target is already resolved and validated by executeOperation()
 	 */
 	private async executeFileWrite(operation: FileWriteOperation, agentId: string): Promise<OperationResult> {
 		try {
-			const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-			if (!workspaceFolder) {
-				throw new Error('No workspace folder open');
-			}
-
-			// Resolve path relative to workspace
-			const absolutePath = path.isAbsolute(operation.target)
-				? operation.target
-				: path.join(workspaceFolder.uri.fsPath, operation.target);
-
-			const uri = vscode.Uri.file(absolutePath);
+			// operation.target is now already an absolute, validated path
+			const uri = vscode.Uri.file(operation.target);
 
 			// Ensure directory exists
-			const dirPath = path.dirname(absolutePath);
+			const dirPath = path.dirname(operation.target);
 			const dirUri = vscode.Uri.file(dirPath);
 			try {
 				await vscode.workspace.fs.stat(dirUri);
@@ -186,19 +230,12 @@ export class OperationExecutor {
 
 	/**
 	 * Execute file read operation
+	 * Note: operation.target is already resolved and validated by executeOperation()
 	 */
 	private async executeFileRead(operation: FileReadOperation, agentId: string): Promise<OperationResult> {
 		try {
-			const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-			if (!workspaceFolder) {
-				throw new Error('No workspace folder open');
-			}
-
-			const absolutePath = path.isAbsolute(operation.target)
-				? operation.target
-				: path.join(workspaceFolder.uri.fsPath, operation.target);
-
-			const uri = vscode.Uri.file(absolutePath);
+			// operation.target is now already an absolute, validated path
+			const uri = vscode.Uri.file(operation.target);
 			const content = await vscode.workspace.fs.readFile(uri);
 			const textContent = Buffer.from(content).toString('utf8');
 
@@ -217,19 +254,12 @@ export class OperationExecutor {
 
 	/**
 	 * Execute file delete operation
+	 * Note: operation.target is already resolved and validated by executeOperation()
 	 */
 	private async executeFileDelete(operation: FileDeleteOperation, agentId: string): Promise<OperationResult> {
 		try {
-			const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-			if (!workspaceFolder) {
-				throw new Error('No workspace folder open');
-			}
-
-			const absolutePath = path.isAbsolute(operation.target)
-				? operation.target
-				: path.join(workspaceFolder.uri.fsPath, operation.target);
-
-			const uri = vscode.Uri.file(absolutePath);
+			// operation.target is now already an absolute, validated path
+			const uri = vscode.Uri.file(operation.target);
 			await vscode.workspace.fs.delete(uri);
 
 			return {
@@ -246,19 +276,12 @@ export class OperationExecutor {
 
 	/**
 	 * Execute file append operation
+	 * Note: operation.target is already resolved and validated by executeOperation()
 	 */
 	private async executeFileAppend(operation: FileAppendOperation, agentId: string): Promise<OperationResult> {
 		try {
-			const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-			if (!workspaceFolder) {
-				throw new Error('No workspace folder open');
-			}
-
-			const absolutePath = path.isAbsolute(operation.target)
-				? operation.target
-				: path.join(workspaceFolder.uri.fsPath, operation.target);
-
-			const uri = vscode.Uri.file(absolutePath);
+			// operation.target is now already an absolute, validated path
+			const uri = vscode.Uri.file(operation.target);
 
 			// Read existing content
 			let existingContent = '';

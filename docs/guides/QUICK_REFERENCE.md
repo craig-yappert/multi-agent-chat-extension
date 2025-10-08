@@ -89,6 +89,13 @@ All available commands you can run:
 | Initialize Project | `multiAgentChat.initializeProject` | - |
 | Migrate Conversations | `multiAgentChat.migrateConversations` | - |
 | Show Migration Status | `multiAgentChat.showMigrationStatus` | - |
+| **Manage API Keys** (v1.15.1) | `multiAgentChat.manageApiKeys` | - |
+| **Open Models Configuration** (v1.15.0) | `multiAgentChat.openModelsConfig` | - |
+| **Open Agents Configuration** (v1.15.0) | `multiAgentChat.openAgentsConfig` | - |
+| **Reset Models to Defaults** (v1.15.0) | `multiAgentChat.resetModelsConfig` | - |
+| **Reset Agents to Defaults** (v1.15.0) | `multiAgentChat.resetAgentsConfig` | - |
+| **Update from Defaults** (v1.16.1) | `multiAgentChat.updateFromDefaults` | - |
+| **Reload Configurations** (v1.15.0) | `multiAgentChat.reloadConfigurations` | - |
 
 ## 📁 Important File Locations
 
@@ -96,11 +103,19 @@ All available commands you can run:
 - **User Settings**: `~/.config/Code/User/settings.json`
 - **Project Settings**: `.machat/config.json`
 - **Workspace Settings**: `.vscode/settings.json`
+- **Default Models** (v1.15.0): `defaults/models.json` (bundled)
+- **Default Agents** (v1.15.0): `defaults/agents.json` (bundled)
+- **Default Providers** (v1.16.0): `defaults/providers.json` (bundled)
+- **Project Models** (v1.15.0): `.machat/models.json` (optional override)
+- **Project Agents** (v1.15.0): `.machat/agents.json` (optional override)
+- **Custom Prompts** (v1.15.0): `.machat/agents/agent-prompts/*.md`
 
 ### Data Storage
 - **Global Conversations**: `~/.config/Code/User/globalStorage/[extension-id]/conversations/`
 - **Project Conversations**: `.machat/conversations/`
 - **Agent Context**: `.machat/context/project-context.json`
+- **API Keys** (v1.15.1): VS Code SecretStorage (encrypted, OS-level)
+- **Operation Logs** (Phase 2): VS Code workspaceState
 
 ## 🔄 Common Code Paths
 
@@ -112,14 +127,19 @@ All available commands you can run:
 3. vscode.postMessage({type: 'sendMessage', text: ...})
 4. extension.ts → _handleMessage() case 'sendMessage'
 5. extension.ts → _processMessage()
-6. agents.ts → selectBestAgent() OR use selected agent
+6. agents.ts → AgentManager.getAgent() (from ConfigurationRegistry v1.15.0)
 7. providers.ts → ProviderManager.getProvider()
-8. providers.ts → ClaudeProvider.sendMessage()
-9. Claude CLI process spawned
-10. Response streamed back (if streaming enabled)
-11. extension.ts → webview.postMessage({type: 'agentResponse'})
-12. resources/webview/script.js → window.addEventListener('message')
-13. UI updated with response
+8. providers/ProviderRegistry.ts → selectProvider() (v1.16.0)
+9. Selected provider (Claude CLI / VS Code LM / HTTP)
+10. Provider sends message to AI
+11. Response received (streamed if enabled)
+12. operations/OperationParser.ts → parseOperations() (Phase 2)
+13. operations/OperationExecutor.ts → executeOperation() (Phase 2)
+14. permissions/PermissionEnforcer.ts → checkPermission() (Phase 2)
+15. logging/OperationLogger.ts → logOperation() (Phase 2)
+16. extension.ts → webview.postMessage({type: 'agentResponse'})
+17. resources/webview/script.js → window.addEventListener('message')
+18. UI updated with response
 ```
 
 ### When Team Agent is Used
@@ -139,18 +159,30 @@ All available commands you can run:
 
 ## 🛠️ Modifying Common Features
 
-### Add a New Agent
+### Add a New Agent (v1.15.0 - JSON-based)
 
-1. Edit `src/agents.ts`
-2. Add to `defaultAgents` array
-3. Update `selectBestAgent()` logic if needed
-4. Restart extension (F5)
+1. Edit `defaults/agents.json` OR `.machat/agents.json`
+2. Add new agent definition with id, name, icon, model, etc.
+3. Optionally create custom prompt: `.machat/agents/agent-prompts/{agentId}.md`
+4. Run `Reload Configurations` command (no restart needed!)
+
+### Add a New Model (v1.15.0 - JSON-based)
+
+1. Edit `defaults/models.json` OR `.machat/models.json`
+2. Add model definition under appropriate provider
+3. Run `Reload Configurations` command (no restart needed!)
+
+### Add a New Provider (v1.16.0)
+
+1. For OpenAI-compatible: Just edit `defaults/providers.json`
+2. For custom format: Create new provider class in `src/providers/`
+3. See `docs/guides/ADDING_PROVIDERS.md` for detailed guide
 
 ### Change Default Model
 
-1. Edit `src/config/models.ts` for model configurations
+1. Edit `defaults/models.json` or `.machat/models.json`
 2. Or change in VS Code settings: `multiAgentChat.defaultModel`
-3. Or change per-agent in `src/agents.ts`
+3. Or change per-agent in agent JSON config
 
 ### Adjust Performance Settings
 

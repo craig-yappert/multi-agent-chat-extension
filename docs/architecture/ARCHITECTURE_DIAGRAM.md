@@ -1,6 +1,6 @@
 # Multi Agent Chat - Architecture Overview
 
-**Last Updated:** 2025-09-30 (v1.13.0)
+**Last Updated:** 2025-10-07 (v1.16.1)
 **Status:** ✅ Accurate as of current codebase
 
 ---
@@ -39,10 +39,24 @@ graph TB
     end
 
     subgraph "Provider Layer"
+        ProvRegistry[ProviderRegistry<br/>Provider Selection]
         ProviderMgr[ProviderManager<br/>Provider Factory]
         Claude[ClaudeProvider<br/>Claude CLI]
-        OpenAI[OpenAIProvider<br/>OpenAI Fallback]
+        VSCodeLM[VSCodeLMProvider<br/>VS Code LM API]
+        HttpProviders[HttpProviders<br/>OpenAI, Google, xAI]
         Multi[MultiProvider<br/>Team Coordination]
+    end
+
+    subgraph "Configuration Layer"
+        ConfigRegistry[ConfigurationRegistry<br/>Model & Agent Configs]
+        ApiKeyMgr[ApiKeyManager<br/>Secure Key Storage]
+        DefaultsJSON[defaults/<br/>models.json, agents.json]
+    end
+
+    subgraph "Security & Operations Layer"
+        PermEnforcer[PermissionEnforcer<br/>Permission Checks]
+        OpExecutor[OperationExecutor<br/>File & Command Ops]
+        OpLogger[OperationLogger<br/>Audit Trail]
     end
 
     subgraph "Data Layer"
@@ -78,15 +92,27 @@ graph TB
     AgentMgr --> CommHub
     CommHub --> MsgParser
 
+    ChatProvider --> ConfigRegistry
     ChatProvider --> ProviderMgr
-    ProviderMgr --> Claude
-    ProviderMgr --> OpenAI
+    ChatProvider --> OpExecutor
+    ProviderMgr --> ProvRegistry
+    ProvRegistry --> Claude
+    ProvRegistry --> VSCodeLM
+    ProvRegistry --> HttpProviders
     ProviderMgr --> Multi
 
     Claude --> Optimizer
+    VSCodeLM --> Optimizer
+    HttpProviders --> Optimizer
     Optimizer --> Cache
     Multi --> CommHub
     CommHub --> Agents
+
+    ConfigRegistry --> DefaultsJSON
+    ConfigRegistry --> AgentMgr
+    ApiKeyMgr --> ProviderMgr
+    OpExecutor --> PermEnforcer
+    OpExecutor --> OpLogger
 
     ChatProvider --> Settings
     ChatProvider --> ConvMgr
@@ -193,10 +219,18 @@ graph TD
 |-----------|----------|-------|------------|--------|------------------|
 | **extension.ts** | `src/` | VS Code activation | Initialize all systems | Ready extension | All managers |
 | **ChatProvider** | `src/extension.ts` | User messages | Route to agents | Agent responses | AgentMgr, ProviderMgr, Settings |
-| **AgentManager** | `src/agents.ts` | Task description | Manage agent registry | Agent configs | Agent definitions |
-| **ProviderManager** | `src/providers.ts` | Agent config | Route to correct provider | Provider instance | ClaudeProvider, MultiProvider |
+| **ConfigurationRegistry** | `src/config/` | Config files | Load models/agents JSON | Configs | defaults/, .machat/ |
+| **ApiKeyManager** | `src/settings/` | API key requests | Secure storage/retrieval | API keys | VS Code SecretStorage |
+| **AgentManager** | `src/agents.ts` | Task description | Manage agent registry | Agent configs | ConfigurationRegistry |
+| **ProviderRegistry** | `src/providers/` | Model selection | Select best provider | Provider choice | Provider configs |
+| **ProviderManager** | `src/providers.ts` | Agent config | Route to correct provider | Provider instance | All providers |
 | **ClaudeProvider** | `src/providers.ts` | Message + Context | Spawn Claude CLI | Text response | child_process, Cache |
+| **VSCodeLMProvider** | `src/providers/` | Message + Context | VS Code LM API calls | Text response | VS Code LM API |
+| **HttpProvider** | `src/providers/` | Message + Context | Direct HTTP API calls | Text response | fetch, API keys |
 | **MultiProvider** | `src/providers.ts` | Team request | Coordinate agents | Synthesized response | CommHub, All agents |
+| **OperationExecutor** | `src/operations/` | Operation commands | Execute file/command ops | Operation results | PermissionEnforcer, workspace.fs |
+| **PermissionEnforcer** | `src/permissions/` | Operation requests | Check agent permissions | Allow/deny | Permission configs |
+| **OperationLogger** | `src/logging/` | Operations | Log all operations | Audit trail | workspaceState |
 | **CommHub** | `src/agentCommunication.ts` | Agent messages | Route, track, prevent loops | Delivered messages | MessageParser, ProviderManager |
 | **MessageParser** | `src/agentMessageParser.ts` | Agent response text | Extract @mentions | Command list | Regex patterns |
 | **SettingsManager** | `src/settings/` | Config changes | Merge hierarchies | Final settings | VS Code API, file system |
@@ -322,17 +356,26 @@ graph LR
     KillProcesses --> CleanState[Ready for new request]
 ```
 
-## File System Layout (v1.13.0)
+## File System Layout (v1.16.1)
 
 ```
 Project Root/
 ├── .machat/                      # Project-specific data (gitignored by default)
 │   ├── config.json              # Project settings override
+│   ├── models.json              # Project-specific model configs (optional)
+│   ├── agents.json              # Project-specific agent configs (optional)
+│   ├── agents/
+│   │   └── agent-prompts/      # Custom agent prompts (Markdown)
 │   ├── conversations/           # Local conversation history
 │   │   ├── index.json          # Conversation index
-│   │   └── 2025-09-30_*.json  # Individual conversations
+│   │   └── 2025-10-07_*.json  # Individual conversations
 │   └── context/                # Agent memory/context
 │       └── project-context.json # Per-agent conversation state
+│
+├── defaults/                    # Bundled default configs (v1.15.0)
+│   ├── models.json             # 28+ models across 6 providers
+│   ├── agents.json             # 7 agent definitions
+│   └── providers.json          # Provider API configurations (v1.16.0)
 │
 ├── resources/                   # Extension resources
 │   └── webview/                # Webview UI (external files)
@@ -343,24 +386,46 @@ Project Root/
 ├── src/
 │   ├── extension.ts            # Main entry point, ChatProvider
 │   ├── agents.ts              # Agent definitions (7 agents)
-│   ├── providers.ts           # AI providers (Claude, OpenAI, Multi)
+│   ├── providers.ts           # AI providers (Claude, Multi)
 │   ├── agentCommunication.ts # Inter-agent communication hub
 │   ├── agentMessageParser.ts # @mention parsing
 │   ├── performanceOptimizer.ts # Optimization utilities
 │   ├── requestManager.ts      # Request queue management
 │   │
+│   ├── providers/              # Provider implementations (v1.16.0)
+│   │   ├── ProviderRegistry.ts    # Provider selection logic
+│   │   ├── VSCodeLMProvider.ts    # VS Code Language Model API
+│   │   ├── HttpProvider.ts        # Base HTTP provider
+│   │   ├── OpenAIHttpProvider.ts  # OpenAI & xAI
+│   │   └── GoogleHttpProvider.ts  # Google Gemini
+│   │
+│   ├── config/                 # Configuration (v1.15.0)
+│   │   ├── ConfigurationRegistry.ts # Model/agent loader
+│   │   └── models.ts          # Model type definitions
+│   │
 │   ├── settings/
-│   │   └── SettingsManager.ts # Hierarchical settings
+│   │   ├── SettingsManager.ts # Hierarchical settings
+│   │   └── ApiKeyManager.ts   # Secure API keys (v1.15.1)
+│   │
+│   ├── permissions/            # Permission system (Phase 1)
+│   │   ├── PermissionEnforcer.ts
+│   │   └── types.ts
+│   │
+│   ├── operations/             # Operation execution (Phase 2)
+│   │   ├── OperationParser.ts
+│   │   ├── OperationExecutor.ts
+│   │   └── types.ts
+│   │
+│   ├── logging/                # Operation logging (Phase 2)
+│   │   ├── OperationLogger.ts
+│   │   └── types.ts
+│   │
 │   ├── conversations/
 │   │   └── ConversationManager.ts # Chat persistence
 │   ├── context/
 │   │   └── ProjectContextManager.ts # Agent memory
-│   ├── commands/
-│   │   └── MigrationCommands.ts # Migration utilities
-│   ├── config/
-│   │   └── models.ts          # Model configurations
-│   └── ui/
-│       └── SettingsPanel.ts   # Settings UI
+│   └── commands/
+│       └── MigrationCommands.ts # Migration utilities
 │
 └── out/                        # Compiled JavaScript
     └── [mirrors src structure]
@@ -368,16 +433,100 @@ Project Root/
 
 ## Key Architecture Changes (History)
 
+### v1.16.1 (2025-10-02) - Model Awareness & Safe Initialization
+
+✅ **Enhanced Model Awareness**
+- Agents receive detailed model information in system prompts
+- Model descriptions included for better context awareness
+- ConfigurationRegistry integration with ProviderManager and ClaudeProvider
+- Fixed hardcoded fallback agents to use proper model IDs
+
+✅ **Smart Initialization System**
+- Safe by default: Only creates missing files, never overwrites existing
+- New "Update from Defaults" command for explicit sync operations
+- Smart picker shows relevant options based on what files exist
+- Git-friendly workflow for tracking configuration changes
+
+### v1.16.0 (2025-10-02) - Multi-Provider Support
+
+✅ **3-Tier Provider Architecture**
+- **VS Code Language Model API:** GitHub Copilot, Continue.dev support
+- **Direct HTTP APIs:** OpenAI, Google Gemini, xAI Grok support
+- **Claude CLI:** Existing functionality preserved
+
+✅ **Provider Preference Setting**
+- `claude-cli` (default): Prefer Claude CLI for Max subscribers
+- `auto`: Community-friendly (tries VS Code models first)
+- `vscode-lm`: Only VS Code Language Model API
+- `direct-api`: Only direct HTTP APIs with user keys
+
+✅ **New Components**
+- `defaults/providers.json` - Provider API configurations
+- `src/providers/ProviderRegistry.ts` - Provider selection logic
+- `src/providers/VSCodeLMProvider.ts` - VS Code LM integration
+- `src/providers/HttpProvider.ts` - Base for HTTP providers
+- `src/providers/OpenAIHttpProvider.ts` - OpenAI & xAI
+- `src/providers/GoogleHttpProvider.ts` - Google Gemini
+
+✅ **Security Fix (2025-10-07)**
+- Fixed HIGH severity path traversal vulnerability in OperationExecutor
+- Path resolution now happens BEFORE permission checks
+- Workspace boundary validation prevents escape attacks
+- All file operations use pre-resolved, validated paths
+
+### v1.15.2 (2025-10-02) - Inter-Agent Collaboration Fixes
+
+✅ **True Multi-Agent Collaboration**
+- Fixed secondary @mentions not being routed to agents
+- Removed `isInterAgentResponse` flag that blocked response parsing
+- Agents now parse ALL responses for @mentions
+
+✅ **Critical Bug Fixes**
+- **Bug #1:** Wrong agent display in main chat (stripped onPartialResponse)
+- **Bug #2:** Emergency stop ineffective (added isStopped flag)
+
+✅ **Enhanced Emergency Stop**
+- Visible stop message injected into chat
+- System confirmation of halt
+- Triple kill switch: process kill + queue clear + stop flag
+
+✅ **Unicode Support**
+- Fixed `btoa()` encoding error with Unicode characters
+- Added `encodeURIComponent()` for proper Unicode handling
+
+### v1.15.1 (2025-10-02) - Secure API Key Management
+
+✅ **Secure API Key Storage**
+- Uses VS Code SecretStorage API (encrypted, OS-level)
+- Automatic migration from old settings.json storage
+- Interactive setup command: "Manage API Keys"
+- Per-user storage (never committed to git)
+- Settings UI removed - use Command Palette
+
+### v1.15.0 (2025-10-01) - External Configuration
+
+✅ **External Model Configuration**
+- Model definitions moved to JSON (`defaults/models.json`)
+- Project-specific model overrides (`.machat/models.json`)
+- 28+ models including Claude Sonnet 4.5
+- ConfigurationRegistry for dynamic loading
+- No rebuild needed to add new models
+
+✅ **External Agent Configuration**
+- Agent definitions moved to JSON (`defaults/agents.json`)
+- Project-specific agent overrides (`.machat/agents.json`)
+- Customize agents per project type
+- Add custom agents
+- Markdown-based custom prompts (`.machat/agents/agent-prompts/`)
+
 ### v1.13.0 (2025-09-30)
 
 ✅ **External Resources Refactor**
-
 - Moved webview UI to `resources/webview/` external files
 - Eliminated template literal hell (7,964 lines removed)
 - Clean separation: HTML, CSS, JavaScript
 
 ✅ **Inter-Agent Communication Polish**
-
 - Live message display (transparent communication)
 - Loop prevention for acknowledgments
 - Message display order (ack → execution → summary)
@@ -386,13 +535,11 @@ Project Root/
 ### v1.11.0 (2025-09-19)
 
 ✅ **MCP Infrastructure Removed**
-
 - Deleted MCP WebSocket server
 - Simplified to direct Claude CLI calls
 - Removed ~50 lines of MCP references
 
 ✅ **Per-Project Settings**
-
 - `.machat/` folder structure
 - Hierarchical settings system
 - Project-local conversation storage
@@ -409,4 +556,5 @@ Project Root/
 
 ---
 
-*Architecture accurate as of v1.13.0 (2025-09-30)*
+*Architecture accurate as of v1.16.1 (2025-10-07)*
+*Includes: External configs, multi-provider support, API key management, security fixes, Phase 2 operations*

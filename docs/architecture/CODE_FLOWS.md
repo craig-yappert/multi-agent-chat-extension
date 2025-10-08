@@ -1,6 +1,6 @@
 # Multi Agent Chat - Code Flow Documentation
 
-**Last Updated:** 2025-09-30 (v1.13.0)
+**Last Updated:** 2025-10-07 (v1.16.1)
 **Status:** ✅ Accurate - focuses on concepts, not specific line numbers
 
 ---
@@ -12,10 +12,12 @@ This document explains how code flows through the Multi Agent Chat extension for
 1. [Extension Initiation](#1-extension-initiation)
 2. [Settings Change](#2-settings-change)
 3. [Single Agent Communication](#3-single-agent-communication)
-4. [Inter-Agent Communication (@mentions)](#4-inter-agent-communication-mentions)
-5. [Team Coordination](#5-team-coordination)
-6. [Conversation Persistence](#6-conversation-persistence)
-7. [STOP Button Flow](#7-stop-button-flow)
+4. [Provider Selection (v1.16.0)](#4-provider-selection-v1160)
+5. [Operation Execution (Phase 2)](#5-operation-execution-phase-2)
+6. [Inter-Agent Communication (@mentions)](#6-inter-agent-communication-mentions)
+7. [Team Coordination](#7-team-coordination)
+8. [Conversation Persistence](#8-conversation-persistence)
+9. [STOP Button Flow](#9-stop-button-flow)
 
 ---
 
@@ -45,22 +47,34 @@ graph TD
 | Component | Purpose | Storage Location |
 |-----------|---------|------------------|
 | **SettingsManager** | Load hierarchical settings | VS Code config + `.machat/config.json` |
+| **ConfigurationRegistry** | Load models/agents JSON | `defaults/` + `.machat/` (v1.15.0) |
+| **ApiKeyManager** | Initialize secure key storage | VS Code SecretStorage (v1.15.1) |
 | **ConversationManager** | Set up conversation storage | `.machat/conversations/` |
 | **ProjectContextManager** | Initialize agent memory | `.machat/context/` |
+| **PermissionEnforcer** | Initialize permission system | In-memory (Phase 1) |
+| **OperationExecutor** | Initialize operation executor | In-memory (Phase 2) |
+| **OperationLogger** | Initialize operation logging | VS Code workspaceState (Phase 2) |
 | **MigrationCommands** | Register migration utilities | Command palette |
 | **ClaudeChatProvider** | Main controller instance | In-memory |
-| **AgentManager** | Load 7 agent definitions | In-memory |
+| **AgentManager** | Load 7 agent definitions | ConfigurationRegistry (v1.15.0) |
 | **ProviderManager** | Initialize AI providers | In-memory |
+| **ProviderRegistry** | Initialize provider selection | In-memory (v1.16.0) |
 | **AgentCommunicationHub** | Set up inter-agent messaging | In-memory |
 
 ### Files Involved
 
 - `src/extension.ts` - Main activation function
+- `src/config/ConfigurationRegistry.ts` - Load models/agents (v1.15.0)
 - `src/settings/SettingsManager.ts` - Settings singleton
+- `src/settings/ApiKeyManager.ts` - Secure key storage (v1.15.1)
 - `src/conversations/ConversationManager.ts` - Conversation persistence
 - `src/context/ProjectContextManager.ts` - Agent memory
+- `src/permissions/PermissionEnforcer.ts` - Permission checks (Phase 1)
+- `src/operations/OperationExecutor.ts` - Operation execution (Phase 2)
+- `src/logging/OperationLogger.ts` - Operation logging (Phase 2)
 - `src/agents.ts` - Agent definitions
 - `src/providers.ts` - Provider implementations
+- `src/providers/ProviderRegistry.ts` - Provider selection (v1.16.0)
 
 ---
 
@@ -124,11 +138,13 @@ sequenceDiagram
     AgentMgr-->>Provider: Agent config
 
     Provider->>ProvMgr: getProvider(agentConfig)
-    ProvMgr-->>Provider: ClaudeProvider instance
+    ProvMgr->>ProvRegistry: selectProvider(model, preference)
+    ProvRegistry-->>ProvMgr: Selected provider (v1.16.0)
+    ProvMgr-->>Provider: Provider instance (Claude/VSCodeLM/Http)
 
     Provider->>Claude: sendMessage(msg, agent, context)
     Claude->>Claude: Check cache (5-min TTL)
-    Claude->>CLI: spawn('claude', args)
+    Claude->>CLI: spawn('claude', args) OR API call
     CLI-->>Claude: Response stream
     Claude->>Provider: Complete response
 
@@ -153,7 +169,146 @@ sequenceDiagram
 
 ---
 
-## 4. Inter-Agent Communication (@mentions)
+## 4. Provider Selection (v1.16.0)
+
+How the system chooses which AI provider to use for a request:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant ProvMgr as ProviderManager
+    participant Registry as ProviderRegistry
+    participant Config as ConfigurationRegistry
+    participant ApiKeys as ApiKeyManager
+    participant Provider as Selected Provider
+
+    User->>ProvMgr: Request with agent (has model)
+    ProvMgr->>Registry: selectProvider(model, userPreference)
+
+    Registry->>Config: getModel(modelId)
+    Config-->>Registry: Model config with provider info
+
+    Registry->>Registry: Check user preference
+    Note over Registry: claude-cli, auto, vscode-lm, or direct-api
+
+    alt User prefers claude-cli
+        Registry->>Registry: Try Claude CLI first
+    else User prefers vscode-lm
+        Registry->>Registry: Only try VS Code LM API
+    else User prefers direct-api
+        Registry->>ApiKeys: Get API key for provider
+        ApiKeys-->>Registry: API key (if configured)
+        Registry->>Registry: Try HTTP provider
+    else User prefers auto
+        Registry->>Registry: Try VS Code LM first
+        Registry->>Registry: Fall back to HTTP if key exists
+        Registry->>Registry: Fall back to Claude CLI last
+    end
+
+    Registry-->>ProvMgr: Provider selection result
+    ProvMgr->>Provider: Initialize provider instance
+    Provider-->>ProvMgr: Ready to send message
+    ProvMgr-->>User: Provider ready
+```
+
+### Provider Selection Logic
+
+**Priority Order for "auto" mode:**
+1. **VS Code Language Model API** - Free via Copilot, Continue.dev
+2. **Direct HTTP API** - If API key configured
+3. **Claude CLI** - Fallback for Claude models
+
+**Key Decision Points:**
+- User preference setting (`providerPreference`)
+- Model availability on each provider
+- API key configuration status
+- Provider capability matching
+
+### Files Involved
+
+- `src/providers/ProviderRegistry.ts` - Provider selection logic
+- `src/config/ConfigurationRegistry.ts` - Model metadata
+- `src/settings/ApiKeyManager.ts` - API key retrieval
+- `defaults/providers.json` - Provider configurations
+- `defaults/models.json` - Model provider mappings
+
+---
+
+## 5. Operation Execution (Phase 2)
+
+When an agent response contains operation markers, they get executed:
+
+```mermaid
+sequenceDiagram
+    participant Agent
+    participant Provider as ClaudeProvider
+    participant Parser as OperationParser
+    participant Executor as OperationExecutor
+    participant Enforcer as PermissionEnforcer
+    participant Logger as OperationLogger
+    participant FS as File System
+
+    Agent->>Provider: Response with [FILE_WRITE: path]...[/FILE_WRITE]
+    Provider->>Parser: parseOperations(response)
+    Parser->>Parser: Extract markers & content
+    Parser-->>Provider: List of operations
+
+    loop For each operation
+        Provider->>Executor: executeOperation(op, agentId)
+
+        Executor->>Executor: Resolve path (prevent traversal)
+        Executor->>Executor: Validate workspace boundary
+
+        Executor->>Enforcer: checkPermission(agent, opType, path)
+        Enforcer->>Enforcer: Check agent permissions config
+        Enforcer-->>Executor: Allow/Deny decision
+
+        alt Permission granted
+            Executor->>FS: Perform operation (write/read/delete)
+            FS-->>Executor: Operation result
+            Executor->>Logger: logOperation(success, details)
+            Logger-->>Executor: Logged
+            Executor-->>Provider: ✅ Success message
+        else Permission denied
+            Executor->>Logger: logOperation(denied, reason)
+            Logger-->>Executor: Logged
+            Executor-->>Provider: 🚫 Permission denied
+        end
+
+        Provider->>Parser: replaceMarker(operation, result)
+    end
+
+    Parser-->>Provider: Updated response with results
+    Provider->>Agent: Display updated response to user
+```
+
+### Operation Types
+
+- **FILE_WRITE** - Create or overwrite file
+- **FILE_READ** - Read file contents
+- **FILE_DELETE** - Delete file
+- **FILE_APPEND** - Append to file
+- **EXECUTE** - Run shell command
+- **GIT** - Git operations
+
+### Security Measures
+
+1. **Path Resolution** - All paths resolved to absolute before checks
+2. **Workspace Boundary** - Prevents access outside workspace
+3. **Permission Enforcement** - Agent-specific permissions checked
+4. **Operation Logging** - All operations logged for audit trail
+
+### Files Involved
+
+- `src/operations/OperationParser.ts` - Extract operations from text
+- `src/operations/OperationExecutor.ts` - Execute file/command operations
+- `src/permissions/PermissionEnforcer.ts` - Permission checks
+- `src/logging/OperationLogger.ts` - Audit logging
+- `src/providers.ts` - Parse & execute pipeline
+
+---
+
+## 6. Inter-Agent Communication (@mentions)
 
 When an agent response contains @mentions (v1.13.0 feature):
 
@@ -218,7 +373,7 @@ User: "@coordinator ask @architect about database design"
 
 ---
 
-## 5. Team Coordination
+## 7. Team Coordination
 
 When user explicitly requests Team agent:
 
@@ -277,7 +432,7 @@ sequenceDiagram
 
 ---
 
-## 6. Conversation Persistence
+## 8. Conversation Persistence
 
 How conversations are saved, indexed, and reloaded:
 
@@ -348,7 +503,7 @@ graph TD
 
 ---
 
-## 7. STOP Button Flow
+## 9. STOP Button Flow
 
 When user clicks STOP to kill all running processes:
 
@@ -487,26 +642,49 @@ console.log('Effective settings:', config);
 
 ## Architecture Evolution
 
-### v1.13.0 (2025-09-30)
+### v1.16.1 (2025-10-02)
+- ✅ Model awareness in agent prompts
+- ✅ Smart initialization (safe, no overwrites)
+- ✅ ConfigurationRegistry integration
 
+### v1.16.0 (2025-10-02)
+- ✅ Multi-provider support (VS Code LM, HTTP providers, Claude CLI)
+- ✅ ProviderRegistry for intelligent provider selection
+- ✅ Provider preference setting (claude-cli, auto, vscode-lm, direct-api)
+
+### v1.15.2 (2025-10-02)
+- ✅ Fixed inter-agent @mention routing
+- ✅ Enhanced emergency stop with visible messaging
+- ✅ Unicode support in messages
+
+### v1.15.1 (2025-10-02)
+- ✅ Secure API key storage (VS Code SecretStorage)
+- ✅ Interactive API key management
+
+### v1.15.0 (2025-10-01)
+- ✅ External configuration (models.json, agents.json)
+- ✅ ConfigurationRegistry for dynamic configs
+- ✅ Project-specific model/agent overrides
+
+### v1.13.0 (2025-09-30)
 - ✅ Inter-agent communication polish (@mentions fully working)
 - ✅ External resources (webview in `resources/webview/`)
 - ✅ Loop prevention for inter-agent messages
 - ✅ STOP button kills all processes immediately
 
 ### v1.11.0 (2025-09-19)
-
 - ✅ MCP infrastructure removed (simplified to direct Claude CLI)
 - ✅ Per-project settings (`.machat/config.json`)
 - ✅ Project-local conversation storage
 
-### Pre-v1.11.0
-
-- ❌ MCP WebSocket server (removed - was complex, not needed)
-- ❌ Template literal webview (removed - maintenance nightmare)
+### Phase 2 (2025-10-06)
+- ✅ Operation execution system (file ops, command execution)
+- ✅ Permission enforcement with workspace boundary checks
+- ✅ Operation logging for audit trail
+- ✅ Security fix: Path traversal vulnerability (2025-10-07)
 
 ---
 
-*Flows accurate as of v1.13.0 (2025-09-30)*
+*Flows accurate as of v1.16.1 (2025-10-07)*
 *Focused on concepts rather than specific line numbers for maintainability*
-*See `docs/ARCHITECTURE_DIAGRAM.md` for system architecture diagrams*
+*See `docs/architecture/ARCHITECTURE_DIAGRAM.md` for system architecture diagrams*

@@ -12,6 +12,8 @@ import { ProjectContextManager } from './context/ProjectContextManager';
 import { MigrationCommands } from './commands/MigrationCommands';
 import { SettingsPanel } from './ui/SettingsPanel';
 import { PermissionEnforcer } from './permissions';
+import { OperationLogger } from './logging';
+import { OperationExecutor, OperationParser } from './operations';
 
 const exec = util.promisify(cp.exec);
 
@@ -291,6 +293,9 @@ class ClaudeChatProvider {
 	private _draftMessage: string = '';
 	private _agentManager: AgentManager;
 	private _permissionEnforcer: PermissionEnforcer;
+	private _operationLogger: OperationLogger;
+	private _operationExecutor: OperationExecutor;
+	private _operationParser: OperationParser;
 	private _providerManager: ProviderManager;
 	private _communicationHub: AgentCommunicationHub;
 	private _outputChannel: vscode.OutputChannel;
@@ -316,6 +321,23 @@ class ClaudeChatProvider {
 			blockDangerousCommands: true,
 			logViolations: true
 		});
+
+		// Initialize Operation Logger (Phase 2)
+		this._operationLogger = new OperationLogger(_context, {
+			enableConsole: true,
+			enableStorage: true,
+			minLevel: vscode.workspace.getConfiguration('multiAgentChat').get('logging.minLevel', 'info') as any
+		});
+
+		// Initialize Operation Executor (Phase 2)
+		this._operationExecutor = new OperationExecutor(
+			this._permissionEnforcer,
+			this._operationLogger,
+			_context
+		);
+
+		// Initialize Operation Parser (Phase 2)
+		this._operationParser = new OperationParser();
 
 		// Load agents from ConfigurationRegistry (defaults + project overrides)
 		this._agentManager.loadFromRegistry(_context).then(() => {
@@ -402,8 +424,16 @@ class ClaudeChatProvider {
 		const { ConfigurationRegistry } = require('./config/ConfigurationRegistry');
 		const configRegistry = ConfigurationRegistry.getInstance(_context);
 
-		// Now create provider manager with the communication hub already available
-		this._providerManager = new ProviderManager(_context, this._agentManager, this._communicationHub, streamCallback, configRegistry);
+		// Now create provider manager with the communication hub already available (Phase 2: add parser/executor)
+		this._providerManager = new ProviderManager(
+			_context,
+			this._agentManager,
+			this._communicationHub,
+			streamCallback,
+			configRegistry,
+			this._operationParser,
+			this._operationExecutor
+		);
 
 		// Update the communication hub with the provider manager reference
 		(this._communicationHub as any).providerManager = this._providerManager;

@@ -410,4 +410,3 @@ Project Root/
 ---
 
 *Architecture accurate as of v1.13.0 (2025-09-30)*
-*See `docs/internal/CONSOLIDATION_PLAN.md` for planned documentation improvements*

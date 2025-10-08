@@ -393,6 +393,7 @@
     "test": "vscode-test"
   },
   "devDependencies": {
+    "@types/lodash": "^4.17.20",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
     "@types/vscode": "^1.94.0",
@@ -408,6 +409,7 @@
     "@types/express": "^5.0.3",
     "@types/ws": "^8.18.1",
     "express": "^5.1.0",
+    "lodash": "^4.17.21",
     "ws": "^8.18.3"
   }
 }

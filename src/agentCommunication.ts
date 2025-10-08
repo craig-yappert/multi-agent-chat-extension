@@ -234,7 +234,7 @@ export class AgentCommunicationHub {
 			this.processMessageQueue();
 		}
 
-		return await this.waitForResponse(agentMessage.id, this.agentTimeout);
+		return await this.waitForResponse(agentMessage.id, this.agentTimeout, agentMessage.from, agentMessage.to);
 	}
 
 	async broadcastToAgents(
@@ -537,26 +537,27 @@ Please provide your response based on the request above.
 		}
 	}
 
-	private async waitForResponse(messageId: string, timeout: number = 60000): Promise<string> {
+	private async waitForResponse(messageId: string, timeout: number = 60000, fromAgent?: string, toAgent?: string): Promise<string> {
 		const existingResponse = this.responseStore.get(messageId);
 		if (existingResponse) {
 			return existingResponse;
 		}
 
-		console.log(`[AgentComm] Waiting for response to ${messageId} with timeout ${timeout}ms`);
+		const agentContext = fromAgent && toAgent ? ` (${fromAgent} → ${toAgent})` : '';
+		console.log(`[AgentComm] Waiting for response to ${messageId}${agentContext} with timeout ${timeout}ms`);
 		const startTime = Date.now();
 
 		return new Promise((resolve, reject) => {
 			const timer = setTimeout(() => {
 				const elapsedTime = Date.now() - startTime;
-				console.error(`[AgentComm] ⏱️ TIMEOUT after ${elapsedTime}ms waiting for response to message ${messageId}`);
+				console.error(`[AgentComm] ⏱️ TIMEOUT after ${elapsedTime}ms waiting for ${toAgent || 'unknown agent'} to respond to ${fromAgent || 'unknown agent'} (message ${messageId})`);
 				this.responseWaiters.delete(messageId);
-				reject(new Error(`Timeout waiting for response to message ${messageId} (waited ${elapsedTime}ms, timeout was ${timeout}ms)`));
+				reject(new Error(`Timeout waiting for ${toAgent} to respond to ${fromAgent} (message ${messageId}, waited ${elapsedTime}ms, timeout was ${timeout}ms)`));
 			}, timeout);
 
 			this.responseWaiters.set(messageId, (response: string) => {
 				const elapsedTime = Date.now() - startTime;
-				console.log(`[AgentComm] ✅ Received response to ${messageId} after ${elapsedTime}ms`);
+				console.log(`[AgentComm] ✅ Received response to ${messageId}${agentContext} after ${elapsedTime}ms`);
 				clearTimeout(timer);
 				resolve(response);
 			});

@@ -4,3 +4,28 @@ node_modules
 .vscode-test/
 *.vsix
 backupnul
+.claude
+
+# User-specific settings and data
+.claude/settings.local.json
+.machat/conversations/
+.machat/context/
+.machat/config.json
+
+# Keep examples but ignore actual user data
+!.machat/agents/agent-prompts/*.example
+!.machat/agents/agent-prompts/README.md
+
+# Build artifacts
+*.log
+.DS_Store
+Thumbs.db
+
+# Archive directories (local only, not for open source release)
+archive/
+docs/archive/
+
+# Local cleanup documentation (not for public repo)
+CLEANUP_COMPLETE.md
+CLEANUP_RECOMMENDATIONS.md
+GITIGNORE_UPDATE_SUMMARY.md

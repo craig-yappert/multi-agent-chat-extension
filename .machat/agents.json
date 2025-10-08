@@ -1,7 +1,7 @@
 {
-  "version": "1.0.0",
-  "lastUpdated": "2025-10-01",
-  "description": "Default agent configurations for Multi Agent Chat",
+  "version": "1.1.0",
+  "lastUpdated": "2025-10-04",
+  "description": "Default agent configurations with permission profiles for Multi Agent Chat",
   "agents": [
     {
       "id": "architect",
@@ -25,7 +25,22 @@
       ],
       "provider": "claude",
       "model": "claude-sonnet-4-5-20250929",
-      "systemPrompt": "You are an expert software architect specializing in system design, API design, and technical decision-making. Focus on scalability, maintainability, and best practices."
+      "systemPrompt": "You are an expert software architect specializing in system design, API design, and technical decision-making. Focus on scalability, maintainability, and best practices.",
+      "permissions": {
+        "allowedOperations": ["file_read", "file_write"],
+        "trustLevels": {
+          "file_read": "automatic",
+          "file_write": "automatic",
+          "command_execution": "forbidden",
+          "git_operations": "forbidden",
+          "package_management": "forbidden",
+          "network_access": "forbidden"
+        },
+        "allowedPaths": ["*"],
+        "allowedWritePaths": ["docs/architecture/", "docs/design/", "ARCHITECTURE.md", "ADR*.md", "DESIGN*.md", "docs/decisions/"],
+        "forbiddenCommands": ["*"],
+        "description": "Architect can read all files and write architecture documentation (design docs, ADRs, architecture diagrams) but cannot write code or execute commands"
+      }
     },
     {
       "id": "coder",
@@ -49,7 +64,22 @@
       ],
       "provider": "claude",
       "model": "claude-sonnet-4-5-20250929",
-      "systemPrompt": "You are an expert software developer focused on writing clean, efficient, and maintainable code. Follow best practices and modern development patterns."
+      "systemPrompt": "You are an expert software developer focused on writing clean, efficient, and maintainable code. Follow best practices and modern development patterns.",
+      "permissions": {
+        "allowedOperations": ["file_read", "file_write"],
+        "trustLevels": {
+          "file_read": "automatic",
+          "file_write": "automatic",
+          "command_execution": "forbidden",
+          "git_operations": "forbidden",
+          "package_management": "forbidden",
+          "network_access": "forbidden"
+        },
+        "allowedPaths": ["src/", "test/", "tests/", "*.ts", "*.js", "*.tsx", "*.jsx", "*.json", "tsconfig.json", "package.json"],
+        "allowedWritePaths": ["src/", "test/", "tests/", "*.ts", "*.js", "*.tsx", "*.jsx", "*.json", "tsconfig.json", "package.json", "docs/technical/", "SPEC-*.md", "TECHNICAL-*.md"],
+        "forbiddenCommands": ["*"],
+        "description": "Coder can read/write code files and technical specifications but cannot execute commands - delegates to Executor"
+      }
     },
     {
       "id": "executor",
@@ -74,7 +104,22 @@
       ],
       "provider": "claude",
       "model": "claude-3-5-haiku-20241022",
-      "systemPrompt": "You are an expert at executing commands, managing files, and handling system operations efficiently. Focus on automation and reliability."
+      "systemPrompt": "You are an expert at executing commands, managing files, and handling system operations efficiently. Focus on automation and reliability.",
+      "permissions": {
+        "allowedOperations": ["file_read", "file_write", "command_execution", "git_operations", "package_management"],
+        "trustLevels": {
+          "file_read": "automatic",
+          "file_write": "automatic",
+          "command_execution": "automatic",
+          "git_operations": "automatic",
+          "package_management": "automatic",
+          "network_access": "forbidden"
+        },
+        "allowedPaths": ["*"],
+        "allowedWritePaths": ["*"],
+        "forbiddenCommands": ["rm -rf /", "sudo", "del /s", "format", "dd if=", ":(){:|:&};:"],
+        "description": "Executor has broad permissions (can write anywhere, execute commands, run git) but dangerous commands are blocked"
+      }
     },
     {
       "id": "reviewer",
@@ -98,7 +143,22 @@
       ],
       "provider": "claude",
       "model": "claude-sonnet-4-5-20250929",
-      "systemPrompt": "You are a meticulous code reviewer focused on code quality, security, performance, and maintainability. Provide constructive feedback and actionable suggestions."
+      "systemPrompt": "You are a meticulous code reviewer focused on code quality, security, performance, and maintainability. Provide constructive feedback and actionable suggestions.",
+      "permissions": {
+        "allowedOperations": ["file_read", "file_write"],
+        "trustLevels": {
+          "file_read": "automatic",
+          "file_write": "automatic",
+          "command_execution": "forbidden",
+          "git_operations": "forbidden",
+          "package_management": "forbidden",
+          "network_access": "forbidden"
+        },
+        "allowedPaths": ["*"],
+        "allowedWritePaths": ["docs/reviews/", "REVIEW-*.md", "docs/analysis/"],
+        "forbiddenCommands": ["*"],
+        "description": "Reviewer can read all files and write review/analysis documentation"
+      }
     },
     {
       "id": "documenter",
@@ -123,7 +183,21 @@
       ],
       "provider": "claude",
       "model": "claude-3-5-haiku-20241022",
-      "systemPrompt": "You are a technical writer focused on creating clear, helpful, and comprehensive documentation. Write for both technical and non-technical audiences."
+      "systemPrompt": "You are a technical writer focused on creating clear, helpful, and comprehensive documentation. Write for both technical and non-technical audiences.",
+      "permissions": {
+        "allowedOperations": ["file_read", "file_write"],
+        "trustLevels": {
+          "file_read": "automatic",
+          "file_write": "automatic",
+          "command_execution": "forbidden",
+          "git_operations": "forbidden",
+          "package_management": "forbidden",
+          "network_access": "forbidden"
+        },
+        "allowedPaths": ["docs/", "*.md", "README.md", "CHANGELOG.md", "LICENSE", "*.txt"],
+        "forbiddenCommands": ["*"],
+        "description": "Documenter can only write documentation files, not code"
+      }
     },
     {
       "id": "coordinator",
@@ -147,7 +221,22 @@
       ],
       "provider": "claude",
       "model": "claude-sonnet-4-5-20250929",
-      "systemPrompt": "You are a project coordinator who delegates tasks to the right agents based on their expertise. Focus on efficient workflow and clear communication."
+      "systemPrompt": "You are a project coordinator who delegates tasks to the right agents based on their expertise. Focus on efficient workflow and clear communication.",
+      "permissions": {
+        "allowedOperations": ["file_read", "file_write"],
+        "trustLevels": {
+          "file_read": "automatic",
+          "file_write": "automatic",
+          "command_execution": "forbidden",
+          "git_operations": "forbidden",
+          "package_management": "forbidden",
+          "network_access": "forbidden"
+        },
+        "allowedPaths": ["*"],
+        "allowedWritePaths": ["docs/plans/", "PROJECT-*.md", "PLAN-*.md"],
+        "forbiddenCommands": ["*"],
+        "description": "Coordinator can read all files and write project planning documentation"
+      }
     },
     {
       "id": "team",
@@ -171,7 +260,21 @@
       ],
       "provider": "multi",
       "model": "",
-      "systemPrompt": "You coordinate multiple agents to provide comprehensive, multi-perspective responses. Synthesize insights from the entire team."
+      "systemPrompt": "You coordinate multiple agents to provide comprehensive, multi-perspective responses. Synthesize insights from the entire team.",
+      "permissions": {
+        "allowedOperations": ["file_read"],
+        "trustLevels": {
+          "file_read": "automatic",
+          "file_write": "forbidden",
+          "command_execution": "forbidden",
+          "git_operations": "forbidden",
+          "package_management": "forbidden",
+          "network_access": "forbidden"
+        },
+        "allowedPaths": ["*"],
+        "forbiddenCommands": ["*"],
+        "description": "Team coordinates responses but doesn't execute - delegates to individual agents"
+      }
     }
   ]
 }

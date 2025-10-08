@@ -121,21 +121,40 @@ Your project management specialist who:
 - Shared context between agents
 - Per-project conversation storage (`.machat/` folder)
 
-### ⚙️ **Advanced Configuration** ✨ NEW in v1.15.0
+### ⚙️ **Advanced Configuration**
 
-- **External Model Configuration** - Edit models in `.machat/models.json`
-  - 11+ models including Claude Sonnet 4.5
-  - Add/remove models without rebuilding extension
-  - Project-specific model lists
-- **External Agent Configuration** - Customize agents in `.machat/agents.json`
-  - Modify agent capabilities, models, and prompts
-  - Add custom agents (e.g., "Data Analyst", "Video Editor")
-  - Disable agents not needed for your project
-  - Smart merging with defaults
+**Model Configuration** ✨ v1.15.0
+- Edit models in `.machat/models.json` (auto-created on first use)
+- 28+ models including Claude Sonnet 4.5 (v1.16.1 model awareness)
+- Add/remove models without rebuilding extension
+- Project-specific model lists
+- Commands: `Open Models Configuration`, `Reset Models to Defaults`
+
+**Agent Configuration** ✨ v1.15.0
+- Customize agents in `.machat/agents.json`
+- **Custom Agent Prompts** (Markdown) - Add project-specific instructions in `.machat/agents/agent-prompts/`
+  - Example: `.machat/agents/agent-prompts/coder.md` for coding standards
+  - Layered approach: core behavior + project customization
+  - No JSON escaping, git-friendly, rich formatting
+- Modify agent capabilities, models, and system prompts
+- Add custom agents (e.g., "Data Analyst", "Security Expert")
+- Disable agents not needed for your project
+- Smart merging with defaults
+- Commands: `Open Agents Configuration`, `Reset Agents to Defaults`
+
+**Provider Configuration** ✨ v1.16.0
+- Choose provider preference: `multiAgentChat.providerPreference`
+  - `auto` - Community-friendly (Copilot → API → CLI)
+  - `vscode-lm` - Only VS Code Language Models
+  - `direct-api` - Only direct HTTP APIs
+  - `claude-cli` - Only Claude CLI
+- See [docs/USER_GUIDE_PROVIDERS.md](docs/USER_GUIDE_PROVIDERS.md) for detailed setup
+
+**Other Settings**
 - Hierarchical settings: Global → Project → Workspace
 - Project-specific settings in `.machat/config.json`
 - Performance optimizations (caching, streaming, quick team mode)
-- YOLO mode for power users
+- Permission policies and YOLO mode
 
 ---
 
@@ -144,37 +163,68 @@ Your project management specialist who:
 ### Prerequisites
 
 - **VS Code 1.94+** - Latest version recommended
-- **Claude CLI** - Installed and configured with API key
-  ```bash
-  # Install Claude CLI
-  npm install -g @anthropic-ai/claude-cli
 
-  # Or via Homebrew (macOS)
-  brew install claude
-  ```
+**Provider Options** ✨ NEW in v1.16.0 - Choose what works for you:
+
+1. **Option A: Use GitHub Copilot (FREE for eligible users)**
+   - Zero setup if you have GitHub Copilot or Continue.dev
+   - Uses VS Code's Language Model API
+   - **Recommended for community/open source users**
+
+2. **Option B: Use Direct API (Your own keys)**
+   - OpenAI, Google Gemini, or xAI Grok
+   - Requires API key but works without subscription
+   - Pay per use
+
+3. **Option C: Use Claude CLI (For Claude Pro subscribers)**
+   - Requires Claude Pro subscription
+   - Install Claude CLI:
+     ```bash
+     npm install -g @anthropic-ai/claude-cli
+     # Or: brew install claude (macOS)
+     ```
 
 ### Installation
 
-1. **Install from VS Code Marketplace**
+> **Note:** This extension is currently in **open source release** for community feedback. Not yet published to VS Code Marketplace.
 
-   ```
-   ext install CraigYappert.multi-agent-chat
-   ```
-
-2. **Or install from VSIX**
-   - Download the latest `.vsix` file from releases
+1. **Download and Install**
+   - Download the latest `.vsix` file from [GitHub Releases](https://github.com/craig-yappert/multi-agent-chat-extension/releases)
    - Install via Command Palette: `Extensions: Install from VSIX...`
+   - Or drag and drop the `.vsix` file into VS Code
 
-3. **Setup API Keys** ✨ NEW in v1.15.1
+2. **Configure Provider** ✨ NEW in v1.16.0
+   - Open VS Code Settings: `multiAgentChat.providerPreference`
+   - Choose your preferred provider:
+     - `auto` (default) - Try free providers first (Copilot → API → CLI)
+     - `vscode-lm` - Use only VS Code Language Models (Copilot, Continue.dev)
+     - `direct-api` - Use only direct HTTP APIs (OpenAI, Google, xAI)
+     - `claude-cli` - Use only Claude CLI
+
+3. **Setup API Keys (if using direct APIs or Claude CLI)** ✨ v1.15.1
    - Use Command Palette: `Ctrl+Shift+P` → `Multi Agent Chat: Manage API Keys`
-   - Enter your Claude API key (get one at [console.anthropic.com](https://console.anthropic.com/))
-   - Optionally enter OpenAI API key
+   - Enter your API key based on your provider choice:
+     - Claude: Get at [console.anthropic.com](https://console.anthropic.com/)
+     - OpenAI: Get at [platform.openai.com](https://platform.openai.com/)
+     - Google: Get at [aistudio.google.com](https://aistudio.google.com/)
+     - xAI: Get at [x.ai](https://x.ai/)
    - Keys are stored **securely** in VS Code's encrypted SecretStorage
+   - **Note:** Skip this step if using GitHub Copilot (Option A)
 
 4. **Open Multi Agent Chat**
    - Press `Ctrl+Shift+C` (or `Cmd+Shift+C` on Mac)
    - Or click the Multi Agent Chat icon in the activity bar
    - Or use Command Palette: `Multi Agent Chat: Open Chat`
+
+### 💬 **We Want Your Feedback!**
+
+This project is in active development and we're seeking community input:
+- What workflows would benefit from multiple AI agents?
+- Which providers should we prioritize?
+- What's missing from current AI coding assistants?
+- How should multi-step tasks be orchestrated?
+
+[Open an issue](https://github.com/craig-yappert/multi-agent-chat-extension/issues) or start a [discussion](https://github.com/craig-yappert/multi-agent-chat-extension/discussions) - we'd love to hear from you!
 
 ---
 
@@ -315,6 +365,33 @@ This project is a fork and extension of [Claude Code Chat](https://github.com/an
 
 ### Enhancements in This Fork
 
+**v1.16.1 (2025-10-02):**
+- Model awareness in agent prompts (agents know which model they're using)
+- Smart initialization system with safe defaults
+- Enhanced project setup commands
+- ConfigurationRegistry integration
+
+**v1.16.0 (2025-10-02):**
+- **Multi-Provider Support** - VS Code LM API, OpenAI, Google, xAI, Claude CLI
+- 3-tier provider architecture with flexible selection
+- Zero API keys needed with GitHub Copilot
+- Community-friendly "auto" mode
+
+**v1.15.2 (2025-10-02):**
+- True multi-agent collaboration with recursive @mention parsing
+- Fixed critical bugs: wrong agent display, ineffective emergency stop
+- Enhanced Unicode support
+
+**v1.15.1 (2025-10-01):**
+- Secure API key management via VS Code SecretStorage
+- Encrypted, OS-level credential storage
+
+**v1.15.0 (2025-10-01):**
+- External model and agent configuration via JSON
+- 28+ models including Claude Sonnet 4.5
+- Project-specific customization
+- No rebuild needed for configuration changes
+
 **v1.13.0 (2025-09-30):**
 - External webview resources (clean separation of HTML/CSS/JS)
 - Inter-agent communication with @mentions
@@ -323,12 +400,18 @@ This project is a fork and extension of [Claude Code Chat](https://github.com/an
 - STOP button for process management
 - Floating window support
 
-**Core Features:**
-- Multi-agent system with specialized AI roles (Architect, Coder, Reviewer, etc.)
-- Team collaboration mode for complex tasks
-- Per-project settings and conversation storage
-- Enhanced agent routing and context management
+**v1.11.0 (2025-09-19):**
+- Per-project settings and conversation storage (`.machat/` folder)
+- Hierarchical settings system
 - Direct Claude CLI integration (MCP removed for simplicity)
+
+**Core Multi-Agent Features:**
+- 7 specialized AI agents (Architect, Coder, Executor, Reviewer, Documenter, Coordinator, Team)
+- Team collaboration mode for complex tasks
+- Enhanced agent routing and context management
+- Agent-specific permissions and capabilities
+
+See [CHANGELOG.md](CHANGELOG.md) for complete version history.
 
 We've significantly evolved from the original foundation while maintaining the core philosophy of providing a great developer experience with AI assistance.
 

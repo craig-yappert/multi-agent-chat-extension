@@ -8,6 +8,7 @@ import { ProviderRegistry } from './providers/ProviderRegistry';
 import { VSCodeLMProvider } from './providers/VSCodeLMProvider';
 import { OpenAIHttpProvider } from './providers/OpenAIHttpProvider';
 import { GoogleHttpProvider } from './providers/GoogleHttpProvider';
+import { OperationParser, OperationExecutor } from './operations';
 
 export interface AIProvider {
 	sendMessage(message: string, agentConfig: AgentConfig, context?: any): Promise<string>;
@@ -21,17 +22,23 @@ export class ClaudeProvider implements AIProvider {
 	private agentManager?: any;
 	private activeProcesses: Set<cp.ChildProcess> = new Set();
 	private configRegistry?: any; // ConfigurationRegistry for model awareness
+	private operationParser?: OperationParser; // Phase 2: Operation parser
+	private operationExecutor?: OperationExecutor; // Phase 2: Operation executor
 
 	constructor(
 		private context: vscode.ExtensionContext,
 		onStreamCallback?: (chunk: string, agentId: string) => void,
 		agentManager?: any,
 		communicationHub?: AgentCommunicationHub,
-		configRegistry?: any
+		configRegistry?: any,
+		operationParser?: OperationParser,
+		operationExecutor?: OperationExecutor
 	) {
 		this.agentManager = agentManager;
 		this.communicationHub = communicationHub;
 		this.configRegistry = configRegistry;
+		this.operationParser = operationParser;
+		this.operationExecutor = operationExecutor;
 		if (agentManager && communicationHub) {
 			this.messageParser = new AgentMessageParser(agentManager, communicationHub);
 			console.log('[ClaudeProvider] AgentMessageParser created successfully');
@@ -140,6 +147,75 @@ You are ${agentConfig.name}, a ${agentConfig.role}. ${agentConfig.description}\n
 
 			roleContext += `\n`;
 		}
+
+		// Add file path protocol for delegation (Phase 1.5)
+		roleContext += `📄 FILE PATH PROTOCOL:\n`;
+		roleContext += `When delegating file creation/modification, ALWAYS specify:\n`;
+		roleContext += `1. Complete file path (e.g., docs/api/agents-api.md, not just "API docs")\n`;
+		roleContext += `2. Brief content description\n`;
+		roleContext += `3. Reason for delegation\n\n`;
+		roleContext += `Good example:\n`;
+		roleContext += `"@documenter please create docs/api/agents-api.md with AgentManager API documentation.\n`;
+		roleContext += `I cannot write user-facing documentation (forbidden for my role)."\n\n`;
+		roleContext += `Bad example:\n`;
+		roleContext += `"@documenter please document this"\n\n`;
+
+		// Add delegation decision matrix (Phase 1.5)
+		roleContext += `🎯 DELEGATION MATRIX (Who does what):\n\n`;
+		roleContext += `File Type → Best Agent:\n`;
+		roleContext += `- Architecture docs (ARCHITECTURE.md, ADR-*.md) → @architect\n`;
+		roleContext += `- User-facing docs (README.md, guides) → @documenter\n`;
+		roleContext += `- Code reviews/analysis (REVIEW-*.md) → @reviewer (or @documenter)\n`;
+		roleContext += `- Technical specs (SPEC-*.md, technical notes) → @coder (or @documenter)\n`;
+		roleContext += `- Project plans (PROJECT-*.md) → @coordinator (or @documenter)\n`;
+		roleContext += `- Execution logs/reports → @executor (or @documenter)\n`;
+		roleContext += `- Code files (*.ts, *.js) → @coder\n`;
+		roleContext += `- Commands/scripts → @executor\n`;
+		roleContext += `- Git operations → @executor\n`;
+		roleContext += `- Package management → @executor\n\n`;
+		roleContext += `When in doubt about documentation: @documenter is the fallback\n\n`;
+
+		// Add operation syntax instructions (Phase 2)
+		roleContext += `🔧 OPERATION SYNTAX (Phase 2 - How to Actually DO Things):\n\n`;
+		roleContext += `⚠️ IMPORTANT: DO NOT use Claude CLI tools (Write, Bash, etc.). Use ONLY these text markers:\n\n`;
+
+		roleContext += `FILE WRITE (create or overwrite file):\n`;
+		roleContext += `[FILE_WRITE: path/to/file.ts]\n`;
+		roleContext += `\`\`\`typescript\n`;
+		roleContext += `// Your code here\n`;
+		roleContext += `\`\`\`\n`;
+		roleContext += `[/FILE_WRITE]\n\n`;
+
+		roleContext += `FILE APPEND (add to existing file):\n`;
+		roleContext += `[FILE_APPEND: path/to/file.ts]\n`;
+		roleContext += `content to append\n`;
+		roleContext += `[/FILE_APPEND]\n\n`;
+
+		roleContext += `FILE DELETE:\n`;
+		roleContext += `[FILE_DELETE: path/to/file.ts]\n\n`;
+
+		roleContext += `COMMAND EXECUTION:\n`;
+		roleContext += `[EXECUTE: npm install]\n`;
+		roleContext += `[EXECUTE: git commit -m "message"]\n`;
+		roleContext += `[EXECUTE: npm test]\n\n`;
+
+		roleContext += `⚠️ CRITICAL - USE THESE MARKERS, NOT CLAUDE CLI TOOLS:\n`;
+		roleContext += `- DO NOT use "Write tool" or "Bash tool" from Claude CLI\n`;
+		roleContext += `- DO NOT just say "I've created the file" - that's hallucination!\n`;
+		roleContext += `- USE ONLY the [FILE_WRITE:...] and [EXECUTE:...] markers above\n`;
+		roleContext += `- Include the markers IN YOUR TEXT RESPONSE\n`;
+		roleContext += `- The extension will parse and execute them\n`;
+		roleContext += `- You will see ✅ success or ❌ error messages replace your markers\n\n`;
+
+		roleContext += `EXAMPLE CORRECT RESPONSE:\n`;
+		roleContext += `"I'll create the file for you.\n`;
+		roleContext += `[FILE_WRITE: test.txt]\n`;
+		roleContext += `Hello World\n`;
+		roleContext += `[/FILE_WRITE]\n`;
+		roleContext += `Done!"\n\n`;
+
+		roleContext += `EXAMPLE WRONG RESPONSE:\n`;
+		roleContext += `"I've created test.txt with 'Hello World'" ← THIS IS HALLUCINATION! File not created!\n\n`;
 
 		// Add inter-agent communication instructions if enabled
 		if (config.get<boolean>('agents.enableInterCommunication', true)) {
@@ -323,6 +399,44 @@ You are ${agentConfig.name}, a ${agentConfig.role}. ${agentConfig.description}\n
 						}
 						if (!interCommEnabled) {
 							console.log('[Inter-Agent Skip] Inter-agent communication disabled in settings');
+						}
+					}
+
+					// Phase 2: Parse and execute operations from agent response
+					if (this.operationParser && this.operationExecutor) {
+						try {
+							const parsed = this.operationParser.parseOperations(result);
+
+							if (parsed.operations.length > 0) {
+								console.log(`[Phase2] Found ${parsed.operations.length} operations in ${agentConfig.id} response`);
+
+								// Execute each operation
+								const operationResults = new Map();
+								for (const operation of parsed.operations) {
+									const opResult = await this.operationExecutor.executeOperation(
+										operation,
+										agentConfig.id,
+										context?.sessionId
+									);
+
+									// Create result message
+									operationResults.set(operation, opResult.message);
+
+									// Log to console for visibility
+									console.log(`[Phase2] ${opResult.message}`);
+								}
+
+								// Replace operation markers with results
+								result = this.operationParser.replaceOperationMarkers(
+									result,
+									parsed.operations,
+									operationResults
+								);
+							}
+						} catch (error: any) {
+							console.error('[Phase2] Operation execution error:', error);
+							// Don't fail the entire request, just log the error
+							result += `\n\n⚠️ Operation execution error: ${error.message}`;
 						}
 					}
 
@@ -523,13 +637,23 @@ export class ProviderManager {
 		agentManager?: any,
 		communicationHub?: AgentCommunicationHub,
 		onStreamCallback?: (chunk: string, agentId: string) => void,
-		configRegistry?: any
+		configRegistry?: any,
+		operationParser?: OperationParser,
+		operationExecutor?: OperationExecutor
 	) {
 		this.context = context;
 		this.configRegistry = configRegistry;
 
-		// Keep legacy providers for backward compatibility
-		this.claudeProvider = new ClaudeProvider(context, onStreamCallback, agentManager, communicationHub, configRegistry);
+		// Keep legacy providers for backward compatibility (Phase 2: add parser/executor)
+		this.claudeProvider = new ClaudeProvider(
+			context,
+			onStreamCallback,
+			agentManager,
+			communicationHub,
+			configRegistry,
+			operationParser,
+			operationExecutor
+		);
 		this.openaiProvider = new OpenAIProvider(this.claudeProvider);
 		this.communicationHub = communicationHub;
 		this.multiProvider = new MultiProvider(

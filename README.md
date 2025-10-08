@@ -12,6 +12,42 @@ Transform your development workflow with Multi Agent Chat - a VS Code extension 
 
 ---
 
+## 🆕 **What's New in v1.16.1**
+
+**Latest Updates (October 2025):**
+
+✨ **Phase 2: Agents Can Actually Do Things!**
+- **Operation Execution System** - Agents can now execute file operations and commands
+- **Permission Enforcement** - Agent-specific permissions with workspace boundary checks
+- **Operation Logging** - Complete audit trail of all operations
+- **Security Fix** - Fixed HIGH severity path traversal vulnerability
+
+🔐 **Enhanced Security:**
+- Path resolution happens BEFORE permission checks (prevents directory traversal)
+- Workspace boundary validation prevents access outside project
+- Encrypted API key storage via VS Code SecretStorage
+- Comprehensive operation logging for audit compliance
+
+🎯 **Improved Developer Experience:**
+- Model awareness in agent prompts (agents know their capabilities)
+- Smart initialization (never overwrites existing configs)
+- "Update from Defaults" command for syncing with latest configs
+- JSON-based configuration (no rebuild needed)
+
+🌍 **Community-Friendly:**
+- **Works with free GitHub Copilot!** (zero API keys needed)
+- Multi-provider support (OpenAI, Google Gemini, xAI, Claude CLI)
+- "auto" mode tries free providers first
+
+📚 **Better Documentation:**
+- Reorganized into `docs/architecture/` and `docs/guides/`
+- Updated for v1.16.1 with all latest features
+- Clear learning paths and examples
+
+See full version history in [CHANGELOG.md](CHANGELOG.md) and [docs/architecture/ARCHITECTURE_DIAGRAM.md](docs/architecture/ARCHITECTURE_DIAGRAM.md).
+
+---
+
 ## ✨ **Why Multi Agent Chat?**
 
 🤝 **Specialized AI Team** - Seven expert agents, each focused on their domain
@@ -121,6 +157,24 @@ Your project management specialist who:
 - Shared context between agents
 - Per-project conversation storage (`.machat/` folder)
 
+### 🔐 **Security & Operations** ✨ Phase 2
+
+**Agents Can Actually Execute Operations:**
+- **File Operations** - Create, read, update, delete files with proper validation
+- **Command Execution** - Run shell commands, builds, tests, deployments
+- **Git Operations** - Commit, push, branch management (with permission checks)
+- **Operation Markers** - Agents use `[FILE_WRITE: path]...[/FILE_WRITE]` syntax
+- **Real Execution** - No more hallucinations - operations actually happen!
+
+**Security Features:**
+- **Permission Enforcement** - Agent-specific permissions per operation type
+- **Workspace Boundary** - Operations restricted to workspace (prevents path traversal)
+- **Path Validation** - All paths resolved and validated BEFORE execution
+- **Operation Logging** - Complete audit trail in VS Code workspaceState
+- **Encrypted Keys** - API keys stored in OS-level encrypted storage
+
+See [docs/proposals/PHASE_2_STATE_AND_ORCHESTRATION_CHALLENGE.md](docs/proposals/PHASE_2_STATE_AND_ORCHESTRATION_CHALLENGE.md) for implementation details.
+
 ### ⚙️ **Advanced Configuration**
 
 **Model Configuration** ✨ v1.15.0
@@ -128,7 +182,7 @@ Your project management specialist who:
 - 28+ models including Claude Sonnet 4.5 (v1.16.1 model awareness)
 - Add/remove models without rebuilding extension
 - Project-specific model lists
-- Commands: `Open Models Configuration`, `Reset Models to Defaults`
+- Commands: `Open Models Configuration`, `Reset Models to Defaults`, `Update from Defaults`
 
 **Agent Configuration** ✨ v1.15.0
 - Customize agents in `.machat/agents.json`
@@ -140,7 +194,7 @@ Your project management specialist who:
 - Add custom agents (e.g., "Data Analyst", "Security Expert")
 - Disable agents not needed for your project
 - Smart merging with defaults
-- Commands: `Open Agents Configuration`, `Reset Agents to Defaults`
+- Commands: `Open Agents Configuration`, `Reset Agents to Defaults`, `Update from Defaults`
 
 **Provider Configuration** ✨ v1.16.0
 - Choose provider preference: `multiAgentChat.providerPreference`
@@ -148,7 +202,7 @@ Your project management specialist who:
   - `vscode-lm` - Only VS Code Language Models
   - `direct-api` - Only direct HTTP APIs
   - `claude-cli` - Only Claude CLI
-- See [docs/USER_GUIDE_PROVIDERS.md](docs/USER_GUIDE_PROVIDERS.md) for detailed setup
+- See [docs/guides/USER_GUIDE_PROVIDERS.md](docs/guides/USER_GUIDE_PROVIDERS.md) for detailed setup
 
 **Other Settings**
 - Hierarchical settings: Global → Project → Workspace
@@ -365,11 +419,18 @@ This project is a fork and extension of [Claude Code Chat](https://github.com/an
 
 ### Enhancements in This Fork
 
-**v1.16.1 (2025-10-02):**
+**v1.16.1 (2025-10-07):**
+- **Security Fix** - Fixed HIGH severity path traversal vulnerability in OperationExecutor
 - Model awareness in agent prompts (agents know which model they're using)
 - Smart initialization system with safe defaults
 - Enhanced project setup commands
 - ConfigurationRegistry integration
+
+**Phase 2 (2025-10-06):**
+- **Operation Execution System** - Agents can execute file operations and commands
+- **Permission Enforcement** - Agent-specific permissions with workspace boundary checks
+- **Operation Logging** - Complete audit trail of all operations
+- Path resolution before permission checks (security-first approach)
 
 **v1.16.0 (2025-10-02):**
 - **Multi-Provider Support** - VS Code LM API, OpenAI, Google, xAI, Claude CLI
@@ -382,7 +443,7 @@ This project is a fork and extension of [Claude Code Chat](https://github.com/an
 - Fixed critical bugs: wrong agent display, ineffective emergency stop
 - Enhanced Unicode support
 
-**v1.15.1 (2025-10-01):**
+**v1.15.1 (2025-10-02):**
 - Secure API key management via VS Code SecretStorage
 - Encrypted, OS-level credential storage
 
@@ -404,6 +465,11 @@ This project is a fork and extension of [Claude Code Chat](https://github.com/an
 - Per-project settings and conversation storage (`.machat/` folder)
 - Hierarchical settings system
 - Direct Claude CLI integration (MCP removed for simplicity)
+
+**Phase 1 (2025-09-18):**
+- **Permission System Foundation** - Agent-specific permissions and soft enforcement
+- Permission policies (Allow, Deny, Prompt, YOLO mode)
+- Path-based restrictions for file operations
 
 **Core Multi-Agent Features:**
 - 7 specialized AI agents (Architect, Coder, Executor, Reviewer, Documenter, Coordinator, Team)
